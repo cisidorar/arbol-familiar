@@ -1,0 +1,48 @@
+{
+  "name": "arbol-familiar",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "test": "vitest run",
+    "db:migrate": "tsx scripts/migrate.ts",
+    "db:import": "tsx scripts/import-gedcom.ts",
+    "db:normalize-places": "tsx scripts/normalize-places.ts",
+    "db:normalize-cemeteries": "tsx scripts/normalize-cemeteries.ts",
+    "db:seed-pendientes": "tsx scripts/seed-pendientes.ts",
+    "db:cargar-zamora": "tsx scripts/cargar-zamora.ts",
+    "db:cargar-zamora-2": "tsx scripts/cargar-zamora-2.ts",
+    "db:cargar-canelo": "tsx scripts/cargar-canelo.ts",
+    "db:cargar-valencia": "tsx scripts/cargar-valencia.ts",
+    "db:quitar-hijos-digna": "tsx scripts/quitar-hijos-de-digna.ts",
+    "db:fechas-isidora": "tsx scripts/fechas-hijos-isidora.ts",
+    "db:export": "tsx scripts/export-completo.ts",
+    "db:a-supabase": "tsx scripts/migrar-a-supabase.ts",
+    "investigacion": "tsx scripts/investigacion.ts",
+    "usuario": "tsx scripts/usuarios.ts"
+  },
+  "dependencies": {
+    "dotenv": "^18.0.5",
+    "family-chart": "^0.9.0",
+    "next": "16.3.8",
+    "pg": "^8.23.1",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/pg": "^8.23.1",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.8",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.15",
+    "typescript": "^5",
+    "vitest": "^2.1.9"
+  }
+}

@@ -1,0 +1,389 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* ============================================================
+   Árbol (family-chart)
+   Tarjetas estilo "ficha": fondo con tinte suave según género, barra
+   de acento a la izquierda, avatar blanco con silueta y nombre en negro.
+
+   OJO con los selectores: el CSS de family-chart se carga DESPUÉS de este
+   archivo y usa los mismos selectores (`.f3 div.card-rect`, etc.), así
+   que con igual especificidad gana el suyo (texto blanco, flex en
+   columna, radio de 3px...). Por eso todo acá parte con `div.f3`: un
+   elemento más de especificidad y ganamos sin depender del orden de carga
+   ni llenar de !important.
+   ============================================================ */
+
+div.f3 {
+  /* color = acento (barra izquierda + silueta), border = contorno fino,
+     bg = relleno de la tarjeta */
+  --male-color: #3f7fcb;
+  --male-border: #a3c4ea;
+  --male-bg: #dfeaf8;
+  --female-color: #c44f72;
+  --female-border: #ecb3c3;
+  --female-bg: #fbe6ec;
+  --genderless-color: #8a97a8;
+  --genderless-border: #cbd3dd;
+  --genderless-bg: #f1f4f8;
+  --text-color: #111111;
+  --text-muted: #4a5468;
+}
+
+/* Tarjeta: avatar a la izquierda, nombre y fecha a la derecha, en grilla
+   para no necesitar un contenedor extra que la librería no genera. */
+div.f3 div.card-rect {
+  --accent: var(--genderless-color);
+  --edge: var(--genderless-border);
+  --fill: var(--genderless-bg);
+  --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a97a8'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8'/%3E%3C/svg%3E");
+
+  position: relative;
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  column-gap: 12px;
+  align-content: center;
+  justify-content: normal;
+  text-align: center;
+  padding: 10px 14px 10px 10px;
+  background: var(--fill);
+  border: 1.5px solid var(--edge);
+  border-left: 6px solid var(--accent);
+  border-radius: 10px;
+  box-shadow:
+    0 1px 2px rgba(30, 42, 68, 0.06),
+    0 6px 14px rgba(30, 42, 68, 0.1);
+  transition: box-shadow 0.2s ease-in-out, transform 0.2s ease-in-out;
+}
+
+/* (se repite el background por género porque la librería pinta
+   `.card-<género> .card-inner` con su color pleno) */
+div.f3 div.card-genderless .card-inner.card-rect {
+  background: var(--fill);
+}
+
+div.f3 div.card-male .card-inner.card-rect {
+  --accent: var(--male-color);
+  --edge: var(--male-border);
+  --fill: var(--male-bg);
+  --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233f7fcb'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8'/%3E%3C/svg%3E");
+  background: var(--fill);
+}
+
+div.f3 div.card-female .card-inner.card-rect {
+  --accent: var(--female-color);
+  --edge: var(--female-border);
+  --fill: var(--female-bg);
+  --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23c44f72'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8'/%3E%3C/svg%3E");
+  background: var(--fill);
+}
+
+/* Murió siendo niño/a: silueta infantil (cabeza más grande que la de
+   adulto) en vez de la de adulto, mismo color según género. La de niña
+   lleva dos chapes/moños a los lados de la cabeza (como un avatar de perfil
+   de niña) para que se note que es niña, no un vestido ni solo un adulto
+   más chico. Selector más específico que los de arriba (.card-child se
+   suma a .card-male/.card-female) para que gane sin depender del orden de
+   las reglas. */
+div.f3 div.card-male.card-child .card-inner.card-rect {
+  --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233f7fcb'%3E%3Ccircle cx='12' cy='8' r='5'/%3E%3Cpath d='M8 20c0-2.8 1.8-5 4-5s4 2.2 4 5z'/%3E%3C/svg%3E");
+}
+
+div.f3 div.card-female.card-child .card-inner.card-rect {
+  --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23c44f72'%3E%3Ccircle cx='7.3' cy='8.3' r='1.9'/%3E%3Ccircle cx='16.7' cy='8.3' r='1.9'/%3E%3Ccircle cx='12' cy='8' r='4.3'/%3E%3Cpath d='M8 20c0-2.8 1.8-5 4-5s4 2.2 4 5z'/%3E%3C/svg%3E");
+}
+
+/* Avatar: círculo blanco con silueta del color de acento (sin fotos por
+   ahora, fase 0 pendiente: los enlaces de MyHeritage ya vencieron). */
+div.f3 div.card-rect::before {
+  content: "";
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  align-self: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #ffffff var(--icon) center / 24px 24px no-repeat;
+  box-shadow:
+    0 0 0 1px rgba(30, 42, 68, 0.05),
+    0 1px 3px rgba(30, 42, 68, 0.14);
+}
+
+/* Nombre */
+div.f3 div.card-rect > div:nth-of-type(1) {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: end;
+  font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  color: var(--text-color);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Fecha (o † si falleció sin fecha conocida) */
+div.f3 div.card-rect > div:nth-of-type(2) {
+  grid-column: 2;
+  grid-row: 2;
+  align-self: start;
+  margin-top: 2px;
+  font-size: 11.5px;
+  line-height: 1.3;
+  color: var(--text-muted);
+}
+
+/* Hover: la librería ya levanta la tarjeta 2px; acá solo cambiamos su
+   halo negro (pensado para fondo oscuro) por una sombra suave. */
+div.f3 div.card:hover .card-inner {
+  box-shadow:
+    0 2px 4px rgba(30, 42, 68, 0.08),
+    0 10px 20px rgba(30, 42, 68, 0.14);
+}
+
+/* Tronco del árbol: anillo del color de acento de la propia tarjeta. */
+div.f3 div.card-main .card-inner,
+div.f3 div.card-main:hover .card-inner {
+  outline: none;
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--accent) 38%, transparent),
+    0 6px 16px rgba(30, 42, 68, 0.16);
+}
+
+/* Líneas de conexión: la librería las dibuja blancas (pensadas para fondo
+   oscuro), por lo que eran casi invisibles acá. El trazo de cada línea es
+   una curva con puntos repetidos para forzar un codo en ángulo recto; sin
+   "round" ese codo se ve como un vértice filoso, casi como si fueran dos
+   líneas distintas que se cruzan en vez de una sola doblando. */
+div.f3 path.link {
+  stroke: #a3b0c2 !important;
+  stroke-width: 2px;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+div.f3 path.link.f3-path-to-main {
+  stroke: #5b6b85 !important;
+  stroke-width: 3px;
+}
+
+/* Control de "más familia" de una tarjeta. Es un botón: abre esa rama ahí
+   mismo o, si no se puede dibujar desde este árbol, lo centra en la persona.
+   FamilyTree.tsx le pone `data-dir` según lo que va a pasar:
+
+   - up / down / left / right: una flecha en un círculo, del lado de la
+     tarjeta por donde va a aparecer la familia (arriba los padres, abajo los
+     hijos, al costado los hermanos o la pareja).
+   - recenter: el ícono de arbolito de la librería, en la esquina, porque no
+     abre nada en el lugar: cambia de árbol. Sus líneas vienen blancas
+     (pensadas para fondo oscuro). */
+div.f3 div.mini-tree {
+  cursor: pointer;
+  z-index: 2;
+}
+
+div.f3 div.mini-tree[data-dir="recenter"] {
+  top: -17px;
+}
+
+div.f3 div.mini-tree[data-dir="recenter"] svg {
+  width: 62px;
+}
+
+div.f3 div.mini-tree rect.card-male,
+div.f3 div.mini-tree rect.card-female {
+  fill: #b4bcc8 !important;
+  transition: fill 0.15s ease-in-out;
+}
+
+div.f3 div.mini-tree line {
+  stroke: #b4bcc8;
+  stroke-width: 1.5px;
+  transition: stroke 0.15s ease-in-out;
+}
+
+div.f3 div.mini-tree:hover rect.card-male,
+div.f3 div.mini-tree:hover rect.card-female {
+  fill: #5b6b85 !important;
+}
+
+div.f3 div.mini-tree:hover line {
+  stroke: #5b6b85;
+}
+
+div.f3 div.mini-tree:is([data-dir="up"], [data-dir="down"], [data-dir="left"], [data-dir="right"]) {
+  --arrow: #5b6b85;
+  box-sizing: border-box;
+  width: 26px;
+  height: 26px;
+  right: auto;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid #b4bcc8;
+  border-radius: 9999px;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.08);
+  transition:
+    background-color 0.15s ease-in-out,
+    border-color 0.15s ease-in-out;
+}
+
+div.f3 div.mini-tree:is([data-dir="up"], [data-dir="down"], [data-dir="left"], [data-dir="right"]) svg {
+  display: none;
+}
+
+/* La flecha: dos bordes de un cuadradito girado. */
+div.f3 div.mini-tree:is([data-dir="up"], [data-dir="down"], [data-dir="left"], [data-dir="right"])::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-top: 2px solid var(--arrow);
+  border-left: 2px solid var(--arrow);
+  border-radius: 1px;
+}
+
+div.f3 div.mini-tree:is([data-dir="up"], [data-dir="down"], [data-dir="left"], [data-dir="right"]):hover {
+  --arrow: #ffffff;
+  background: #5b6b85;
+  border-color: #5b6b85;
+}
+
+div.f3 div.mini-tree[data-dir="up"] {
+  top: -32px;
+  left: calc(50% - 13px);
+}
+div.f3 div.mini-tree[data-dir="up"]::before {
+  transform: translateY(2px) rotate(45deg);
+}
+
+div.f3 div.mini-tree[data-dir="down"] {
+  top: auto;
+  bottom: -32px;
+  left: calc(50% - 13px);
+}
+div.f3 div.mini-tree[data-dir="down"]::before {
+  transform: translateY(-2px) rotate(225deg);
+}
+
+div.f3 div.mini-tree[data-dir="left"] {
+  top: calc(50% - 13px);
+  left: -32px;
+}
+div.f3 div.mini-tree[data-dir="left"]::before {
+  transform: translateX(2px) rotate(-45deg);
+}
+
+div.f3 div.mini-tree[data-dir="right"] {
+  top: calc(50% - 13px);
+  left: calc(100% + 6px);
+}
+div.f3 div.mini-tree[data-dir="right"]::before {
+  transform: translateX(-2px) rotate(135deg);
+}
+
+/* El "+" de una tarjeta: agregarle un hijo, hermano, padre o pareja (solo lo
+   ve quien puede editar). En la esquina, discreto hasta que se pasa el
+   cursor por la tarjeta. La cruz son dos barras, para que quede centrada
+   sin depender de la letra. */
+div.f3 div.card-add {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  z-index: 2;
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  background:
+    linear-gradient(#5b6b85, #5b6b85) center / 10px 2px no-repeat,
+    linear-gradient(#5b6b85, #5b6b85) center / 2px 10px no-repeat,
+    rgb(255 255 255 / 0.75);
+  box-shadow: 0 0 0 1px rgb(91 107 133 / 0.25);
+  cursor: pointer;
+  opacity: 0.55;
+  transition:
+    opacity 0.15s ease-in-out,
+    box-shadow 0.15s ease-in-out;
+}
+
+div.f3 div.card:hover div.card-add {
+  opacity: 1;
+}
+
+div.f3 div.card-add:hover {
+  background:
+    linear-gradient(#ffffff, #ffffff) center / 10px 2px no-repeat,
+    linear-gradient(#ffffff, #ffffff) center / 2px 10px no-repeat,
+    #5b6b85;
+  box-shadow: 0 0 0 1px #5b6b85;
+}
+
+/* "Comprimir": vuelve a ocultar a los hermanos que se desplegaron al lado de
+   esta tarjeta. Va del lado donde están, con la flecha apuntando hacia la
+   tarjeta (hacia donde se pliegan). */
+div.f3 div.card-collapse {
+  position: absolute;
+  top: calc(50% - 11px);
+  z-index: 3;
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  background: #5b6b85;
+  box-shadow: 0 0 0 1px #5b6b85;
+  cursor: pointer;
+  opacity: 0.9;
+  transition: opacity 0.15s ease-in-out, background 0.15s ease-in-out;
+}
+div.f3 div.card-collapse[data-side="right"] {
+  left: calc(100% + 6px);
+}
+div.f3 div.card-collapse[data-side="left"] {
+  right: calc(100% + 6px);
+}
+div.f3 div.card-collapse::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  border-top: 2px solid #fff;
+  border-left: 2px solid #fff;
+}
+/* Hermanos a la derecha: la flecha apunta a la izquierda, y al revés. */
+div.f3 div.card-collapse[data-side="right"]::before {
+  transform: translate(-30%, -50%) rotate(-45deg);
+}
+div.f3 div.card-collapse[data-side="left"]::before {
+  transform: translate(-70%, -50%) rotate(135deg);
+}
+div.f3 div.card-collapse:hover {
+  opacity: 1;
+  background: #3f4c63;
+}
