@@ -50,3 +50,4 @@ next-env.d.ts
 /_to_delete/
 q.js
 .q1-tmp.mts
+*.bak
