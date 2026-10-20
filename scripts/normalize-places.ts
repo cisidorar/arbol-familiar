@@ -35,8 +35,9 @@ const FIXES: Record<string, PlaceFix> = {
   // — Lugares nuevos del 9 oct 2026 —
   "agricultor": { normalized: "Agricultor", review: "es un oficio, no un lugar: conviene pasarlo al detalle del hecho" },
   "obrero agricultor": { normalized: "Obrero agricultor", review: "es un oficio, no un lugar: conviene pasarlo al detalle del hecho" },
+  // "Cementerios Buin" es otro nombre de la Fundación Cementerio Parroquial de Buin (confirmado 10 oct 2026).
   "cementerio buin": {
-    normalized: "Cementerio de Buin, Chile",
+    normalized: "Cementerio Parroquial de Buin, Chile",
     locality: "Buin", admin1: "Región Metropolitana", country: "Chile",
   },
   "cerca del parque bustamante, santiago": {
@@ -108,18 +109,17 @@ const FIXES: Record<string, PlaceFix> = {
     locality: "Viña del Mar", admin1: "Valparaíso", country: "Chile",
   },
   "cementerio catolico santiago": {
-    normalized: "Cementerio Católico, Santiago, Chile",
-    locality: "Santiago", admin1: "Región Metropolitana", country: "Chile",
-    review: "¿es el mismo lugar físico que \"Cementerio General de Santiago\" (cambió de nombre en 1883) o un cementerio distinto? Si es el mismo, dime y les pongo el mismo normalized.",
+    normalized: "Cementerio Católico, Recoleta, Chile",
+    locality: "Recoleta", admin1: "Región Metropolitana", country: "Chile",
   },
   "cementerio general de santiago": {
-    normalized: "Cementerio General, Santiago, Chile",
-    locality: "Santiago", admin1: "Región Metropolitana", country: "Chile",
+    normalized: "Cementerio General, Recoleta, Chile",
+    locality: "Recoleta", admin1: "Región Metropolitana", country: "Chile",
   },
   "cementerio metropolitano": {
-    normalized: "Cementerio Metropolitano, Santiago, Chile",
-    locality: "Santiago", admin1: "Región Metropolitana", country: "Chile",
-    review: "asumí Santiago (La Pintana) por ser el más conocido con ese nombre — confirmar",
+    normalized: "Cementerio Metropolitano, Lo Espejo, Chile",
+    locality: "Lo Espejo", admin1: "Región Metropolitana", country: "Chile",
+    review: "José Joaquín Prieto Vial 8521, Lo Espejo (sitio oficial del cementerio)",
   },
   "cementerio municipal curico": {
     normalized: "Cementerio Municipal, Curicó, Chile",
@@ -130,8 +130,9 @@ const FIXES: Record<string, PlaceFix> = {
     locality: "Paine", admin1: "Región Metropolitana", country: "Chile",
   },
   "cementerio general": {
-    normalized: "Cementerio General",
-    review: "sin ciudad — ¿es el de Santiago, o el de otra comuna (Curicó, Buin)? Junta las filas \"Cementerio general\" y \"cementerio general\" (ya comparten esta entrada).",
+    normalized: "Cementerio General, Recoleta, Chile",
+    locality: "Recoleta", admin1: "Región Metropolitana", country: "Chile",
+    review: "confirmado por la familia: es el Cementerio General de Santiago (Recoleta)",
   },
   "cementerio parroquian de buin": {
     normalized: "Cementerio Parroquial de Buin, Chile",
@@ -172,14 +173,14 @@ const FIXES: Record<string, PlaceFix> = {
   "culitrín": { normalized: "Culitrín, Paine, Chile", locality: "Paine", admin1: "Región Metropolitana", country: "Chile" },
   "curico": { normalized: "Curicó, Chile", locality: "Curicó", admin1: "Maule", country: "Chile" },
   "el almendral": {
-    normalized: "El Almendral, Valparaíso, Chile",
-    locality: "Valparaíso", admin1: "Valparaíso", country: "Chile",
-    review: "asumí el barrio histórico de Valparaíso — confirmar",
+    normalized: "Parque Cementerio El Almendral, San Felipe, Chile",
+    locality: "San Felipe", admin1: "Valparaíso", country: "Chile",
+    review: "es el Parque Cementerio El Almendral de San Felipe (La Troya / El Convento), no el barrio de Valparaíso — confirmado por la familia",
   },
   "el almendral/cruz 158/patio 8": {
-    normalized: "El Almendral, Valparaíso, Chile (cruz 158, patio 8)",
-    locality: "Valparaíso", admin1: "Valparaíso", country: "Chile",
-    review: "mismo lugar que \"El Almendral\" con el detalle de la tumba — confirmar",
+    normalized: "Parque Cementerio El Almendral, San Felipe, Chile",
+    locality: "San Felipe", admin1: "Valparaíso", country: "Chile",
+    review: "mismo cementerio, con el detalle de la tumba (cruz 158, patio 8)",
   },
   "escorial": {
     normalized: "El Escorial, Paine, Chile",
@@ -231,9 +232,9 @@ const FIXES: Record<string, PlaceFix> = {
     review: "¿es el cementerio \"Parque del Recuerdo\" u otro con ese nombre? confirmar nombre exacto",
   },
   "parque del recuerdo": {
-    normalized: "Parque del Recuerdo, Chile",
-    country: "Chile",
-    review: "la cadena Parque del Recuerdo tiene varias sedes — ¿cuál?",
+    normalized: "Parque del Recuerdo, Huechuraba, Chile",
+    locality: "Huechuraba", admin1: "Región Metropolitana", country: "Chile",
+    review: "sede de Santiago (Huechuraba); la cadena tiene otras sedes — confirmado por la familia que es la de Santiago",
   },
   "parroquial de buin": {
     normalized: "Parroquia de Buin, Chile",

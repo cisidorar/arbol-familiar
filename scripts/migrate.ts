@@ -5,11 +5,15 @@
  *
  * Uso: npm run db:migrate
  */
-import "dotenv/config";
+import dotenv from "dotenv";
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { Pool } from "pg";
 import { pgConfig } from "../src/lib/db/config";
+
+// La conexión (Supabase) está en .env.local; .env va después y no pisa lo ya leído.
+dotenv.config({ path: ".env.local" });
+dotenv.config();
 
 async function main() {
   const dir = path.join(process.cwd(), "db", "migrations");
