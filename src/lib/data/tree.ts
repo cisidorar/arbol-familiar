@@ -1,3 +1,6 @@
+import { viewerCanReview } from "./review";
+import { COMUNAS } from "../geo/places";
+import { REGION_NAMES } from "../geo/regions-light";
 import { getPool } from "../db/pool";
 import { approxAgeAtDeath, dateForEditing, diedAsChild, researchFactForm } from "../edit";
 import { applyResearch } from "../research";
@@ -30,8 +33,11 @@ function yearOf(dateFrom: string | Date | null): number | null {
 export async function getFamilyChartData(treeId: string) {
   // Fase 2: no mostramos fotos todavía (los enlaces de MyHeritage están vencidos
   // y no hay un endpoint que las sirva), así que ni siquiera consultamos el avatar.
+  const showReview = await viewerCanReview();
   const { rows: persons } = await getPool().query(
     `select p.id, p.sex, p.is_living,
+            exists (select 1 from events x where x.needs_review and (x.person_id = p.id
+              or x.family_id in (select f2.id from families f2 where f2.partner1_id = p.id or f2.partner2_id = p.id))) as needs_review,
             n.given_names, n.surname_pat, n.surname_mat, n.display_name,
             (select date_from from events e where e.person_id = p.id and e.event_type = 'BIRT' order by e.date_from nulls last, e.id limit 1) as birth_from,
             (select date_from from events e where e.person_id = p.id and e.event_type = 'DEAT' order by e.date_from nulls last, e.id limit 1) as death_from,
@@ -60,7 +66,7 @@ export async function getFamilyChartData(treeId: string) {
     [treeId],
   );
   const marrYear = new Map<string, number | null>(marriages.map((r) => [r.family_id as string, yearOf(r.d)]));
-  const cards = new Map(persons.map((p) => [p.id as string, cardData(p)]));
+  const cards = new Map(persons.map((p) => [p.id as string, cardData(p, showReview)]));
   const yearOfPerson = (id: string) => {
     const d = cards.get(id);
     return d ? (d.birth_year ?? d.est_birth_year ?? null) : null;
@@ -111,6 +117,7 @@ export async function getFamilyChartData(treeId: string) {
 function cardData(p: {
   sex: string | null;
   is_living: boolean;
+  needs_review?: boolean;
   given_names: string | null;
   surname_pat: string | null;
   surname_mat: string | null;
@@ -118,7 +125,7 @@ function cardData(p: {
   birth_from: string | Date | null;
   death_from: string | Date | null;
   death_text: string | null;
-}) {
+}, showReview = false) {
   const birthYear = yearOf(p.birth_from);
   const deathYear = yearOf(p.death_from);
   return {
@@ -137,6 +144,8 @@ function cardData(p: {
     })(),
     death_year: deathYear,
     is_living: p.is_living,
+    // Hay un documento por revisar (marca que se prende en la ficha): se señala en la tarjeta.
+    needs_review: showReview && Boolean(p.needs_review),
     // Murió siendo niño/a: silueta infantil en la tarjeta. Se calcula por año
     // (no siempre hay día y mes), así que es aproximado; sin nacimiento
     // conocido, por la edad aproximada anotada en su defunción.
@@ -146,8 +155,11 @@ function cardData(p: {
 
 /** La tarjeta de una sola persona, para refrescarla en el árbol después de editarla. */
 export async function getPersonCard(treeId: string, personId: string) {
+  const showReview = await viewerCanReview();
   const { rows } = await getPool().query(
     `select p.id, p.sex, p.is_living,
+            exists (select 1 from events x where x.needs_review and (x.person_id = p.id
+              or x.family_id in (select f2.id from families f2 where f2.partner1_id = p.id or f2.partner2_id = p.id))) as needs_review,
             n.given_names, n.surname_pat, n.surname_mat, n.display_name,
             (select date_from from events e where e.person_id = p.id and e.event_type = 'BIRT' order by e.date_from nulls last, e.id limit 1) as birth_from,
             (select date_from from events e where e.person_id = p.id and e.event_type = 'DEAT' order by e.date_from nulls last, e.id limit 1) as death_from,
@@ -157,7 +169,7 @@ export async function getPersonCard(treeId: string, personId: string) {
      where p.tree_id = $1 and p.id = $2`,
     [treeId, personId],
   );
-  return rows[0] ? cardData(rows[0]) : null;
+  return rows[0] ? cardData(rows[0], showReview) : null;
 }
 
 export async function searchPersons(treeId: string, query: string) {
@@ -202,7 +214,38 @@ async function hiddenResearchKeys(personId: string): Promise<Set<string>> {
   }
 }
 
+const REGION_LABEL: Record<string, string> = {
+  "01": "Región de Tarapacá", "02": "Región de Antofagasta", "03": "Región de Atacama", "04": "Región de Coquimbo",
+  "05": "Región de Valparaíso", "06": "Región de O'Higgins", "07": "Región del Maule", "08": "Región del Biobío",
+  "09": "Región de La Araucanía", "10": "Región de Los Lagos", "11": "Región de Aysén", "12": "Región de Magallanes",
+  "13": "Región Metropolitana", "14": "Región de Los Ríos", "15": "Región de Arica y Parinacota", "16": "Región de Ñuble",
+};
+/** El lugar partido en nombre / comuna / región, para mostrarlo ordenado. */
+function placeInfoOf(raw: string | null, normalized: string | null, comunaCode: string | null, regionCode: string | null) {
+  const text = (normalized ?? raw ?? "").trim();
+  if (!text) return null;
+  const comuna = comunaCode ? COMUNAS.find((c) => c[0] === comunaCode) ?? null : null;
+  let name = text.replace(/,\s*Chile$/i, "").trim();
+  if (comuna && name.toLowerCase().endsWith(`, ${comuna[1].toLowerCase()}`)) name = name.slice(0, -(comuna[1].length + 2)).trim();
+  const rc = regionCode ?? comuna?.[2] ?? null;
+  const rn = rc ? REGION_NAMES.find((r) => r[0] === rc)?.[1] ?? null : null;
+  return { name, comuna: comuna?.[1] ?? null, region: rn ? REGION_LABEL[rc!] ?? `Región de ${rn}` : null };
+}
+
+/**
+ * El lugar como se muestra en la línea de vida: "Lugar, Comuna, Región" (sin repetir la comuna si el lugar ya es ella).
+ * Si no se conoce la comuna, el texto limpio tal como está.
+ */
+function shownPlace(raw: string | null, normalized: string | null, comunaCode: string | null, regionCode: string | null): string | null {
+  const info = placeInfoOf(raw, normalized, comunaCode, regionCode);
+  if (!info) return null;
+  if (!info.comuna) return info.name || null;
+  const parts = [info.name, info.comuna, info.region].filter((x): x is string => Boolean(x));
+  return parts.filter((x, i) => parts.findIndex((y) => y.toLowerCase() === x.toLowerCase()) === i).join(", ");
+}
+
 export async function getPersonDetail(treeId: string, personId: string) {
+  const showReview = await viewerCanReview();
   const { rows: personRows } = await getPool().query(
     `select p.*, n.display_name, n.given_names, n.surname_pat, n.surname_mat
      from persons p
@@ -214,10 +257,11 @@ export async function getPersonDetail(treeId: string, personId: string) {
   if (!person) return null;
 
   const { rows: ownEvents } = await getPool().query(
-    `select e.id, e.event_type, e.event_subtype, e.date_text, e.description, e.origin,
+    `select e.id, e.event_type, e.event_subtype, e.date_text, e.description, e.origin, e.needs_review, e.review_kind, e.review_note,
             to_char(e.date_from, 'YYYY-MM-DD') as date_from,
             to_char(e.date_to, 'YYYY-MM-DD') as date_to,
-            pl.raw_text as place_text
+            pl.raw_text as place_text, pl.normalized as place_normalized,
+            pl.comuna_code as place_comuna, pl.region_code as place_region
      from events e
      left join places pl on pl.id = e.place_id
      where e.person_id = $1
@@ -270,14 +314,23 @@ export async function getPersonDetail(treeId: string, personId: string) {
   );
 
   const { rows: families } = await getPool().query(
-    `select f.id, f.partner1_id, f.partner2_id,
+    `select f.id, f.partner1_id, f.partner2_id, f.union_type,
             n1.display_name as partner1_name, n2.display_name as partner2_name,
             p1.sex as partner1_sex, p2.sex as partner2_sex,
             to_char(${DEATH_YEAR_SQL.replace("p.id", "p1.id")}, 'YYYY-MM-DD') as partner1_death,
             to_char(${DEATH_YEAR_SQL.replace("p.id", "p2.id")}, 'YYYY-MM-DD') as partner2_death,
+            (select json_build_object('raw', pl.raw_text, 'norm', pl.normalized, 'comuna', pl.comuna_code, 'region', pl.region_code)
+               from events e left join places pl on pl.id = e.place_id
+               where e.person_id = p1.id and e.event_type = 'DEAT' and pl.id is not null
+               order by e.date_from nulls last, e.id limit 1) as partner1_death_place,
+            (select json_build_object('raw', pl.raw_text, 'norm', pl.normalized, 'comuna', pl.comuna_code, 'region', pl.region_code)
+               from events e left join places pl on pl.id = e.place_id
+               where e.person_id = p2.id and e.event_type = 'DEAT' and pl.id is not null
+               order by e.date_from nulls last, e.id limit 1) as partner2_death_place,
             (select json_agg(fe order by fe.date_from nulls last)
-               from (select e2.id, e2.origin, event_type, event_subtype, date_text, date_from, date_to, description,
-                            pl2.raw_text as place_text
+               from (select e2.id, e2.origin, e2.needs_review, e2.review_kind, e2.review_note, event_type, event_subtype, date_text, date_from, date_to, description,
+                            pl2.raw_text as place_text, pl2.normalized as place_normalized,
+                            pl2.comuna_code as place_comuna, pl2.region_code as place_region
                      from events e2
                      left join places pl2 on pl2.id = e2.place_id
                      where e2.family_id = f.id) fe
@@ -289,6 +342,15 @@ export async function getPersonDetail(treeId: string, personId: string) {
                  'approx_from', to_char(fc.approx_birth_from, 'YYYY-MM-DD'),
                  'birth_from', ${BIRTH_YEAR_SQL.replace("p.id", "c.id")},
                  'birth_place', (select pl3.raw_text from events e3 left join places pl3 on pl3.id = e3.place_id
+                                 where e3.person_id = c.id and e3.event_type = 'BIRT'
+                                 order by e3.date_from nulls last, e3.id limit 1),
+                 'birth_place_normalized', (select pl3.normalized from events e3 left join places pl3 on pl3.id = e3.place_id
+                                 where e3.person_id = c.id and e3.event_type = 'BIRT'
+                                 order by e3.date_from nulls last, e3.id limit 1),
+                 'birth_place_comuna', (select pl3.comuna_code from events e3 left join places pl3 on pl3.id = e3.place_id
+                                 where e3.person_id = c.id and e3.event_type = 'BIRT'
+                                 order by e3.date_from nulls last, e3.id limit 1),
+                 'birth_place_region', (select pl3.region_code from events e3 left join places pl3 on pl3.id = e3.place_id
                                  where e3.person_id = c.id and e3.event_type = 'BIRT'
                                  order by e3.date_from nulls last, e3.id limit 1),
                  'birth_sources', (select coalesce(json_agg(json_build_object(
@@ -384,12 +446,15 @@ export async function getPersonDetail(treeId: string, personId: string) {
       dateText: displayDateText(e.date_text, year, yearEnd),
       kind: e.event_type,
       ...describeEvent(e.event_type, e.event_subtype, e.description),
-      place: e.place_text,
+      place: shownPlace(e.place_text, e.place_normalized, e.place_comuna, e.place_region),
+      placeInfo: placeInfoOf(e.place_text, e.place_normalized, e.place_comuna, e.place_region),
       age: e.event_type === "BIRT" ? null : ageAt(year),
       person: null,
       sources: sourcesOf.get(e.id) ?? [],
       // El hecho tal como se carga en el formulario de edición.
       manual: e.origin === "manual",
+      needsReview: showReview && Boolean(e.needs_review),
+      reviewNote: showReview ? ((e.review_note as string | null) ?? null) : null,
       participants: participantsOf.get(e.id) ?? [],
       edit: {
         id: e.id,
@@ -404,6 +469,8 @@ export async function getPersonDetail(treeId: string, personId: string) {
           sourceUrl: sourcesOf.get(e.id)?.[0]?.url ?? "",
           sourceQuote: sourcesOf.get(e.id)?.[0]?.quote ?? "",
           participants: (participantsOf.get(e.id) ?? []).map((p) => ({ role: p.role, name: p.name, personId: p.personId })),
+          review: showReview ? ((e.review_kind as string | null) ?? "") : "",
+          reviewNote: showReview ? ((e.review_note as string | null) ?? "") : "",
         },
       },
     });
@@ -415,6 +482,8 @@ export async function getPersonDetail(treeId: string, personId: string) {
     const spouseId = isPartner1 ? f.partner2_id : f.partner1_id;
     const spouseSex = isPartner1 ? f.partner2_sex : f.partner1_sex;
     const spouseDeath: string | null = isPartner1 ? f.partner2_death : f.partner1_death;
+    const spouseDeathPlace: { raw: string | null; norm: string | null; comuna: string | null; region: string | null } | null =
+      (isPartner1 ? f.partner2_death_place : f.partner1_death_place) ?? null;
     const spouse = spouseName && spouseId ? { id: spouseId, name: spouseName } : null;
 
     for (const fe of f.family_events ?? []) {
@@ -431,12 +500,14 @@ export async function getPersonDetail(treeId: string, personId: string) {
         kind: fe.event_type,
         tag: null,
         title: spouse ? `${label} con` : label,
-        place: fe.place_text,
+        place: shownPlace(fe.place_text, fe.place_normalized, fe.place_comuna, fe.place_region),
         description: fe.description,
         age: ageAt(year),
         person: spouse,
         sources: sourcesOf.get(fe.id) ?? [],
         manual: fe.origin === "manual",
+        needsReview: showReview && Boolean(fe.needs_review),
+        reviewNote: showReview ? ((fe.review_note as string | null) ?? null) : null,
         participants: participantsOf.get(fe.id) ?? [],
         // Es de la pareja, no de una sola persona: se puede editar desde la
         // ficha de cualquiera de los dos (lo decide saveFicha, no esto).
@@ -453,6 +524,8 @@ export async function getPersonDetail(treeId: string, personId: string) {
             sourceUrl: sourcesOf.get(fe.id)?.[0]?.url ?? "",
             sourceQuote: sourcesOf.get(fe.id)?.[0]?.quote ?? "",
             participants: (participantsOf.get(fe.id) ?? []).map((p) => ({ role: p.role, name: p.name, personId: p.personId })),
+            review: showReview ? ((fe.review_kind as string | null) ?? "") : "",
+            reviewNote: showReview ? ((fe.review_note as string | null) ?? "") : "",
           },
         },
       });
@@ -474,7 +547,7 @@ export async function getPersonDetail(treeId: string, personId: string) {
         kind: "CHILD_BIRT",
         tag: null,
         title: c.sex === "F" ? "Nacimiento de la hija" : c.sex === "M" ? "Nacimiento del hijo" : "Nacimiento de su hijo/a",
-        place: c.birth_place ?? null,
+        place: shownPlace(c.birth_place ?? null, c.birth_place_normalized ?? null, c.birth_place_comuna ?? null, c.birth_place_region ?? null),
         description: null,
         age: ageAt(year),
         person: { id: c.id, name: c.name },
@@ -499,7 +572,7 @@ export async function getPersonDetail(treeId: string, personId: string) {
         kind: "SPOUSE_DEAT",
         tag: null,
         title: spouseSex === "F" ? "Fallecimiento de la esposa" : "Fallecimiento del esposo",
-        place: null,
+        place: spouseDeathPlace ? shownPlace(spouseDeathPlace.raw, spouseDeathPlace.norm, spouseDeathPlace.comuna, spouseDeathPlace.region) : null,
         description: null,
         age: ageAt(year),
         person: spouse,
@@ -508,9 +581,9 @@ export async function getPersonDetail(treeId: string, personId: string) {
     }
   }
 
-  // Hechos investigados (data/investigacion.json): se suman a lo que viene
+  // Hechos investigados (tabla research_files): se suman a lo que viene
   // del GEDCOM y pueden reemplazar un hecho suyo por una versión mejor contada.
-  const facts = person.gedcom_uid ? loadResearch().byUid.get(person.gedcom_uid) ?? [] : [];
+  const facts = person.gedcom_uid ? (await loadResearch(treeId)).byUid.get(person.gedcom_uid) ?? [] : [];
   const related = new Map<string, { id: string; name: string }>();
   const relatedUids = facts.map((f) => f.withUid).filter((uid): uid is string => uid != null);
   if (relatedUids.length) {
@@ -535,6 +608,8 @@ export async function getPersonDetail(treeId: string, personId: string) {
     displayName: person.display_name,
     sex: person.sex,
     isLiving: person.is_living,
+    /** Quien mira puede marcar hechos «por revisar» (solo administradores). */
+    canReview: showReview,
     livingReason: person.living_reason,
     given: (person.given_names as string | null) ?? "",
     surnamePat: (person.surname_pat as string | null) ?? "",

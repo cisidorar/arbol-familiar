@@ -51,3 +51,8 @@ next-env.d.ts
 q.js
 .q1-tmp.mts
 *.bak
+
+# papeleo suelto
+/_to_delete/
+/Claude outputs/
+/q.js

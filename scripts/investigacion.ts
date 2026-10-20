@@ -4,12 +4,20 @@
  *
  *   npm run investigacion                    revisa el archivo contra el árbol
  *   npm run investigacion -- buscar morales  muestra el uid de quien coincida
+ *   npm run investigacion -- subir           copia el archivo a la base (la que
+ *                                            diga DATABASE_URL) para que la app lo muestre
  */
+import dotenv from "dotenv";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseGedcom } from "../src/lib/gedcom";
 import type { ParsedEvent, ParsedPerson } from "../src/lib/gedcom/types";
+import { Pool } from "pg";
+import { pgConfig } from "../src/lib/db/config";
 import { parseResearch, type ReplaceRule } from "../src/lib/research";
+
+dotenv.config({ path: ".env.local" });
+dotenv.config();
 
 const DATA_DIR = join(process.cwd(), "data");
 const RESEARCH_PATH = join(DATA_DIR, "investigacion.json");
@@ -111,8 +119,40 @@ function check(): number {
   return 1;
 }
 
+async function upload(): Promise<number> {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(readFileSync(RESEARCH_PATH, "utf-8"));
+  } catch (err) {
+    console.error(`No se pudo leer data/investigacion.json: ${(err as Error).message}`);
+    return 1;
+  }
+  const { problems } = parseResearch(raw);
+  if (problems.length) {
+    console.error("El archivo tiene problemas; arréglalos antes de subirlo:");
+    for (const p of problems) console.error(`  - ${p}`);
+    return 1;
+  }
+  const pool = new Pool(pgConfig());
+  try {
+    const { rows } = await pool.query(`select id from trees order by created_at limit 1`);
+    if (!rows[0]) throw new Error("No hay ningún árbol en la base.");
+    await pool.query(
+      `insert into research_files (tree_id, content) values ($1, $2)
+       on conflict (tree_id) do update set content = excluded.content, updated_at = now()`,
+      [rows[0].id, JSON.stringify(raw)],
+    );
+    console.log("Listo: la investigación quedó guardada en la base.");
+    return 0;
+  } finally {
+    await pool.end();
+  }
+}
+
 const [command, ...rest] = process.argv.slice(2);
-if (command === "buscar") {
+if (command === "subir") {
+  upload().then((code) => process.exit(code));
+} else if (command === "buscar") {
   if (rest.length === 0) {
     console.error("Uso: npm run investigacion -- buscar <nombre o apellido>");
     process.exit(1);

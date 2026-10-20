@@ -8,10 +8,13 @@
 // rutas de la API), que es quien conoce la sesión.
 
 import { canonicalCemetery } from "@/lib/geo/cemeteries";
+import { resolveComuna } from "@/lib/geo/places";
 import type { PoolClient } from "pg";
 import { getPool } from "../db/pool";
 import {
+  cleanReviewNote,
   dateForEditing,
+  REVIEW_KINDS,
   FAMILY_EVENT_TYPES,
   NEW_FAMILY_EVENT_TYPES,
   researchFactForm,
@@ -22,13 +25,14 @@ import {
   type ParticipantForm,
   type PersonValues,
 } from "../edit";
+import { viewerCanReview } from "./review";
 import { loadResearch } from "./research-file";
 
 export type Actor = { id: string; name: string };
 
 export type EditResult =
   | { ok: true }
-  | { ok: false; status: 400 | 404; error: string; errors?: Record<string, string> };
+  | { ok: false; status: 400 | 403 | 404; error: string; errors?: Record<string, string> };
 
 const NOT_FOUND: EditResult = { ok: false, status: 404, error: "No se encontró. Puede que alguien lo haya borrado." };
 
@@ -155,15 +159,28 @@ export async function updatePerson(treeId: string, personId: string, input: unkn
   );
 }
 
-async function upsertPlace(client: PoolClient, treeId: string, rawText: string | null): Promise<string | null> {
+async function upsertPlace(client: PoolClient, treeId: string, rawText: string | null, asCemetery = false): Promise<string | null> {
   if (!rawText) return null;
+  // Si ya hay un lugar con ese texto o con ese nombre estándar, se usa el mismo (no se duplica).
   const { rows } = await client.query(
-    `insert into places (tree_id, raw_text) values ($1, $2)
-     on conflict (tree_id, raw_text) do update set raw_text = excluded.raw_text
-     returning id`,
+    `with found as (
+       select id from places where tree_id = $1::uuid and (raw_text = $2::text or normalized = $2::text)
+        order by (raw_text = $2::text) desc limit 1
+     ), made as (
+       insert into places (tree_id, raw_text)
+       select $1::uuid, $2::text where not exists (select 1 from found)
+       returning id
+     )
+     select id from found union all select id from made`,
     [treeId, rawText],
   );
   const id = rows[0].id as string;
+  if (asCemetery) {
+    await client.query(
+      `update places set place_kind = 'cemetery' where id = $1 and (place_kind is null or place_kind in ('locality', 'other'))`,
+      [id],
+    );
+  }
   // Un cementerio nuevo entra ya con su nombre estándar y su comuna (sin pisar lo que ya tenga el lugar).
   const cemetery = canonicalCemetery(rawText);
   if (cemetery && (cemetery.kind === "cemetery" || cemetery.kind === "ambiguous")) {
@@ -174,6 +191,17 @@ async function upsertPlace(client: PoolClient, treeId: string, rawText: string |
         where id = $1`,
       [id, cemetery.display, cemetery.locality, cemetery.comunaCode, cemetery.regionCode, cemetery.comunaCode ? "Chile" : null],
     );
+  }
+  // Un lugar nuevo que nombra una comuna ("Hospital X, Recoleta") entra ya con su comuna y región,
+  // para que cuente en el mapa sin esperar a la normalización (sin pisar lo que ya tenga).
+  if (!cemetery) {
+    const comuna = resolveComuna({ rawText });
+    if (comuna) {
+      await client.query(
+        `update places set comuna_code = coalesce(comuna_code, $2), region_code = coalesce(region_code, $3) where id = $1`,
+        [id, comuna.code, comuna.regionCode],
+      );
+    }
   }
   return id;
 }
@@ -201,7 +229,7 @@ async function loadEvent(
 ): Promise<{ personId: string | null; familyId: string | null; dateText: string | null; form: EventSnapshot } | null> {
   const { rows } = await client.query(
     `select e.person_id, e.family_id, e.event_type, e.event_subtype, e.date_text, e.description, pl.raw_text as place_text,
-            src.title as source_title, src.url as source_url, src.quote as source_quote
+            src.title as source_title, src.url as source_url, src.quote as source_quote, e.review_kind, e.review_note
      from events e
      left join places pl on pl.id = e.place_id
      left join lateral (
@@ -230,6 +258,8 @@ async function loadEvent(
       sourceUrl: r.source_url ?? "",
       sourceQuote: r.source_quote ?? "",
       participants: await loadParticipants(client, eventId),
+      review: r.review_kind ?? "",
+      reviewNote: r.review_note ?? "",
     },
   };
 }
@@ -277,7 +307,19 @@ function snapshotOf(v: EventValues, keptDate: string): EventSnapshot {
     sourceUrl: v.source?.url ?? "",
     sourceQuote: v.source?.quote ?? "",
     participants: v.participants,
+    review: v.review ?? "",
+    reviewNote: v.reviewNote ?? "",
   };
+}
+
+/**
+ * El pendiente que de verdad se guarda: solo administradores lo cambian. Si quien edita no
+ * lo es, se deja el que el hecho ya tenía (el formulario ni se lo muestra).
+ */
+async function withReviewRule(v: EventValues, current: { form: EventSnapshot } | null): Promise<EventValues> {
+  if (await viewerCanReview()) return v;
+  const kept = current?.form.review;
+  return { ...v, review: kept ? (kept as EventValues["review"]) : null, reviewNote: kept ? current?.form.reviewNote || null : null };
 }
 
 /** Deja el hecho con la fuente indicada (o sin fuente). Las fuentes del GEDCOM no se tocan. */
@@ -350,14 +392,15 @@ export async function insertEvent(
   actor: Actor,
   replaces: EventSnapshot | null = null,
 ): Promise<string> {
+  v = await withReviewRule(v, replaces ? { form: replaces } : null);
   const date = v.date === "keep" ? null : v.date;
-  const placeId = await upsertPlace(client, treeId, v.place);
+  const placeId = await upsertPlace(client, treeId, v.place, v.type === "BURI");
   const { rows } = await client.query(
     `insert into events (tree_id, person_id, event_type, event_subtype, date_text, date_from, date_to, place_id,
-                         description, origin, updated_at, updated_by)
-     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'manual', now(), $10)
+                         description, origin, updated_at, updated_by, needs_review, review_kind, review_note)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'manual', now(), $10, $11, $12, $13)
      returning id`,
-    [treeId, personId, v.type, v.subtype, date?.text ?? null, date?.from ?? null, date?.to ?? null, placeId, v.description, actor.id],
+    [treeId, personId, v.type, v.subtype, date?.text ?? null, date?.from ?? null, date?.to ?? null, placeId, v.description, actor.id, v.review != null, v.review, v.reviewNote],
   );
   const eventId = rows[0].id as string;
   await setEventSource(client, treeId, eventId, v.source);
@@ -383,14 +426,15 @@ async function insertFamilyEvent(
   v: EventValues,
   actor: Actor,
 ): Promise<string> {
+  v = await withReviewRule(v, null);
   const date = v.date === "keep" ? null : v.date;
-  const placeId = await upsertPlace(client, treeId, v.place);
+  const placeId = await upsertPlace(client, treeId, v.place, v.type === "BURI");
   const { rows } = await client.query(
     `insert into events (tree_id, family_id, event_type, event_subtype, date_text, date_from, date_to, place_id,
-                         description, origin, updated_at, updated_by)
-     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'manual', now(), $10)
+                         description, origin, updated_at, updated_by, needs_review, review_kind, review_note)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'manual', now(), $10, $11, $12, $13)
      returning id`,
-    [treeId, familyId, v.type, v.subtype, date?.text ?? null, date?.from ?? null, date?.to ?? null, placeId, v.description, actor.id],
+    [treeId, familyId, v.type, v.subtype, date?.text ?? null, date?.from ?? null, date?.to ?? null, placeId, v.description, actor.id, v.review != null, v.review, v.reviewNote],
   );
   const eventId = rows[0].id as string;
   await setEventSource(client, treeId, eventId, v.source);
@@ -430,24 +474,25 @@ async function applyEvent(
   v: EventValues,
   actor: Actor,
 ): Promise<void> {
+  v = await withReviewRule(v, current);
   const after = snapshotOf(v, current.form.date);
   if (JSON.stringify(after) === JSON.stringify(current.form)) return;
 
-  const placeId = await upsertPlace(client, treeId, v.place);
+  const placeId = await upsertPlace(client, treeId, v.place, v.type === "BURI");
   if (v.date === "keep") {
     await client.query(
       `update events set event_type = $2, event_subtype = $3, place_id = $4, description = $5,
-              origin = 'manual', updated_at = now(), updated_by = $6
+              origin = 'manual', updated_at = now(), updated_by = $6, needs_review = $7, review_kind = $8, review_note = $9
        where id = $1`,
-      [eventId, v.type, v.subtype, placeId, v.description, actor.id],
+      [eventId, v.type, v.subtype, placeId, v.description, actor.id, v.review != null, v.review, v.reviewNote],
     );
   } else {
     await client.query(
       `update events set event_type = $2, event_subtype = $3, place_id = $4, description = $5,
               date_text = $7, date_from = $8, date_to = $9,
-              origin = 'manual', updated_at = now(), updated_by = $6
+              origin = 'manual', updated_at = now(), updated_by = $6, needs_review = $10, review_kind = $11, review_note = $12
        where id = $1`,
-      [eventId, v.type, v.subtype, placeId, v.description, actor.id, v.date?.text ?? null, v.date?.from ?? null, v.date?.to ?? null],
+      [eventId, v.type, v.subtype, placeId, v.description, actor.id, v.date?.text ?? null, v.date?.from ?? null, v.date?.to ?? null, v.review != null, v.review, v.reviewNote],
     );
   }
   await setEventSource(client, treeId, eventId, v.source);
@@ -499,6 +544,26 @@ export async function updateEvent(treeId: string, eventId: string, input: unknow
     const current = await loadEvent(client, treeId, eventId);
     if (!current) return NOT_FOUND;
     const validation = validateEvent(input, current.form.date);
+    if (!validation.ok) return INVALID(validation.errors);
+    await applyEvent(client, treeId, eventId, current, validation.value, actor);
+    return { ok: true } as EditResult;
+  });
+}
+
+const SPOT_LABEL = "Ubicación en el cementerio: ";
+
+/** Anota (o borra, si viene vacío) dónde está la tumba dentro del cementerio, en la sepultura de la persona. */
+export async function updateBurialSpot(treeId: string, eventId: string, spot: unknown, actor: Actor): Promise<EditResult> {
+  const clean = typeof spot === "string" ? spot.replace(/\s+/g, " ").trim().slice(0, 200) : null;
+  if (clean === null) return { ok: false, status: 400, error: "Escribe dónde está la tumba." };
+  return transaction(async (client) => {
+    const current = await loadEvent(client, treeId, eventId);
+    if (!current || current.form.type !== "BURI") return NOT_FOUND;
+    const old = current.form.text.trim();
+    if (old && !/^ubicaci[oó]n en el cementerio:/i.test(old)) {
+      return { ok: false, status: 400, error: "Esta sepultura ya tiene otra nota. Edítala desde la ficha de la persona." } as EditResult;
+    }
+    const validation = validateEvent({ ...current.form, text: clean ? SPOT_LABEL + clean : "" }, current.form.date);
     if (!validation.ok) return INVALID(validation.errors);
     await applyEvent(client, treeId, eventId, current, validation.value, actor);
     return { ok: true } as EditResult;
@@ -585,7 +650,7 @@ export async function saveFicha(treeId: string, personId: string, input: unknown
     );
     if (!rows[0]) return finish({ ok: false, status: 404, error: "No se encontró a esta persona." });
     const uid = rows[0].gedcom_uid as string | null;
-    const facts = uid ? loadResearch().byUid.get(uid) ?? [] : [];
+    const facts = uid ? (await loadResearch(treeId)).byUid.get(uid) ?? [] : [];
 
     // Primero se revisa todo; recién si no hay ningún error se escribe.
     const GONE: FichaResult = {
@@ -687,4 +752,75 @@ export async function saveFicha(treeId: string, personId: string, input: unknown
   } finally {
     client.release();
   }
+}
+
+/**
+ * Pone o quita el pendiente de un hecho sin abrir el formulario completo (el «Ya lo revisé»
+ * de la página Pendientes). Solo administradores. `review` vacío o desconocido = sin pendiente.
+ * `note` es el comentario opcional; si no se manda (undefined) se conserva el que había, y al
+ * quitar el pendiente el comentario se borra.
+ */
+export async function setEventReview(
+  treeId: string,
+  eventId: string,
+  review: unknown,
+  actor: Actor,
+  note?: unknown,
+): Promise<EditResult> {
+  if (!(await viewerCanReview())) return { ok: false, status: 403, error: "Solo quien administra el archivo puede cambiar los pendientes." };
+  const kind = typeof review === "string" && REVIEW_KINDS.some((k) => k.key === review) ? review : null;
+  return transaction(async (client) => {
+    const current = await loadEvent(client, treeId, eventId);
+    if (!current) return NOT_FOUND;
+    const before = current.form.reviewNote ?? "";
+    const nextNote = kind == null ? "" : note === undefined ? before : (cleanReviewNote(note) ?? "");
+    if ((current.form.review ?? "") === (kind ?? "") && before === nextNote) return { ok: true } as const;
+    await client.query(
+      `update events set needs_review = $2, review_kind = $3, review_note = $4 where id = $1`,
+      [eventId, kind != null, kind, nextNote || null],
+    );
+    const personId = current.personId ?? (current.familyId ? ((await familyPartnerIds(client, current.familyId))[0] ?? null) : null);
+    await logChange(client, {
+      treeId, actor, personId, entity: "event", entityId: eventId, action: "update",
+      before: current.form, after: { ...current.form, review: kind ?? "", reviewNote: nextNote },
+    });
+    return { ok: true } as const;
+  });
+}
+
+export const UNION_TYPES = ["marriage", "partnership", "unknown"] as const;
+export type UnionType = (typeof UNION_TYPES)[number];
+
+/**
+ * Cambia el tipo de una unión: casados, pareja sin matrimonio o no se sabe.
+ * Una pareja puede tener hijos sin haberse casado; el tipo solo cambia cómo se
+ * muestra ("Esposo" / "Pareja").
+ */
+export async function setUnionType(
+  treeId: string,
+  familyId: string,
+  personId: string,
+  unionType: unknown,
+  actor: Actor,
+): Promise<EditResult> {
+  if (typeof unionType !== "string" || !(UNION_TYPES as readonly string[]).includes(unionType)) {
+    return { ok: false, status: 400, error: "Tipo de unión no válido." };
+  }
+  return transaction(async (client) => {
+    const { rows } = await client.query(
+      `select union_type from families
+       where tree_id = $1 and id = $2 and (partner1_id = $3 or partner2_id = $3)
+       for update`,
+      [treeId, familyId, personId],
+    );
+    if (!rows[0]) return NOT_FOUND;
+    if (rows[0].union_type === unionType) return { ok: true } as const;
+    await client.query(`update families set union_type = $2 where id = $1`, [familyId, unionType]);
+    await markEdited(client, personId, actor);
+    await logChange(client, {
+      treeId, actor, personId, entity: "person", entityId: familyId, action: "update",
+      before: { union_type: rows[0].union_type }, after: { union_type: unionType },
+    });
+    return { ok: true } as const;
+  });
 }
