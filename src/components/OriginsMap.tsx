@@ -196,11 +196,41 @@ export default function OriginsMap(props: {
       ...Array.from({ length: Math.min(gens, 4) }, (_, i) => ({ label: generationLabel(i + 1), min: i + 1, max: i + 1 })),
       ...(gens > 4 ? [{ label: "Más atrás", min: 5, max: gens }] : []),
     ];
-    return defs.map((d) => ({ ...d, n: locatedCount(summarize(ancestors, { ...filters, minGeneration: d.min, maxGeneration: d.max })) }));
+    return defs.map((d) => {
+      const years = ancestors
+        .filter((a) => a.generation >= d.min && a.generation <= d.max && a.origin.kind !== "none")
+        .map((a) => birthYearById[a.id])
+        .filter((y): y is number => typeof y === "number");
+      const range = years.length ? (Math.min(...years) === Math.max(...years) ? `${years[0]}` : `${Math.min(...years)}–${Math.max(...years)}`) : "";
+      return { ...d, range, n: locatedCount(summarize(ancestors, { ...filters, minGeneration: d.min, maxGeneration: d.max })) };
+    });
   }, [ancestors, filters.branch, filters.birthOnly, gens]); // eslint-disable-line react-hooks/exhaustive-deps
   const on = (g: { min: number; max: number }) => (filters.minGeneration ?? 1) === g.min && filters.maxGeneration === g.max;
 
   const zoneMain = zone.filter((c) => !c.island);
+
+  // "Recorrer": pasa por las generaciones, de la más antigua a la más cercana, y vuelve a "Todas".
+  const [touring, setTouring] = useState(false);
+  const [listOpen, setListOpen] = useState(true);
+  const tourOrder = useMemo(() => genTabs.slice(1).reverse(), [genTabs]);
+  useEffect(() => {
+    if (!touring) return;
+    let i = 0;
+    const step = () => {
+      const g = tourOrder[i++];
+      if (!g) {
+        setFilters((f) => ({ ...f, minGeneration: 1, maxGeneration: gens }));
+        setTouring(false);
+        return;
+      }
+      setFilters((f) => ({ ...f, minGeneration: g.min, maxGeneration: g.max }));
+      setSelected(null);
+    };
+    step();
+    const t = setInterval(step, 2400);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [touring]);
   // El encuadre se acerca a las comunas con datos (de todos los antepasados, no solo de los
   // filtrados, para que el mapa no salte al cambiar un filtro) y deja un margen de contexto.
   const zoneView = useMemo<Box | null>(() => {
@@ -355,304 +385,346 @@ export default function OriginsMap(props: {
   const missing = summary.total - located;
   const topNames = topRegions(summary, 2).map(([code]) => regionName(code));
 
-  return (
-    <div className="space-y-6">
-      {/* Título */}
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="zb-titulo">De dónde vienen</h1>
-          <p className="zb-texto mt-3 max-w-2xl text-gris">
-            {!isSelf && <>Los antepasados de {rootName}. </>}
-            Cada comuna se colorea según cuántos antepasados nacieron ahí. Toca una para conocerlos.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          {!isSelf && hasSelf && (
-            <Link href="/mapa" className={buttonClass("enlace")}>
-              Volver al mío
-            </Link>
-          )}
-          <button type="button" onClick={() => setPicking((p) => !p)} className={buttonClass("secundario")}>
-            {picking ? "Cancelar" : "Ver el de otra persona"}
-          </button>
-        </div>
-      </div>
-      {picking && (
-        <div className="max-w-md">
-          <MapPersonPicker autoFocus />
-        </div>
-      )}
+  const tabs = gens > 1 ? [genTabs[0], ...genTabs.slice(1).reverse()] : [];
+  const chip = (isOn: boolean) =>
+    `min-h-10 whitespace-nowrap rounded-full border-2 px-3.5 text-base font-bold transition ${isOn ? "border-ink bg-ink text-white" : "border-line bg-white text-ink hover:border-ink"}`;
+  const floatBtn =
+    "grid h-12 w-12 place-items-center bg-white text-[1.5rem] font-bold leading-none text-ink hover:bg-paper";
+  const markerR = (n: number) => labelSize * (0.55 + 0.1 * Math.min(n, 4));
+  const badge = (n: number) => (n >= 3 ? "text-white" : "text-ink");
+  const zoomControls = (
+    <div className="flex w-12 flex-col overflow-hidden rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.15)]">
+      <button type="button" className={floatBtn} onClick={() => zoomBy(0.7)} aria-label="Acercar el mapa" title="Acercar el mapa">+</button>
+      <button type="button" className={`${floatBtn} border-t border-line`} onClick={() => zoomBy(1 / 0.7)} aria-label="Alejar el mapa" title="Alejar el mapa">−</button>
+      <button type="button" className={`${floatBtn} border-t border-line text-[1.25rem]`} onClick={() => { setView(null); setFocus("all"); }} aria-label="Ver todo el mapa" title="Ver todo el mapa">⤢</button>
+    </div>
+  );
+  const hovered = hover ?? selected;
+  const hoveredComuna = hovered ? zoneMain.find((c) => c.code === hovered) : undefined;
 
-      {/* Generación y rama */}
-      <div className="border-b-2 border-line pb-4">
-        {gens > 1 && (
-          <div className="-mb-0.5 flex items-end overflow-x-auto border-b-2 border-line" role="group" aria-label="Generación">
-            {genTabs.map((g) => (
-              <button key={g.label} type="button" aria-pressed={on(g)} className={tabCls(on(g))} onClick={() => { setFilters({ ...filters, minGeneration: g.min, maxGeneration: g.max }); setSelected(null); }}>
-                {g.label} <span className={countCls(on(g))}>{g.n}</span>
+  return (
+    <div>
+      {/* Mapa a pantalla completa con paneles flotantes (en el teléfono: tarjeta, mapa, barra y lista, una bajo otra) */}
+      <section className="relative isolate flex flex-col bg-[#e8ebee] lg:block lg:h-[calc(100vh-4.5625rem)] lg:min-h-[36rem] lg:overflow-hidden">
+        {/* Tarjeta de arriba a la izquierda */}
+        <div className="relative z-10 order-1 m-3 rounded-3xl bg-white p-5 shadow-[0_10px_40px_rgba(0,0,0,0.12)] lg:absolute lg:left-4 lg:top-5 lg:m-0 lg:w-[29rem] lg:max-h-[calc(100%-8rem)] lg:overflow-y-auto">
+          <h1 className="zb-titulo">De dónde vienen</h1>
+          <p className="zb-texto mt-3 text-gris">
+            {!isSelf && <>Los antepasados de {rootName}. </>}
+            Sabemos dónde nacieron <strong className="text-ink">{located}</strong> de {isSelf ? "tus" : "los"} {summary.total} antepasados directos
+            {isSelf ? "" : ` de ${first}`}
+            {topNames.length > 0 && <>, sobre todo en {listInWords(topNames)}</>}.
+          </p>
+
+          <div className="mt-4 inline-flex w-full rounded-2xl bg-paper p-1.5" role="group" aria-label="Rama">
+            {([["all", "Ambas"], ["paterna", "Paterna"], ["materna", "Materna"]] as const).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={filters.branch === value}
+                onClick={() => { setFilters({ ...filters, branch: value }); setSelected(null); }}
+                className={`min-h-12 flex-1 rounded-xl px-3 text-[1.0625rem] transition ${filters.branch === value ? "bg-white font-bold text-ink shadow" : "text-gris hover:text-ink"}`}
+              >
+                {label}
               </button>
             ))}
           </div>
-        )}
-        <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="font-bold">Rama</span>
-            <div className="inline-flex rounded-2xl bg-paper p-1.5" role="group" aria-label="Rama">
-              {([["all", "Ambas"], ["paterna", "Paterna"], ["materna", "Materna"]] as const).map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  aria-pressed={filters.branch === value}
-                  onClick={() => { setFilters({ ...filters, branch: value }); setSelected(null); }}
-                  className={`min-h-12 rounded-xl px-5 text-[1.0625rem] transition ${filters.branch === value ? "bg-white font-bold text-ink shadow" : "text-gris hover:text-ink"}`}
-                >
-                  {label}
+
+          <div className="zb-apoyo mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+            {LEGEND.map(([label, color]) => (
+              <span key={label} className="flex items-center gap-1.5">
+                <span className="inline-block h-5 w-5 rounded-md border border-black/10" style={{ background: color }} />
+                {label}
+              </span>
+            ))}
+            <span className="flex items-center gap-1.5" title="Se conoce solo por el bautismo o el matrimonio">
+              <span className="inline-block h-5 w-5 rounded-md border border-black/10" style={{ background: HATCH }} />
+              lugar estimado
+            </span>
+          </div>
+
+          <label className="zb-apoyo mt-3 flex min-h-11 cursor-pointer items-center gap-3" title="Deja fuera los lugares que se conocen solo por el bautismo o el matrimonio">
+            <input type="checkbox" className="h-5 w-5 accent-ink" checked={filters.birthOnly} onChange={(e) => { setFilters({ ...filters, birthOnly: e.target.checked }); setSelected(null); }} />
+            Solo nacimientos confirmados
+          </label>
+
+          {zv && zoomChips.length > 1 && (
+            <div className="mt-3 flex flex-wrap items-center gap-2" role="group" aria-label="Acercar a">
+              <span className="mr-1 font-bold">Acercar a</span>
+              <button type="button" aria-pressed={focus === "all"} className={chip(focus === "all")} onClick={() => { setView(null); setFocus("all"); }}>
+                Todo
+              </button>
+              {zoomChips.map((c) => (
+                <button key={c.key} type="button" aria-pressed={focus === c.key} className={chip(focus === c.key)} onClick={() => { setView(c.box); setFocus(c.key); }}>
+                  {c.label}
                 </button>
               ))}
             </div>
+          )}
+
+          <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-line pt-3">
+            {!isSelf && hasSelf && (
+              <Link href="/mapa" className={buttonClass("enlace")}>
+                Volver al mío
+              </Link>
+            )}
+            <button type="button" onClick={() => setPicking((p) => !p)} className={buttonClass("secundario", "!min-h-11 !px-4")}>
+              {picking ? "Cancelar" : "Ver el de otra persona"}
+            </button>
           </div>
-          <label className="zb-texto flex min-h-12 cursor-pointer items-center gap-3" title="Deja fuera los lugares que se conocen solo por el bautismo o el matrimonio">
-            <input type="checkbox" className="h-6 w-6 accent-ink" checked={filters.birthOnly} onChange={(e) => { setFilters({ ...filters, birthOnly: e.target.checked }); setSelected(null); }} />
-            Solo nacimientos confirmados
-          </label>
+          {picking && (
+            <div className="mt-3">
+              <MapPersonPicker autoFocus />
+            </div>
+          )}
         </div>
-      </div>
 
-      {/* En pantallas anchas: el mapa a la izquierda y, a la derecha, el resumen y la lista. En el teléfono: resumen, mapa y lista. */}
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_26rem] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        <div className="order-2 lg:sticky lg:top-4 lg:order-none">
+        {/* El mapa */}
+        <div className="relative order-2 h-[60vh] min-h-[24rem] lg:absolute lg:inset-0 lg:h-full lg:px-[17rem] lg:pb-24 lg:pt-4 xl:px-[26rem]">
+          {zv && <div className="absolute right-3 top-3 z-10 lg:hidden">{zoomControls}</div>}
           {zv ? (
-            <>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Acercar a">
-                  <span className="mr-1 font-bold">Acercar a</span>
-                  <button type="button" aria-pressed={focus === "all"} className={pill(focus === "all")} onClick={() => { setView(null); setFocus("all"); }}>
-                    Todo
-                  </button>
-                  {zoomChips.length > 1 &&
-                    zoomChips.map((c) => (
-                      <button key={c.key} type="button" aria-pressed={focus === c.key} className={pill(focus === c.key)} onClick={() => { setView(c.box); setFocus(c.key); }}>
-                        {c.label}
-                      </button>
-                    ))}
-                </div>
-                <div className="flex gap-2">
-                  <button type="button" className={zoomBtn} onClick={() => zoomBy(0.7)} aria-label="Acercar el mapa" title="Acercar el mapa">
-                    +
-                  </button>
-                  <button type="button" className={zoomBtn} onClick={() => zoomBy(1 / 0.7)} aria-label="Alejar el mapa" title="Alejar el mapa">
-                    −
-                  </button>
-                </div>
-              </div>
-
-              <div className="relative mt-3 rounded-3xl border-2 border-line bg-white p-3 sm:p-4">
-                {sel && (
-                  <p className="pointer-events-none absolute left-1/2 top-5 z-10 -translate-x-1/2 whitespace-nowrap rounded-full bg-ink px-5 py-2.5 text-[1.0625rem] font-bold text-white shadow-lg" aria-hidden>
-                    {COMUNA_NAME.get(sel.code) ?? sel.code} · {sel.count === 1 ? "1 antepasado" : `${sel.count} antepasados`}
-                  </p>
-                )}
-                <svg viewBox={viewBoxOf(zv)} className="mx-auto max-h-[30rem] w-full lg:max-h-[calc(100vh-17rem)]" role="img" aria-label="Comunas de origen">
-                  <defs>
-                    <pattern id="est" width={labelSize * 0.6} height={labelSize * 0.6} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-                      <rect width={labelSize * 0.6} height={labelSize * 0.6} fill="#f6cfa3" />
-                      <rect width={labelSize * 0.25} height={labelSize * 0.6} fill="#d9622f" />
-                    </pattern>
-                  </defs>
-                  {zoneMain.map((c) => {
-                    const s = summary.byComuna.get(c.code);
-                    if (s) return null;
-                    return (
-                      <path key={c.code} d={c.d} fill="#ecebe6" stroke="#fff" strokeWidth={labelSize * 0.06}>
-                        <title>{c.name}</title>
-                      </path>
-                    );
-                  })}
-                  {/* Las comunas con datos van encima, para que su borde no quede tapado. */}
-                  {zoneMain.map((c) => {
-                    const s = summary.byComuna.get(c.code);
-                    if (!s) return null;
-                    const isOn = selected === c.code || hover === c.code;
-                    return (
-                      <path
-                        key={c.code}
-                        d={c.d}
-                        fill={s.birthCount === 0 ? "url(#est)" : fillFor(s.count)}
-                        stroke={isOn ? "#1a1917" : "#fff"}
-                        strokeWidth={isOn ? labelSize * 0.22 : labelSize * 0.08}
-                        strokeLinejoin="round"
-                        className="cursor-pointer outline-none"
-                        role="button"
-                        tabIndex={0}
-                        aria-label={`${c.name}: ${s.count}`}
-                        onClick={() => pick(selected === c.code ? null : c.code)}
-                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(c.code); } }}
-                        onMouseEnter={() => setHover(c.code)}
-                        onMouseLeave={() => setHover(null)}
-                      >
-                        <title>{`${c.name}: ${s.count}`}</title>
-                      </path>
-                    );
-                  })}
-                  {labels.map((l) => (
-                    <text
-                      key={l.code}
-                      x={l.x}
-                      y={l.y}
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      fontSize={labelSize}
-                      fontWeight={700}
-                      fill="#1f1d1a"
-                      stroke="#fff"
-                      strokeWidth={labelSize * 0.28}
-                      paintOrder="stroke"
-                      strokeLinejoin="round"
-                      className="pointer-events-none select-none"
-                    >
-                      {l.name}
+            <svg viewBox={viewBoxOf(zv)} className="h-full w-full overflow-visible" role="img" aria-label="Comunas de origen">
+              <defs>
+                <pattern id="est" width={labelSize * 0.6} height={labelSize * 0.6} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                  <rect width={labelSize * 0.6} height={labelSize * 0.6} fill="#f6cfa3" />
+                  <rect width={labelSize * 0.25} height={labelSize * 0.6} fill="#d9622f" />
+                </pattern>
+              </defs>
+              {zoneMain.map((c) => {
+                if (summary.byComuna.has(c.code)) return null;
+                return (
+                  <path key={c.code} d={c.d} fill="#fff" stroke="#d6dade" strokeWidth={labelSize * 0.05}>
+                    <title>{c.name}</title>
+                  </path>
+                );
+              })}
+              {/* Las comunas con datos van encima, para que su borde no quede tapado. */}
+              {zoneMain.map((c) => {
+                const s = summary.byComuna.get(c.code);
+                if (!s) return null;
+                const isOn = selected === c.code || hover === c.code;
+                return (
+                  <path
+                    key={c.code}
+                    d={c.d}
+                    fill={s.birthCount === 0 ? "url(#est)" : fillFor(s.count)}
+                    stroke={isOn ? "#1a1917" : "#fff"}
+                    strokeWidth={isOn ? labelSize * 0.22 : labelSize * 0.08}
+                    strokeLinejoin="round"
+                    className="cursor-pointer outline-none"
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`${c.name}: ${s.count}`}
+                    onClick={() => pick(selected === c.code ? null : c.code)}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(c.code); } }}
+                    onMouseEnter={() => setHover(c.code)}
+                    onMouseLeave={() => setHover(null)}
+                  >
+                    <title>{`${c.name}: ${s.count}`}</title>
+                  </path>
+                );
+              })}
+              {/* Un círculo oscuro por comuna, con la cantidad de antepasados */}
+              {zoneMain.map((c) => {
+                const s = summary.byComuna.get(c.code);
+                if (!s) return null;
+                const x = (c.bbox[0] + c.bbox[2]) / 2, y = (c.bbox[1] + c.bbox[3]) / 2, r = markerR(s.count);
+                return (
+                  <g
+                    key={`m-${c.code}`}
+                    className="cursor-pointer"
+                    onClick={() => pick(selected === c.code ? null : c.code)}
+                    onMouseEnter={() => setHover(c.code)}
+                    onMouseLeave={() => setHover(null)}
+                  >
+                    <circle cx={x} cy={y} r={r} fill="#1a1917" stroke="#fff" strokeWidth={labelSize * 0.12} />
+                    <text x={x} y={y} textAnchor="middle" dominantBaseline="central" fontSize={labelSize * 0.8} fontWeight={700} fill="#fff" className="pointer-events-none select-none">
+                      {s.count}
                     </text>
-                  ))}
-                </svg>
-              </div>
-              <div className="zb-apoyo mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
-                <span className="font-bold text-ink">Antepasados por comuna</span>
-                {LEGEND.map(([label, color]) => (
-                  <span key={label} className="flex items-center gap-1.5">
-                    <span className="inline-block h-5 w-5 rounded-md border border-black/10" style={{ background: color }} />
-                    {label}
-                  </span>
-                ))}
-                <span className="flex items-center gap-1.5" title="Se conoce solo por el bautismo o el matrimonio">
-                  <span className="inline-block h-5 w-5 rounded-md border border-black/10" style={{ background: HATCH }} />
-                  lugar estimado
-                </span>
-              </div>
-            </>
+                  </g>
+                );
+              })}
+              {hoveredComuna && summary.byComuna.has(hoveredComuna.code) && (
+                <text
+                  x={(hoveredComuna.bbox[0] + hoveredComuna.bbox[2]) / 2}
+                  y={(hoveredComuna.bbox[1] + hoveredComuna.bbox[3]) / 2 - markerR(summary.byComuna.get(hoveredComuna.code)!.count) - labelSize * 0.9}
+                  textAnchor="middle"
+                  fontSize={labelSize * 1.1}
+                  fontWeight={700}
+                  fill="#1f1d1a"
+                  stroke="#fff"
+                  strokeWidth={labelSize * 0.3}
+                  paintOrder="stroke"
+                  strokeLinejoin="round"
+                  className="pointer-events-none select-none"
+                >
+                  {hoveredComuna.name}
+                </text>
+              )}
+            </svg>
           ) : (
-            <p className="zb-texto rounded-3xl border-2 border-line p-6 text-gris">
+            <p className="zb-texto mx-auto mt-24 max-w-md rounded-3xl bg-white p-6 text-gris shadow">
               Con estos filtros no hay antepasados con una comuna conocida. Prueba con más generaciones o con ambas ramas;
               abajo está la lista de quienes todavía no tienen lugar.
             </p>
           )}
         </div>
 
-        <div className="contents lg:block lg:space-y-5">
-          {sel ? (
-            <div ref={listRef} className="order-3 scroll-mt-4">
-              <button type="button" onClick={() => pick(null)} className={buttonClass("secundario", "!border-transparent !bg-paper hover:!bg-line")}>
-                <span aria-hidden>←</span> Todas las comunas
+        {/* Acercar, alejar y encuadrar (en pantallas anchas, junto a la lista) */}
+        {zv && (
+          <div className={`absolute top-5 z-10 hidden lg:block ${listOpen ? "right-[26rem]" : "right-4"}`}>{zoomControls}</div>
+        )}
+
+        {/* Barra de generaciones */}
+        {tabs.length > 0 && (
+          <div className={`pointer-events-none order-3 flex justify-center px-3 py-3 lg:absolute lg:bottom-5 lg:left-0 lg:z-10 lg:p-0 ${listOpen ? "lg:right-[25rem]" : "lg:right-4"}`}>
+            <div className="pointer-events-auto flex max-w-full items-stretch gap-2 overflow-x-auto rounded-3xl bg-ink p-2 shadow-[0_10px_40px_rgba(0,0,0,0.3)]" role="group" aria-label="Generación">
+              <button
+                type="button"
+                onClick={() => setTouring((t) => !t)}
+                className="flex min-h-14 shrink-0 items-center gap-2 rounded-2xl bg-terra px-5 text-[1.0625rem] font-bold text-white hover:brightness-110"
+                title="Pasa por cada generación, de la más antigua a la más cercana"
+              >
+                <span aria-hidden>{touring ? "❚❚" : "▶"}</span> {touring ? "Detener" : "Recorrer"}
               </button>
-              <p className="zb-texto mt-5 text-gris">{regionLabel(regionName(sel.regionCode))}</p>
-              <h2 className="zb-titulo mt-1">{COMUNA_NAME.get(sel.code) ?? sel.code}</h2>
-              <p className="zb-texto mt-3">
-                <strong>{sel.count === 1 ? "1 antepasado" : `${sel.count} antepasados`}</strong> {sel.count === 1 ? "nació" : "nacieron"} aquí.
-              </p>
-              <ul className="mt-5 space-y-4">
-                {[...sel.people].sort((x, y) => x.generation - y.generation || x.name.localeCompare(y.name)).map((a) => {
-                  const year = birthYearById[a.id];
-                  const sure = a.origin.kind === "comuna" && a.origin.basis === "birth";
-                  return (
-                    <li key={a.id} className="rounded-3xl border-2 border-line bg-white p-5">
-                      <div className="flex items-start gap-4">
-                        <span
-                          aria-hidden="true"
-                          className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl text-[1.75rem] font-bold"
-                          style={{ backgroundColor: `${sexColor(sexById[a.id])}1a`, color: sexColor(sexById[a.id]) }}
-                        >
-                          {a.name.trim().charAt(0).toUpperCase()}
-                        </span>
-                        <div className="min-w-0">
-                          <p className="zb-nombre">{a.name}</p>
-                          <p className="zb-apoyo mt-0.5">{ancestorPhrase(a, !isSelf)}</p>
+              <span className="my-2 w-px shrink-0 bg-white/20" aria-hidden />
+              {tabs.map((g) => (
+                <button
+                  key={g.label}
+                  type="button"
+                  aria-pressed={on(g)}
+                  onClick={() => { setTouring(false); setFilters({ ...filters, minGeneration: g.min, maxGeneration: g.max }); setSelected(null); }}
+                  className={`flex min-h-14 shrink-0 flex-col items-center justify-center rounded-2xl px-4 leading-tight transition ${on(g) ? "bg-paper text-ink" : "text-white hover:bg-white/10"}`}
+                >
+                  <span className="text-[1.0625rem] font-bold">{g.label}</span>
+                  <span className={`text-sm ${on(g) ? "text-gris" : "text-white/70"}`}>
+                    {g.min === 1 && g.max === gens ? `${g.n} ${g.n === 1 ? "persona" : "personas"}` : g.range || `${g.n} ${g.n === 1 ? "persona" : "personas"}`}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Lista de comunas / personas de la comuna elegida */}
+        {listOpen ? (
+          <aside className="relative z-10 order-4 mx-3 mb-3 flex flex-col overflow-hidden rounded-3xl bg-white shadow-[0_10px_40px_rgba(0,0,0,0.12)] lg:absolute lg:bottom-5 lg:right-4 lg:top-5 lg:m-0 lg:w-[24rem]">
+            {sel ? (
+              <div ref={listRef} className="min-h-0 flex-1 scroll-mt-4 overflow-y-auto p-5">
+                <button type="button" onClick={() => pick(null)} className={buttonClass("secundario", "!border-transparent !bg-paper hover:!bg-line")}>
+                  <span aria-hidden>←</span> Todas las comunas
+                </button>
+                <p className="zb-texto mt-5 text-gris">{regionLabel(regionName(sel.regionCode))}</p>
+                <h2 className="zb-titulo mt-1">{COMUNA_NAME.get(sel.code) ?? sel.code}</h2>
+                <p className="zb-texto mt-3">
+                  <strong>{sel.count === 1 ? "1 antepasado" : `${sel.count} antepasados`}</strong> {sel.count === 1 ? "nació" : "nacieron"} aquí.
+                </p>
+                <ul className="mt-5 space-y-4">
+                  {[...sel.people].sort((x, y) => x.generation - y.generation || x.name.localeCompare(y.name)).map((a) => {
+                    const year = birthYearById[a.id];
+                    const sure = a.origin.kind === "comuna" && a.origin.basis === "birth";
+                    return (
+                      <li key={a.id} className="rounded-3xl border-2 border-line bg-white p-4">
+                        <div className="flex items-start gap-4">
+                          <span
+                            aria-hidden="true"
+                            className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl text-[1.5rem] font-bold"
+                            style={{ backgroundColor: `${sexColor(sexById[a.id])}1a`, color: sexColor(sexById[a.id]) }}
+                          >
+                            {a.name.trim().charAt(0).toUpperCase()}
+                          </span>
+                          <div className="min-w-0">
+                            <p className="zb-nombre">{a.name}</p>
+                            <p className="zb-apoyo mt-0.5">{ancestorPhrase(a, !isSelf)}</p>
+                          </div>
                         </div>
-                      </div>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <span className="rounded-full bg-paper px-3.5 py-1 text-base">{year ? `Nació en ${year}` : "Sin año de nacimiento"}</span>
-                        {sure ? (
-                          <span className="rounded-full bg-[#e3f1e8] px-3.5 py-1 text-base font-bold text-listo">Lugar confirmado</span>
-                        ) : (
-                          <span className="rounded-full bg-[#fbecd9] px-3.5 py-1 text-base font-bold text-[#9a4a14]">
-                            Lugar por confirmar{a.origin.kind === "comuna" ? ` · según el ${a.origin.basis === "baptism" ? "bautismo" : "matrimonio"}` : ""}
-                          </span>
-                        )}
-                      </div>
-                      <div className="mt-4 flex flex-wrap gap-3">
-                        <button type="button" onClick={() => setSelectedId(a.id)} className={buttonClass("principal", "min-w-0 flex-1 !px-5")} title="Abrir la ficha de la persona">
-                          Ver ficha
-                        </button>
-                        <button type="button" onClick={() => setPath(a)} className={buttonClass("secundario", "min-w-0 flex-1 !px-5")} title={`Ver cómo se llega desde ${first} hasta ${a.name}`}>
-                          Ver camino
-                        </button>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          ) : (
-            <>
-          {/* Resumen en una frase */}
-          <div className="order-1 rounded-3xl border-2 border-line bg-white p-5 sm:p-6">
-            <p className="text-[1.25rem] leading-snug">
-              Sabemos de dónde vienen <strong>{located} de {isSelf ? "tus" : "los"} {summary.total}</strong> antepasados directos{isSelf ? "" : ` de ${first}`}.
-              {topNames.length > 0 && <> La mayoría es de {listInWords(topNames)}.</>}
-            </p>
-            <div className="mt-4 h-3 overflow-hidden rounded-full bg-paper" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} aria-label="Antepasados con lugar conocido">
-              <div className="h-full rounded-full bg-terra" style={{ width: `${percent}%` }} />
-            </div>
-          </div>
-
-          {/* Lista de comunas, o las personas de la comuna elegida */}
-          <div ref={listRef} className="order-3 scroll-mt-4 overflow-hidden rounded-3xl border-2 border-line bg-white">
-            {ranked.length ? (
-              <>
-                <div className="px-5 py-5 sm:px-6">
-                  <h2 className="text-[1.375rem] font-bold leading-tight">Comunas de origen</h2>
-                  <p className="zb-texto mt-1 text-gris">Toca una comuna, aquí o en el mapa, para ver quiénes nacieron ahí.</p>
-                </div>
-                <ul className="border-t-2 border-line">
-                  {ranked.map((c) => (
-                    <li key={c.code} className="border-b border-line last:border-b-0">
-                      <button
-                        type="button"
-                        onClick={() => pick(c.code)}
-                        onMouseEnter={() => setHover(c.code)}
-                        onMouseLeave={() => setHover(null)}
-                        onFocus={() => setHover(c.code)}
-                        onBlur={() => setHover(null)}
-                        className={`flex min-h-[4.5rem] w-full items-center gap-4 px-5 py-3 text-left hover:bg-paper sm:px-6 ${hover === c.code ? "bg-paper" : ""}`}
-                      >
-                        <span
-                          aria-hidden="true"
-                          className="inline-block h-7 w-7 shrink-0 rounded-lg border border-black/10"
-                          style={{ background: c.birthCount === 0 ? HATCH : fillFor(c.count) }}
-                        />
-                        <span className="min-w-0 flex-1">
-                          <span className="zb-nombre block">{COMUNA_NAME.get(c.code) ?? c.code}</span>
-                          <span className="zb-apoyo block">
-                            {regionLabel(regionName(c.regionCode))}
-                            {c.birthCount === 0 && " · con datos por confirmar"}
-                          </span>
-                        </span>
-                        <span className="text-[1.25rem] font-bold tabular-nums">{c.count}</span>
-                        <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0 text-gris" fill="none" stroke="currentColor" strokeWidth={2.5} aria-hidden>
-                          <path d="m9 5 7 7-7 7" />
-                        </svg>
-                      </button>
-                    </li>
-                  ))}
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <span className="rounded-full bg-paper px-3.5 py-1 text-base">{year ? `Nació en ${year}` : "Sin año de nacimiento"}</span>
+                          {sure ? (
+                            <span className="rounded-full bg-[#e3f1e8] px-3.5 py-1 text-base font-bold text-listo">Lugar confirmado</span>
+                          ) : (
+                            <span className="rounded-full bg-[#fbecd9] px-3.5 py-1 text-base font-bold text-[#9a4a14]">
+                              Lugar por confirmar{a.origin.kind === "comuna" ? ` · según el ${a.origin.basis === "baptism" ? "bautismo" : "matrimonio"}` : ""}
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-4 flex flex-wrap gap-3">
+                          <button type="button" onClick={() => setSelectedId(a.id)} className={buttonClass("principal", "min-w-0 flex-1 !px-5")} title="Abrir la ficha de la persona">
+                            Ver ficha
+                          </button>
+                          <button type="button" onClick={() => setPath(a)} className={buttonClass("secundario", "min-w-0 flex-1 !px-5")} title={`Ver cómo se llega desde ${first} hasta ${a.name}`}>
+                            Ver camino
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
-              </>
+              </div>
             ) : (
-              <p className="zb-texto p-6 text-gris">Aún no hay comunas que mostrar.</p>
+              <>
+                <div className="flex items-center justify-between gap-3 px-5 py-4">
+                  <h2 className="text-[1.375rem] font-bold leading-tight">
+                    {ranked.length} {ranked.length === 1 ? "comuna" : "comunas"}
+                  </h2>
+                  <button type="button" onClick={() => setListOpen(false)} className="hidden min-h-11 rounded-xl bg-paper px-4 text-[1.0625rem] font-bold hover:bg-line lg:block">
+                    Ocultar
+                  </button>
+                </div>
+                <div ref={listRef} className="min-h-0 flex-1 scroll-mt-4 overflow-y-auto border-t border-line">
+                  {ranked.length ? (
+                    <ul>
+                      {ranked.map((c) => (
+                        <li key={c.code} className="border-b border-line last:border-b-0">
+                          <button
+                            type="button"
+                            onClick={() => pick(c.code)}
+                            onMouseEnter={() => setHover(c.code)}
+                            onMouseLeave={() => setHover(null)}
+                            onFocus={() => setHover(c.code)}
+                            onBlur={() => setHover(null)}
+                            className={`flex min-h-[4.5rem] w-full items-center gap-4 px-5 py-3 text-left hover:bg-paper ${hover === c.code ? "bg-paper" : ""}`}
+                          >
+                            <span
+                              aria-hidden="true"
+                              className={`grid h-11 w-11 shrink-0 place-items-center rounded-full text-[1.125rem] font-bold ${badge(c.count)}`}
+                              style={{ background: c.birthCount === 0 ? HATCH : fillFor(c.count) }}
+                            >
+                              <span className={c.birthCount === 0 ? "rounded-full bg-white/85 px-1.5 text-ink" : ""}>{c.count}</span>
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="zb-nombre block">{COMUNA_NAME.get(c.code) ?? c.code}</span>
+                              <span className="zb-apoyo block">
+                                {regionLabel(regionName(c.regionCode))}
+                                {c.birthCount === 0 && " · por confirmar"}
+                              </span>
+                            </span>
+                            <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0 text-gris" fill="none" stroke="currentColor" strokeWidth={2.5} aria-hidden>
+                              <path d="m9 5 7 7-7 7" />
+                            </svg>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="zb-texto p-6 text-gris">Aún no hay comunas que mostrar.</p>
+                  )}
+                </div>
+              </>
             )}
-          </div>
-            </>
-          )}
-        </div>
-      </div>
+          </aside>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setListOpen(true)}
+            className="absolute right-4 top-5 z-10 hidden min-h-12 rounded-2xl bg-white px-5 text-[1.0625rem] font-bold shadow-[0_10px_30px_rgba(0,0,0,0.15)] hover:bg-paper lg:block"
+          >
+            Mostrar lista
+          </button>
+        )}
+      </section>
 
+      <div className="mx-auto max-w-[120rem] space-y-6 px-4 py-8 sm:px-6 lg:px-10 2xl:px-14">
       {/* Lo que falta */}
       {missingTotal > 0 && (
         <section className="space-y-3 pt-2">
@@ -675,6 +747,7 @@ export default function OriginsMap(props: {
             .map((g) => missingGroup(...g))}
         </section>
       )}
+      </div>
       <PersonPanel
         personId={selectedId}
         mainId={selectedId}

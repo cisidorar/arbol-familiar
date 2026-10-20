@@ -16,12 +16,16 @@ export const dynamic = "force-dynamic";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-function Shell({ children }: { children: React.ReactNode }) {
+function Shell({ children, bleed = false }: { children: React.ReactNode; bleed?: boolean }) {
   return (
     // Fondo blanco y esquema claro fijo: con el Mac en modo oscuro el texto heredado quedaría casi blanco.
     <div className="zb min-h-screen bg-white text-ink [color-scheme:light]">
       <SectionHeader current="mapa" />
-      <main className="mx-auto max-w-[120rem] px-4 py-8 sm:px-6 lg:px-10 lg:py-10 2xl:px-14">{children}</main>
+      {bleed ? (
+        <main>{children}</main>
+      ) : (
+        <main className="mx-auto max-w-[120rem] px-4 py-8 sm:px-6 lg:px-10 lg:py-10 2xl:px-14">{children}</main>
+      )}
     </div>
   );
 }
@@ -74,7 +78,7 @@ export default async function MapaPage({ searchParams }: { searchParams: Promise
   }));
 
   return (
-    <Shell>
+    <Shell bleed>
       <OriginsMap
         rootId={rootId}
         rootName={root.data.label}
