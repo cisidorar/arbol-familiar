@@ -19,7 +19,7 @@ export default async function InvitationPage({ params }: { params: Promise<{ tok
 
   if (!invitation) {
     return (
-      <AuthShell title="Este enlace ya no sirve">
+      <AuthShell title="Este enlace ya no sirve" heading="Archivo Zamora Balcázar" lead="Pídele a quien administra el archivo que te mande un enlace nuevo.">
         <Notice kind="aviso">
           Este enlace venció o ya se usó. Pídele a quien administra el archivo que te mande uno nuevo.
         </Notice>
@@ -33,6 +33,8 @@ export default async function InvitationPage({ params }: { params: Promise<{ tok
   const isReset = invitation.kind === "reset";
   return (
     <AuthShell
+      heading={isReset ? "Elige una contraseña nueva." : "Te damos la bienvenida a la familia."}
+      lead={isReset ? "Con ella volverás a entrar al archivo." : "Crea tu cuenta para recorrer el árbol y ayudar a completarlo."}
       title={isReset ? "Elige tu contraseña nueva" : "Te invitaron al archivo familiar"}
       intro={
         isReset

@@ -23,9 +23,10 @@ export type Session = {
   role: Role;
 };
 
-export async function createSession(userId: string): Promise<void> {
+export async function createSession(userId: string, remember = true): Promise<void> {
   const token = newToken();
-  const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
+  // Sin "mantener la sesión": vale un día y la cookie muere al cerrar el navegador.
+  const expiresAt = new Date(Date.now() + (remember ? SESSION_DAYS : 1) * 24 * 60 * 60 * 1000);
   await getPool().query(`insert into sessions (user_id, token_hash, expires_at) values ($1, $2, $3)`, [
     userId,
     hashToken(token),
@@ -40,7 +41,7 @@ export async function createSession(userId: string): Promise<void> {
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    expires: expiresAt,
+    ...(remember ? { expires: expiresAt } : {}),
   });
 }
 

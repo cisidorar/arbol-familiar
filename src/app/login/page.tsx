@@ -4,6 +4,7 @@ import AuthShell from "@/components/AuthShell";
 import { LoginForm } from "@/components/AuthForms";
 import { getSession } from "@/lib/auth/session";
 import { getSetupState } from "@/lib/data/users";
+import Link from "next/link";
 
 export const metadata: Metadata = { title: "Entrar · Archivo Zamora Balcázar" };
 export const dynamic = "force-dynamic";
@@ -24,7 +25,7 @@ export default async function LoginPage() {
   const setup = await getSetupState();
   if (setup !== "ready") {
     return (
-      <AuthShell title="Falta un paso para poder entrar" intro="Se hace una sola vez, en la terminal, dentro de la carpeta del proyecto.">
+      <AuthShell title="Falta un paso para poder entrar" heading="Archivo Zamora Balcázar" lead="Recién instalado: falta crear la primera cuenta." intro="Se hace una sola vez, en la terminal, dentro de la carpeta del proyecto.">
         <ol className="zb-texto flex flex-col gap-5">
           {setup === "needs-migration" && (
             <li>
@@ -44,12 +45,15 @@ export default async function LoginPage() {
 
   if (await getSession()) redirect("/");
   return (
-    <AuthShell title="Entrar" intro="Este archivo es privado: solo entra quien fue invitado.">
+    <AuthShell title="Entrar al archivo" intro="Escribe tu correo y tu contraseña.">
       <LoginForm />
       <div className="mt-8 border-t border-line pt-6">
-        <p className="zb-apoyo">
-          ¿Olvidaste tu contraseña o todavía no tienes cuenta? Pídele a quien administra el archivo que te mande un
-          enlace nuevo.
+        <p className="text-[1.0625rem] font-bold">¿Aún no tienes acceso?</p>
+        <p className="zb-apoyo mt-1.5">
+          Escríbele a quien administra el archivo y te enviará una invitación.{" "}
+          <Link href="/#como-entrar" className="font-bold text-ink underline decoration-2 underline-offset-4 hover:text-terra">
+            Pedir invitación
+          </Link>
         </p>
       </div>
     </AuthShell>

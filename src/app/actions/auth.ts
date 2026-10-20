@@ -27,7 +27,8 @@ export async function login(_prev: FormState, formData: FormData): Promise<FormS
       ? { error: "Se intentó entrar muchas veces sin éxito. Espera 15 minutos y vuelve a probar.", email: typed }
       : wrong;
   }
-  await createSession(result.userId);
+  // Casilla "Mantener la sesión abierta": sin ella la sesión dura un día y se cierra con el navegador.
+  await createSession(result.userId, formData.get("remember") === "on");
   redirect("/");
 }
 
