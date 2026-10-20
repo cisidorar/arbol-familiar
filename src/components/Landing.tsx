@@ -176,7 +176,7 @@ export default function Landing({ stats }: { stats: PublicStats | null }) {
           </div>
         </header>
 
-        <div className="mx-auto grid w-full max-w-6xl gap-12 px-4 pb-16 pt-10 sm:px-6 sm:pt-14 lg:grid-cols-[1fr_1.1fr] lg:items-center lg:gap-8 lg:pb-24 lg:pt-20">
+        <div className="grid w-full gap-12 px-4 pb-16 pt-10 sm:px-6 sm:pt-14 lg:grid-cols-2 lg:items-center lg:gap-10 lg:px-10 lg:pb-24 lg:pt-16">
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.18em] text-white/70">Archivo familiar privado</p>
             <h1 className="mt-4 font-maquina text-[2rem] leading-[1.12] sm:text-5xl lg:text-[3.25rem]">
