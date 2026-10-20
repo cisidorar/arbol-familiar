@@ -46,7 +46,7 @@ export default async function LoginPage() {
   return (
     <AuthShell title="Entrar" intro="Este archivo es privado: solo entra quien fue invitado.">
       <LoginForm />
-      <div className="mt-10 border-t border-line pt-6">
+      <div className="mt-8 border-t border-line pt-6">
         <p className="zb-apoyo">
           ¿Olvidaste tu contraseña o todavía no tienes cuenta? Pídele a quien administra el archivo que te mande un
           enlace nuevo.

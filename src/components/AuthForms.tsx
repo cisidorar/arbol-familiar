@@ -10,7 +10,7 @@ import { Button, Field, Notice } from "./ui";
 function Submit({ pending, idle, busy }: { pending: boolean; idle: string; busy: string }) {
   return (
     <div className="pt-2">
-      <Button type="submit" disabled={pending} className="w-full sm:w-auto">
+      <Button type="submit" disabled={pending} className="w-full">
         {pending ? busy : idle}
       </Button>
     </div>
