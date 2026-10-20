@@ -4,7 +4,7 @@
 // solo totales; para ver el árbol hay que entrar con invitación.
 
 import Link from "next/link";
-import RecordCard from "./RecordCard";
+import ScatteredCards from "./ScatteredCards";
 import SiteBrand, { BRAND_ROW } from "./SiteBrand";
 import { buttonClass } from "./ui";
 import type { PublicStats } from "@/lib/data/public-stats";
@@ -176,7 +176,7 @@ export default function Landing({ stats }: { stats: PublicStats | null }) {
           </div>
         </header>
 
-        <div className="mx-auto grid w-full max-w-6xl gap-12 px-4 pb-16 pt-10 sm:px-6 sm:pt-14 lg:grid-cols-[1.1fr_1fr] lg:items-center lg:gap-8 lg:pb-24 lg:pt-20">
+        <div className="mx-auto grid w-full max-w-6xl gap-12 px-4 pb-16 pt-10 sm:px-6 sm:pt-14 lg:grid-cols-[1fr_1.1fr] lg:items-center lg:gap-8 lg:pb-24 lg:pt-20">
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.18em] text-white/70">Archivo familiar privado</p>
             <h1 className="mt-4 font-maquina text-[2rem] leading-[1.12] sm:text-5xl lg:text-[3.25rem]">
@@ -207,31 +207,8 @@ export default function Landing({ stats }: { stats: PublicStats | null }) {
             )}
           </div>
 
-          {/* Fichas de ejemplo: de antepasados fallecidos */}
-          <div className="relative mx-auto h-[26.5rem] w-full max-w-[24rem] sm:h-[25.5rem] lg:h-[27rem] lg:max-w-md" aria-hidden="true">
-            <RecordCard
-              kind="Bautismo"
-              number="0021"
-              name="Isidoro Balcazar Bravo"
-              year="1829"
-              className="left-0 top-0 -rotate-6"
-            />
-            <RecordCard
-              kind="Matrimonio"
-              number="0147"
-              name="Daniel Zamora y Natividad Galdamez"
-              year="1881"
-              className="left-6 top-[9.2rem] rotate-2 sm:left-10 sm:top-[8.2rem]"
-            />
-            <RecordCard
-              kind="Nacimiento"
-              number="0302"
-              name="Rosa Elvira Canelo Frez"
-              year="1896"
-              place="Quillota"
-              className="left-2 top-[17.9rem] -rotate-1 sm:left-4 sm:top-[17rem]"
-            />
-          </div>
+          {/* Fichas tiradas en el suelo: de antepasados fallecidos; al pasar el mouse se agrandan */}
+          <ScatteredCards className="mx-auto h-[29rem] w-full max-w-[34rem] sm:h-[33rem] lg:h-[35rem]" />
         </div>
       </section>
 
