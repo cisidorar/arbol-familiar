@@ -209,28 +209,7 @@ export default function OriginsMap(props: {
 
   const zoneMain = zone.filter((c) => !c.island);
 
-  // "Recorrer": pasa por las generaciones, de la más antigua a la más cercana, y vuelve a "Todas".
-  const [touring, setTouring] = useState(false);
   const [listOpen, setListOpen] = useState(true);
-  const tourOrder = useMemo(() => genTabs.slice(1).reverse(), [genTabs]);
-  useEffect(() => {
-    if (!touring) return;
-    let i = 0;
-    const step = () => {
-      const g = tourOrder[i++];
-      if (!g) {
-        setFilters((f) => ({ ...f, minGeneration: 1, maxGeneration: gens }));
-        setTouring(false);
-        return;
-      }
-      setFilters((f) => ({ ...f, minGeneration: g.min, maxGeneration: g.max }));
-      setSelected(null);
-    };
-    step();
-    const t = setInterval(step, 2400);
-    return () => clearInterval(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [touring]);
   // El encuadre se acerca a las comunas con datos (de todos los antepasados, no solo de los
   // filtrados, para que el mapa no salte al cambiar un filtro) y deja un margen de contexto.
   const zoneView = useMemo<Box | null>(() => {
@@ -473,7 +452,7 @@ export default function OriginsMap(props: {
             </button>
           </div>
           {picking && (
-            <div className="mt-3">
+            <div className="mt-3 [&_ul]:!static [&_ul]:!max-h-64">
               <MapPersonPicker autoFocus />
             </div>
           )}
@@ -579,21 +558,12 @@ export default function OriginsMap(props: {
         {tabs.length > 0 && (
           <div className={`pointer-events-none order-3 flex justify-center px-3 py-3 lg:absolute lg:bottom-5 lg:left-0 lg:z-10 lg:p-0 ${listOpen ? "lg:right-[25rem]" : "lg:right-4"}`}>
             <div className="pointer-events-auto flex max-w-full items-stretch gap-2 overflow-x-auto rounded-3xl bg-ink p-2 shadow-[0_10px_40px_rgba(0,0,0,0.3)]" role="group" aria-label="Generación">
-              <button
-                type="button"
-                onClick={() => setTouring((t) => !t)}
-                className="flex min-h-14 shrink-0 items-center gap-2 rounded-2xl bg-terra px-5 text-[1.0625rem] font-bold text-white hover:brightness-110"
-                title="Pasa por cada generación, de la más antigua a la más cercana"
-              >
-                <span aria-hidden>{touring ? "❚❚" : "▶"}</span> {touring ? "Detener" : "Recorrer"}
-              </button>
-              <span className="my-2 w-px shrink-0 bg-white/20" aria-hidden />
               {tabs.map((g) => (
                 <button
                   key={g.label}
                   type="button"
                   aria-pressed={on(g)}
-                  onClick={() => { setTouring(false); setFilters({ ...filters, minGeneration: g.min, maxGeneration: g.max }); setSelected(null); }}
+                  onClick={() => { setFilters({ ...filters, minGeneration: g.min, maxGeneration: g.max }); setSelected(null); }}
                   className={`flex min-h-14 shrink-0 flex-col items-center justify-center rounded-2xl px-4 leading-tight transition ${on(g) ? "bg-paper text-ink" : "text-white hover:bg-white/10"}`}
                 >
                   <span className="text-[1.0625rem] font-bold">{g.label}</span>
