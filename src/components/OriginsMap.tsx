@@ -274,6 +274,34 @@ export default function OriginsMap(props: {
     lastSel.current = code;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected]);
+  // Arrastrar el mapa: se mueve el encuadre lo mismo que el puntero, en unidades del dibujo.
+  const drag = useRef<{ id: number; x: number; y: number; box: Box; moved: boolean } | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const onDown = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (!zv || (e.pointerType === "mouse" && e.button !== 0)) return;
+    drag.current = { id: e.pointerId, x: e.clientX, y: e.clientY, box: zv, moved: false };
+  };
+  const onMove = (e: React.PointerEvent<SVGSVGElement>) => {
+    const d = drag.current;
+    if (!d || d.id !== e.pointerId) return;
+    const dx = e.clientX - d.x, dy = e.clientY - d.y;
+    if (!d.moved) {
+      if (Math.hypot(dx, dy) < 5) return;
+      d.moved = true;
+      e.currentTarget.setPointerCapture(e.pointerId);
+      setDragging(true);
+    }
+    const r = e.currentTarget.getBoundingClientRect();
+    const k = Math.max((d.box[2] - d.box[0]) / r.width, (d.box[3] - d.box[1]) / r.height);
+    setView([d.box[0] - dx * k, d.box[1] - dy * k, d.box[2] - dx * k, d.box[3] - dy * k]);
+    setFocus("custom");
+  };
+  const onUp = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (drag.current?.id === e.pointerId) {
+      drag.current = null;
+      setDragging(false);
+    }
+  };
   const zoomBy = (f: number) => {
     if (!zv) return;
     const cx = (zv[0] + zv[2]) / 2, cy = (zv[1] + zv[3]) / 2;
@@ -462,7 +490,14 @@ export default function OriginsMap(props: {
         <div className="relative order-2 h-[60vh] min-h-[24rem] lg:absolute lg:inset-0 lg:h-full lg:px-[17rem] lg:pb-24 lg:pt-4 xl:px-[26rem]">
           {zv && <div className="absolute right-3 top-3 z-10 lg:hidden">{zoomControls}</div>}
           {zv ? (
-            <svg viewBox={viewBoxOf(zv)} className="h-full w-full overflow-visible" role="img" aria-label="Comunas de origen">
+            <svg viewBox={viewBoxOf(zv)} className={`h-full w-full touch-pan-y select-none overflow-visible lg:touch-none ${dragging ? "cursor-grabbing" : "cursor-grab"}`}
+              onPointerDown={onDown}
+              onPointerMove={onMove}
+              onPointerUp={onUp}
+              onPointerCancel={onUp}
+              role="img"
+              aria-label="Comunas de origen"
+            >
               <defs>
                 <pattern id="est" width={labelSize * 0.6} height={labelSize * 0.6} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
                   <rect width={labelSize * 0.6} height={labelSize * 0.6} fill="#f6cfa3" />
