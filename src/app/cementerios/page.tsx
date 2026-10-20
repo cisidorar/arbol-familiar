@@ -74,7 +74,7 @@ export default async function CementeriosPage() {
     // Fondo blanco y esquema claro fijo: con el Mac en modo oscuro el texto heredado quedaría casi blanco.
     <div className="zb min-h-screen bg-white text-ink [color-scheme:light]">
       <SectionHeader current="cementerios" />
-      <main className="mx-auto max-w-[120rem] px-4 py-8 sm:px-6 lg:px-10 lg:py-10 2xl:px-14">
+      <main>
         <CemeteryGuide
           places={places}
           regions={REGIONES.map((r) => ({ code: r.code, name: r.name, d: r.d, bbox: r.bbox }))}

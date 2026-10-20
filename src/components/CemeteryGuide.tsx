@@ -22,6 +22,9 @@ export type GuidePlace = CemeteryGroup & {
 
 type Mode = "cemetery" | "person";
 
+const WRAP = "mx-auto max-w-[120rem] px-4 sm:px-6 lg:px-10 2xl:px-14";
+/** "Metropolitana de Santiago" → "Metropolitana"; las demás quedan igual. */
+const shortRegion = (name: string) => name.replace(/^Metropolitana.*/, "Metropolitana");
 const norm = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 /** Más personas primero; si empatan, por nombre. */
@@ -37,6 +40,10 @@ function siteName(p: GuidePlace) {
 
 function mapsUrl(p: GuidePlace) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${p.name}, ${p.locality ?? ""}, Chile`)}`;
+}
+
+function directionsUrl(p: GuidePlace) {
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${p.name}, ${p.locality ?? ""}, Chile`)}`;
 }
 
 /** Los mismos colores que el árbol: azul hombres, rosado mujeres. */
@@ -149,13 +156,19 @@ export default function CemeteryGuide({
   const order = regions.map((r) => r.code);
   const total = sumPeople(places);
 
-  // Regiones con cementerios (las que tienen más personas primero) y cuántas personas hay en cada una.
+  // Regiones con cementerios (las que tienen más personas primero) y cuántos cementerios hay en cada una.
   const regionCounts = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const p of places) if (p.regionCode && p.point) m.set(p.regionCode, (m.get(p.regionCode) ?? 0) + p.people.length);
-    return [...m.entries()].sort((a, b) => b[1] - a[1] || order.indexOf(a[0]) - order.indexOf(b[0]));
+    const m = new Map<string, { places: number; people: number }>();
+    for (const p of places) {
+      if (!p.regionCode || !p.point) continue;
+      const c = m.get(p.regionCode) ?? { places: 0, people: 0 };
+      m.set(p.regionCode, { places: c.places + 1, people: c.people + p.people.length });
+    }
+    return [...m.entries()]
+      .sort((a, b) => b[1].people - a[1].people || order.indexOf(a[0]) - order.indexOf(b[0]))
+      .map(([code, c]) => [code, c.places] as [string, number]);
   }, [places]); // eslint-disable-line react-hooks/exhaustive-deps
-  const pendingCount = sumPeople(places.filter((p) => !p.point));
+  const pendingCount = places.filter((p) => !p.point).length;
 
   // Filtro: por región y por texto (cementerio, comuna, región o persona).
   const filtered = useMemo(() => {
@@ -274,7 +287,7 @@ export default function CemeteryGuide({
     const ph = photoOf(p);
     const busy = photoBusy === p.key;
     const over = dragKey === p.key;
-    const box = `relative aspect-square w-full overflow-hidden rounded-3xl ${hero ? "" : "shadow-[0_8px_24px_-12px_rgba(26,24,22,0.35)]"}`;
+    const box = `relative w-full overflow-hidden ${hero ? "aspect-[3/2]" : "aspect-square rounded-3xl shadow-[0_8px_24px_-12px_rgba(26,24,22,0.35)]"}`;
     if (ph) {
       const img = (
         // eslint-disable-next-line @next/next/no-img-element
@@ -301,7 +314,7 @@ export default function CemeteryGuide({
         {canEdit ? (
           <>
             <span className={hero ? "text-[1.125rem] font-bold" : "text-base font-bold"}>
-              {busy ? "Subiendo la foto…" : hero ? `Arrastra aquí una foto de ${siteName(p)}` : "Sin foto todavía"}
+              {busy ? "Subiendo la foto…" : hero ? `Arrastra aquí una foto de ${siteName(p)}` : "Foto del cementerio"}
             </span>
             <span className="text-base">
               o <span className="underline underline-offset-4">elegir un archivo</span>
@@ -387,14 +400,103 @@ export default function CemeteryGuide({
   /* ---------- Piezas ---------- */
 
   const tab = (on: boolean) =>
-    `-mb-0.5 inline-flex min-h-12 shrink-0 items-center gap-2 whitespace-nowrap border-b-4 px-4 text-[1.125rem] transition ${
-      on ? "border-ink font-bold text-ink" : "border-transparent text-gris hover:text-ink"
+    `inline-flex min-h-14 shrink-0 items-center gap-3 whitespace-nowrap rounded-full border px-6 text-[1.125rem] font-bold transition ${
+      on ? "border-paper bg-paper text-ink" : "border-white/35 text-white hover:border-white hover:bg-white/10"
     }`;
-  const count = (on: boolean) => `rounded-full px-2.5 py-0.5 text-base font-bold ${on ? "bg-ink text-white" : "bg-paper text-gris"}`;
+  const count = (on: boolean) => `rounded-full px-2.5 py-0.5 text-base font-bold ${on ? "bg-ink text-white" : "bg-white/15 text-white"}`;
   const pickTab = (r: string | null) => {
     setRegion(r);
     if (selectedKey) backToList();
   };
+
+  const capFirst = (t: string) => (t ? t.charAt(0).toUpperCase() + t.slice(1) : t);
+  const drawerPerson = (b: Burial, p: GuidePlace) => {
+    const spot = spotOf(b);
+    const editing = editingId === b.personId;
+    const [kin, ...rest] = (b.relation ?? "").split(", ");
+    return (
+      <li key={`${p.key}-${b.personId}`} className={`rounded-2xl bg-[#f1efea] p-4 ${selectedId === b.personId ? "ring-2 ring-ink" : ""}`}>
+        <div className="flex items-baseline justify-between gap-3 border-b border-terra pb-2 font-maquina text-[0.9375rem] uppercase tracking-wide">
+          <span>{kin || "Familia"}</span>
+          <span className="shrink-0 tabular-nums">{b.birth ?? "?"} – {b.death ?? "?"}</span>
+        </div>
+        <p className="mt-3 text-[1.25rem] font-bold leading-snug">{b.name}</p>
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <p className="zb-apoyo min-w-0">{capFirst(rest.join(", "))}</p>
+          <button type="button" onClick={() => setSelectedId(b.personId)} className="min-h-12 shrink-0 rounded-full bg-white px-5 text-[1.0625rem] font-bold hover:bg-paper">
+            Ver ficha
+          </button>
+        </div>
+        <div className="mt-3 border-t border-white pt-3">
+          {editing ? (
+            <div className="space-y-3">
+              <label htmlFor={`tumba-${b.personId}`} className="zb-apoyo block">
+                Tumba de {b.name}
+              </label>
+              <input
+                id={`tumba-${b.personId}`}
+                autoFocus
+                value={spotDraft}
+                maxLength={200}
+                onChange={(e) => setSpotDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") saveSpot(b);
+                  if (e.key === "Escape") {
+                    e.stopPropagation();
+                    setEditingId(null);
+                  }
+                }}
+                placeholder="Por ejemplo: cruz 158, patio 8"
+                className="min-h-12 w-full rounded-lg border-2 border-[#8f8a80] bg-white px-3.5 py-2 text-[1.125rem] text-ink placeholder:text-gris/70 focus:border-hombre focus:outline-none"
+              />
+              {spotErr && <Notice kind="aviso">{spotErr}</Notice>}
+              <div className="flex flex-wrap gap-2">
+                <button type="button" disabled={spotBusy} onClick={() => saveSpot(b)} className={buttonClass("principal", "!min-h-12 !px-6")}>
+                  {spotBusy ? "Guardando…" : "Guardar"}
+                </button>
+                <button type="button" disabled={spotBusy} onClick={() => setEditingId(null)} className={buttonClass("enlace")}>
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+              <p className="zb-apoyo min-w-0">
+                Tumba: <strong className={spot ? "text-ink" : "font-normal"}>{spot || "sin ubicación anotada"}</strong>
+              </p>
+              <div className="flex shrink-0 items-center gap-3">
+                {canEdit && b.eventId && (
+                  <button type="button" onClick={() => startSpot(b)} className={buttonClass("enlace", "!px-1")} aria-label={`${spot ? "Cambiar" : "Anotar"} la tumba de ${b.name}`}>
+                    {spot ? "Cambiar" : "Anotar"}
+                  </button>
+                )}
+                {rootId && b.personId !== rootId && (
+                  <button type="button" onClick={() => openPath(p, b)} className={buttonClass("enlace", "!px-1")}>
+                    Ver camino
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </li>
+    );
+  };
+
+  // El panel del cementerio: Escape lo cierra y la página de atrás no se mueve mientras está abierto.
+  useEffect(() => {
+    if (!selectedKey) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !selectedId && !steps) backToList();
+    };
+    document.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [selectedKey, selectedId, steps]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const personCard = (b: Burial, p: GuidePlace, showPlace: boolean) => {
     const spot = spotOf(b);
@@ -415,10 +517,7 @@ export default function CemeteryGuide({
             {showPlace && (
               <button
                 type="button"
-                onClick={() => {
-                  setMode("cemetery");
-                  openPlace(p.key);
-                }}
+                onClick={() => openPlace(p.key)}
                 className="mt-1 inline-flex min-h-8 items-center gap-1.5 text-start text-base font-bold text-[#9a4a14] underline decoration-2 underline-offset-4"
               >
                 <PinIcon /> {siteName(p)}
@@ -500,22 +599,42 @@ export default function CemeteryGuide({
 
   return (
     <div id="cem-inicio" className="scroll-mt-4">
-      {/* Encabezado */}
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="zb-titulo">Dónde descansan</h1>
-          <p className="zb-texto mt-3 max-w-2xl text-gris">
-            {plural(total, "persona", "personas")} en {plural(places.length, "cementerio", "cementerios")}. Toca un cementerio para ver a cada persona y cómo llegar.
-          </p>
+      {/* Franja oscura: título, resumen y regiones */}
+      <header className="bg-ink text-white print:hidden">
+        <div className={`${WRAP} pb-8 pt-10 lg:pb-10 lg:pt-14`}>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h1 className="font-maquina text-[2.5rem] leading-[1.05] sm:text-6xl">Dónde descansan</h1>
+              <p className="mt-5 max-w-3xl text-[1.1875rem] leading-relaxed text-white/80 sm:text-[1.375rem]">
+                {plural(total, "persona", "personas")} de la familia en {plural(places.length, "cementerio", "cementerios")}. Toca uno para ver quiénes descansan ahí y cómo llegar.
+              </p>
+            </div>
+            <button type="button" onClick={() => window.print()} className="inline-flex min-h-12 items-center rounded-full border border-white/35 px-5 text-[1.0625rem] font-bold text-white hover:border-white hover:bg-white/10">
+              Imprimir lista
+            </button>
+          </div>
+          <div className="-mx-4 mt-7 flex gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0" role="group" aria-label="Región">
+            <button type="button" className={tab(region === null)} aria-pressed={region === null} onClick={() => pickTab(null)}>
+              Todas <span className={count(region === null)}>{places.length}</span>
+            </button>
+            {regionCounts.map(([code, n]) => (
+              <button key={code} type="button" className={tab(region === code)} aria-pressed={region === code} onClick={() => pickTab(region === code ? null : code)}>
+                {shortRegion(regionName(code))} <span className={count(region === code)}>{n}</span>
+              </button>
+            ))}
+            {pendingCount > 0 && (
+              <button type="button" className={tab(region === "pending")} aria-pressed={region === "pending"} onClick={() => pickTab(region === "pending" ? null : "pending")}>
+                Por ubicar <span className={count(region === "pending")}>{pendingCount}</span>
+              </button>
+            )}
+          </div>
         </div>
-        <button type="button" onClick={() => window.print()} className={buttonClass("secundario", "print:hidden")}>
-          Imprimir lista
-        </button>
-      </div>
+      </header>
 
-      {/* Búsqueda, regiones y forma de ver */}
-      <div className="mt-6 print:hidden">
-        <label className="relative block max-w-2xl">
+      <div className={`${WRAP} py-8 lg:py-10`}>
+      {/* Búsqueda y forma de ver */}
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 print:hidden">
+        <label className="relative block min-w-0 flex-1 basis-72 sm:max-w-2xl">
           <span className="sr-only">Buscar una persona, comuna o cementerio</span>
           <svg viewBox="0 0 24 24" className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gris" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
             <circle cx="11" cy="11" r="7" />
@@ -536,40 +655,22 @@ export default function CemeteryGuide({
             </button>
           )}
         </label>
-
-        <div className="mt-5 flex flex-wrap items-end justify-between gap-x-6 gap-y-3 border-b-2 border-line">
-          <div className="-mb-0.5 flex min-w-0 basis-full items-end overflow-x-auto sm:flex-1 sm:basis-0" role="group" aria-label="Región">
-            <button type="button" className={tab(region === null)} aria-pressed={region === null} onClick={() => pickTab(null)}>
-              Todas <span className={count(region === null)}>{total}</span>
+        <div className="inline-flex rounded-2xl bg-paper p-1.5" role="tablist" aria-label="Cómo ver la lista">
+          {([["cemetery", "Por cementerio"], ["person", "Por persona"]] as const).map(([m, label]) => (
+            <button
+              key={m}
+              type="button"
+              role="tab"
+              aria-selected={mode === m}
+              onClick={() => {
+                setMode(m);
+                setSelectedKey(null);
+              }}
+              className={`min-h-12 rounded-xl px-5 text-[1.0625rem] transition ${mode === m ? "bg-white font-bold text-ink shadow" : "text-gris hover:text-ink"}`}
+            >
+              {label}
             </button>
-            {regionCounts.map(([code, n]) => (
-              <button key={code} type="button" className={tab(region === code)} aria-pressed={region === code} onClick={() => pickTab(region === code ? null : code)}>
-                {regionName(code)} <span className={count(region === code)}>{n}</span>
-              </button>
-            ))}
-            {pendingCount > 0 && (
-              <button type="button" className={tab(region === "pending")} aria-pressed={region === "pending"} onClick={() => pickTab(region === "pending" ? null : "pending")}>
-                Por ubicar <span className={count(region === "pending")}>{pendingCount}</span>
-              </button>
-            )}
-          </div>
-          <div className="mb-2 inline-flex rounded-2xl bg-paper p-1.5" role="tablist" aria-label="Cómo ver la lista">
-            {([["cemetery", "Por cementerio"], ["person", "Por persona"]] as const).map(([m, label]) => (
-              <button
-                key={m}
-                type="button"
-                role="tab"
-                aria-selected={mode === m}
-                onClick={() => {
-                  setMode(m);
-                  setSelectedKey(null);
-                }}
-                className={`min-h-12 rounded-xl px-5 text-[1.0625rem] transition ${mode === m ? "bg-white font-bold text-ink shadow" : "text-gris hover:text-ink"}`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          ))}
         </div>
       </div>
 
@@ -592,40 +693,96 @@ export default function CemeteryGuide({
             <ul className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">{everyone.map(({ b, p }) => personCard(b, p, true))}</ul>
           </section>
         )
-      ) : current ? (
-        /* Un cementerio */
-        <div className="mt-6 print:hidden">
-          <button type="button" onClick={backToList} className={buttonClass("secundario", "!border-transparent !bg-paper hover:!bg-line")}>
-            <span aria-hidden>←</span> Todos los cementerios
-          </button>
-
-          <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] xl:grid-cols-[minmax(0,4fr)_minmax(0,6fr)] xl:items-center">
-            <div className="w-full max-w-[38rem]">{photoSquare(current, true)}</div>
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full bg-paper px-3.5 py-1 text-base font-bold">{regionName(current.regionCode) || "Por ubicar"}</span>
-                {current.incomplete && <span className="rounded-full bg-[#fbecd9] px-3.5 py-1 text-base font-bold text-[#9a4a14]">Por confirmar</span>}
+      ) : !sections.length ? (
+        <p className="zb-texto mt-8 rounded-2xl border-2 border-dashed border-line p-8 text-center text-gris print:hidden">No encontramos cementerios ni personas con esa búsqueda. Prueba con otra palabra.</p>
+      ) : (
+        /* La lista: cementerios por región */
+        <div className="mt-8 space-y-14 print:hidden">
+          {photoErr && <Notice kind="aviso">{photoErr}</Notice>}
+          {sections.map((s) => (
+            <section key={s.code} aria-label={s.title}>
+              <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 border-b border-line pb-3">
+                <h2 className="text-[1.5rem] font-bold leading-tight sm:text-[1.75rem]">{s.code === "pending" ? s.title : regionLabel(s.title)}</h2>
+                <p className="zb-texto text-gris">{plural(sumPeople(s.places), "persona", "personas")}</p>
               </div>
-              <h2 className="zb-titulo mt-3">{siteName(current)}</h2>
-              <p className="zb-texto mt-2 text-gris">
-                {[current.locality ?? "Comuna desconocida", regionLabel(regionName(current.regionCode))].filter(Boolean).join(", ")}
+              <ul className="mt-6 grid gap-x-7 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {s.places.map((p) => (
+                  <li key={p.key} className="flex flex-col">
+                    <div className="relative">
+                      {photoSquare(p, false)}
+                      {p.incomplete && (
+                        <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-white px-3.5 py-1.5 text-base font-bold shadow">Por confirmar</span>
+                      )}
+                    </div>
+                    <div className="mt-4 flex items-start justify-between gap-3">
+                      <button type="button" onClick={() => openPlace(p.key)} className="min-w-0 text-left">
+                        <span className="zb-nombre block">{siteName(p)}</span>
+                        <span className="zb-apoyo mt-0.5 block">
+                          {p.locality ?? "Comuna desconocida"} · {plural(p.people.length, "persona", "personas")}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openPlace(p.key)}
+                        className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-ink text-white transition hover:bg-terra"
+                        aria-label={`Ver ${siteName(p)}`}
+                      >
+                        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2.2} aria-hidden>
+                          <path d="M5 12h14m-6-6 6 6-6 6" />
+                        </svg>
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
+      )}
+
+      {/* Panel del cementerio abierto */}
+      {current && (
+        <div className="fixed inset-0 z-40 print:hidden" role="dialog" aria-modal="true" aria-label={siteName(current)}>
+          <button type="button" className="absolute inset-0 cursor-default bg-ink/55" onClick={backToList} aria-label="Cerrar" tabIndex={-1} />
+          <aside className="absolute right-0 top-0 flex h-full w-full flex-col overflow-y-auto bg-white shadow-2xl sm:w-[min(36rem,92vw)]">
+            <div className="relative shrink-0">
+              {photoSquare(current, true)}
+              {current.incomplete && (
+                <span className="pointer-events-none absolute bottom-3 left-4 rounded-full bg-white px-3.5 py-1.5 text-base font-bold shadow">Por confirmar</span>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={backToList}
+              aria-label="Cerrar"
+              className="fixed right-4 top-4 z-10 grid h-12 w-12 place-items-center rounded-full bg-white text-ink shadow-lg hover:bg-paper sm:absolute"
+            >
+              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2.2} aria-hidden>
+                <path d="m6 6 12 12M18 6 6 18" />
+              </svg>
+            </button>
+            <div className="p-6">
+              <p className="zb-texto text-gris">
+                {[current.locality ?? "Comuna desconocida", regionLabel(regionName(current.regionCode))].filter(Boolean).join(" · ")}
               </p>
-              <p className="zb-texto mt-4">
-                <strong>{plural(current.people.length, "persona", "personas")}</strong> de la familia {current.people.length === 1 ? "descansa" : "descansan"} aquí.
+              <h2 className="zb-titulo mt-1">{siteName(current)}</h2>
+              <p className="zb-texto mt-3">
+                <strong>{plural(current.people.length, "persona", "personas")}</strong> de la familia {current.people.length === 1 ? "descansa" : "descansan"} aquí
               </p>
               <div className="mt-5 flex flex-wrap gap-3">
-                {current.point && (
-                  <a href={mapsUrl(current)} target="_blank" rel="noreferrer" className={buttonClass("principal")}>
-                    Cómo llegar <span aria-hidden>↗</span>
-                  </a>
-                )}
-                <button type="button" onClick={() => copyAddress(current)} className={buttonClass("secundario")} aria-live="polite">
-                  {copied ? "Dirección copiada" : "Copiar dirección"}
-                </button>
+                <a href={directionsUrl(current)} target="_blank" rel="noreferrer" className={buttonClass("principal", "min-w-0 flex-1 !px-5")}>
+                  Cómo llegar <span aria-hidden>↗</span>
+                </a>
+                <a href={mapsUrl(current)} target="_blank" rel="noreferrer" className={buttonClass("secundario", "min-w-0 flex-1 !px-5")}>
+                  Ver en el mapa
+                </a>
               </div>
+              <button type="button" onClick={() => copyAddress(current)} className={buttonClass("enlace", "mt-2 !px-1")} aria-live="polite">
+                {copied ? "Dirección copiada" : "Copiar dirección"}
+              </button>
               {canEdit && (
-                <div className="mt-5">
-                  <p className="zb-apoyo">Para agregar o cambiar la foto, arrástrala sobre el cuadro.</p>
+                <div className="mt-3">
+                  <p className="zb-apoyo">{photoOf(current) ? "Para cambiar la foto, arrastra otra sobre ella." : "Para agregar la foto, arrástrala sobre el cuadro."}</p>
                   {photoOf(current) && (
                     <div className="mt-3 flex flex-wrap gap-3">
                       <label className={`${buttonClass("secundario")} cursor-pointer ${photoBusy === current.key ? "pointer-events-none opacity-60" : ""}`}>
@@ -653,55 +810,11 @@ export default function CemeteryGuide({
                   <Notice kind="aviso">{photoErr}</Notice>
                 </div>
               )}
-            </div>
-          </div>
-
-          <section className="mt-10" aria-label="Aquí descansan">
-            <div className="flex items-end justify-between gap-4 border-b-2 border-ink pb-3">
-              <h3 className="zb-seccion">Aquí descansan</h3>
-              <p className="zb-apoyo">{plural(current.people.length, "persona", "personas")}</p>
-            </div>
-            <ul className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">{current.people.map((b) => personCard(b, current, false))}</ul>
-          </section>
-        </div>
-      ) : !sections.length ? (
-        <p className="zb-texto mt-8 rounded-2xl border-2 border-dashed border-line p-8 text-center text-gris print:hidden">No encontramos cementerios ni personas con esa búsqueda. Prueba con otra palabra.</p>
-      ) : (
-        /* La lista: cementerios por región */
-        <div className="mt-8 space-y-12 print:hidden">
-          {photoErr && <Notice kind="aviso">{photoErr}</Notice>}
-          {sections.map((s) => (
-            <section key={s.code} aria-label={s.title}>
-              <div className="flex items-end justify-between gap-4 border-b-2 border-ink pb-3">
-                <h2 className="zb-seccion">{s.title}</h2>
-                <p className="zb-apoyo">
-                  {plural(s.places.length, "cementerio", "cementerios")} · {plural(sumPeople(s.places), "persona", "personas")}
-                </p>
-              </div>
-              <ul className="mt-6 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {s.places.map((p) => (
-                  <li key={p.key} className="flex flex-col">
-                    <div className="relative">
-                      {photoSquare(p, false)}
-                      {p.incomplete && (
-                        <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-white px-3.5 py-1.5 text-base font-bold shadow">Por confirmar</span>
-                      )}
-                    </div>
-                    <button type="button" onClick={() => openPlace(p.key)} className="mt-4 text-left">
-                      <span className="zb-nombre block">{siteName(p)}</span>
-                      <span className="zb-apoyo mt-0.5 block">{p.locality ?? "Comuna desconocida"}</span>
-                    </button>
-                    <div className="mt-3 flex items-center justify-between gap-3">
-                      <span className="rounded-full bg-ink px-4 py-2 text-[1.0625rem] font-bold text-white">{plural(p.people.length, "persona", "personas")}</span>
-                      <button type="button" onClick={() => openPlace(p.key)} className={buttonClass("enlace", "!px-1")} aria-label={`Ver ${siteName(p)}`}>
-                        Ver <span aria-hidden>→</span>
-                      </button>
-                    </div>
-                  </li>
-                ))}
+              <ul className="mt-6 space-y-4" aria-label="Aquí descansan">
+                {current.people.map((b) => drawerPerson(b, current))}
               </ul>
-            </section>
-          ))}
+            </div>
+          </aside>
         </div>
       )}
 
@@ -727,6 +840,8 @@ export default function CemeteryGuide({
             ))}
           </section>
         ))}
+      </div>
+
       </div>
 
       <PersonPanel
