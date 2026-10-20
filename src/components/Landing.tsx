@@ -4,7 +4,7 @@
 // solo totales; para ver el árbol hay que entrar con invitación.
 
 import Link from "next/link";
-import Logo from "./Logo";
+import SiteBrand, { BRAND_ROW } from "./SiteBrand";
 import { buttonClass } from "./ui";
 import type { PublicStats } from "@/lib/data/public-stats";
 
@@ -204,13 +204,8 @@ export default function Landing({ stats }: { stats: PublicStats | null }) {
     <div className="zb min-h-screen bg-white text-ink">
       {/* Barra y portada */}
       <section className="overflow-hidden bg-ink text-white">
-        <header className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-3 sm:px-6">
-          <Link href="/" className="flex min-w-0 items-center gap-2.5 text-white" aria-label="Archivo Zamora Balcázar">
-            <Logo size={40} variant="oscuro" className="shrink-0" />
-            <span className="hidden truncate font-maquina text-sm uppercase tracking-[0.06em] min-[420px]:block sm:text-lg">
-              Archivo Zamora Balcázar
-            </span>
-          </Link>
+        <header className={`${BRAND_ROW} w-full gap-3`}>
+          <SiteBrand />
           <div className="ml-auto flex items-center gap-2 sm:gap-3">
             <Link
               href="/login"

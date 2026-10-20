@@ -3,7 +3,7 @@
 // sobre tinta, con un árbol dibujado sin nombres; a la derecha, sobre papel, la
 // "ficha" con el formulario. Nada de lo que se ve acá revela datos de la familia.
 
-import Logo from "./Logo";
+import SiteBrand, { BRAND_ROW } from "./SiteBrand";
 
 /** Árbol de tres generaciones, solo líneas: decoración, sin datos. */
 function TreeSketch({ className }: { className?: string }) {
@@ -62,11 +62,11 @@ export default function AuthShell({
     <div className="zb flex min-h-screen flex-col bg-paper lg:flex-row">
       {/* Portada */}
       <section className="relative overflow-hidden bg-ink text-white lg:flex lg:w-[46%] lg:flex-col lg:justify-between xl:w-1/2">
-        <div className="relative z-10 px-5 pb-6 pt-5 sm:px-10 sm:pb-10 sm:pt-10 lg:px-14 lg:pt-14 xl:px-20">
-          <div className="flex items-center gap-3">
-            <Logo size={44} variant="oscuro" className="shrink-0 lg:h-14 lg:w-14" />
-            <p className="text-sm font-bold uppercase tracking-[0.14em] text-white/70">Fondo familiar</p>
+        <div className="relative z-10">
+          <div className={BRAND_ROW}>
+            <SiteBrand />
           </div>
+          <div className="px-5 pb-6 pt-3 sm:px-10 sm:pb-10 sm:pt-6 lg:px-14 lg:pt-10 xl:px-20">
           <h2 className="mt-4 font-maquina text-[1.6rem] uppercase leading-[1.1] tracking-[0.04em] sm:mt-6 sm:max-w-[14ch] sm:text-5xl sm:leading-[1.05] lg:mt-14 lg:text-[3.5rem] xl:text-6xl">
             Archivo Zamora Balcázar
           </h2>
@@ -74,6 +74,7 @@ export default function AuthShell({
           <p className="mt-4 max-w-md text-base leading-relaxed text-white/80 sm:mt-5 sm:text-lg lg:mt-8 lg:text-xl">
             Nombres, fechas, lugares e historias de la familia, reunidos en un solo lugar para no perderlos.
           </p>
+          </div>
         </div>
 
         <TreeSketch className="relative z-0 mx-auto hidden w-full max-w-lg px-10 pb-6 lg:block xl:max-w-xl" />
