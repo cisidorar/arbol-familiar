@@ -8,11 +8,13 @@ import {
   emptyExpanded,
   expandDirection,
   pruneHierarchy,
+  pruneToLine,
   shownSiblings,
   siblingsSide,
   type ExpandAction,
   type Expanded,
 } from "@/lib/tree-nav";
+import { countCrossings, pathWithJumps } from "@/lib/link-jumps";
 import { allRelativesDisplayed, layoutAncestry, makeChildSort, tightenCouples, treeDimensions, type LayoutDatum } from "@/lib/tree-layout";
 
 type ChartDatum = {
@@ -27,6 +29,7 @@ type ChartDatum = {
     death_year: number | null;
     is_living: boolean;
     is_child: boolean;
+    needs_review?: boolean;
   };
   rels: { parents: string[]; children: string[]; spouses: string[] };
 };
@@ -34,8 +37,14 @@ type ChartDatum = {
 interface Props {
   data: ChartDatum[];
   mainId: string | null;
+  /** Si el tronco es un antepasado lejano de quien mira: el camino de
+   *  descendientes desde el tronco hasta esa persona. El árbol se muestra
+   *  comprimido a esa línea (el resto de la familia queda cerrado). */
+  line?: string[] | null;
   /** Cambia cuando se editó una persona: hay que redibujar las tarjetas. */
   version: number;
+  /** Sube para volver el árbol a su vista de partida: ramas cerradas y encuadre completo. */
+  resetKey?: number;
   onSelectPerson: (id: string) => void;
   /** Pide centrar el árbol en otra persona. El tronco lo guarda quien usa
    *  este componente (para poder ofrecer "volver"), acá solo se avisa. */
@@ -64,32 +73,153 @@ const DEFAULT_DEPTH = 2;
 /** Cuánto se baja (px, hacia los hijos) la barra de los padres de una pareja. */
 const SPOUSE_BAR_SHIFT = 26;
 
-function straightPathFromPoints(points: [number, number][]): string {
-  return points.map(([x, y], i) => `${i === 0 ? "M" : "L"}${x},${y}`).join(" ");
-}
+/**
+ * Las rectas ya calculadas por árbol, mientras las curvas de la librería no cambien: el
+ * cálculo (grupos, alturas, cruces) no se repite en cada cuadro de la animación.
+ */
+const straightCache = new WeakMap<HTMLElement, { sig: string; targets: (string | null)[] }>();
+
+type LinkDatum = {
+  curve?: boolean; spouse?: boolean; d?: [number, number][];
+  is_ancestry?: boolean;
+  source?: { spouse?: unknown };
+};
+const datumOf = (path: SVGPathElement) => (path as unknown as { __data__?: LinkDatum }).__data__;
 
 /** Reemplaza las curvas de la librería por líneas rectas (ver comentario arriba). */
 function straightenLinks(container: HTMLElement) {
-  const paths = container.querySelectorAll<SVGPathElement>(".links_view path.link");
-  for (const path of paths) {
-    const datum = (path as unknown as {
-      __data__?: {
-        curve?: boolean; spouse?: boolean; d?: [number, number][];
-        is_ancestry?: boolean; source?: { spouse?: unknown };
-      };
-    }).__data__;
-    if (!datum?.curve || datum.spouse || !datum.d) continue;
-    // Los padres de una pareja que entró por matrimonio (p. ej. Pedro Valencia y
-    // Magdalena Araya, padres de Isidora) se dibujan a la misma altura que los
-    // padres de la persona principal: las dos barras horizontales se funden y
-    // parece que los cuatro son padres de ambos. Bajamos la barra de los padres
-    // de la pareja hacia sus hijos para que cada línea se vea por separado.
-    const pts = datum.is_ancestry && datum.source?.spouse
-      ? datum.d.map(([x, y], i): [number, number] => (i >= 1 && i <= 4 ? [x, y + SPOUSE_BAR_SHIFT] : [x, y]))
-      : datum.d;
-    const target = straightPathFromPoints(pts);
-    if (path.getAttribute("d") !== target) path.setAttribute("d", target);
+  const paths = Array.from(container.querySelectorAll<SVGPathElement>(".links_view path.link"));
+  const sig = paths
+    .map((p) => {
+      const d = datumOf(p);
+      return `${d?.is_ancestry ? "a" : "p"}${d?.source?.spouse ? "s" : ""}${d?.d?.map((q) => `${Math.round(q[0])},${Math.round(q[1])}`).join(" ") ?? "-"}`;
+    })
+    .join("|");
+  let entry = straightCache.get(container);
+  if (!entry || entry.sig !== sig) {
+    entry = { sig, targets: computeStraightTargets(paths) };
+    straightCache.set(container, entry);
   }
+  paths.forEach((path, i) => {
+    const target = entry.targets[i];
+    if (target && path.getAttribute("d") !== target) path.setAttribute("d", target);
+  });
+}
+
+function computeStraightTargets(paths: SVGPathElement[]): (string | null)[] {
+  // Todos los hijos de unos mismos padres terminan su línea en el mismo punto
+  // (el punto medio entre los dos padres): sirve de identificador del grupo.
+  const groupKey = (d: LinkDatum) => {
+    const end = d.d?.[d.d.length - 1];
+    return end ? `${Math.round(end[0])},${Math.round(end[1])}` : "";
+  };
+
+  // Cada grupo de hermanos (los hijos de unos mismos padres) comparte una barra
+  // horizontal. La librería pone todas las barras de una misma fila a la misma
+  // altura, así que si dos familias distintas tienen tramos que se solapan
+  // (p. ej. los padres de dos parejas que entraron por matrimonio, o los de
+  // una pareja y los de la persona principal), las barras se funden en una
+  // sola y parece que los cuatro padres lo son de todos los hijos. Cada grupo
+  // recibe su propia altura: primero la de siempre (la línea directa, en su
+  // lugar; las parejas, bajadas SPOUSE_BAR_SHIFT) y, si choca con otra barra
+  // que se solapa a los lados, la primera alternativa libre.
+  // Los hermanos de una pareja (que `layoutAncestry` agrega como tarjetas
+  // aparte) cuelgan de los mismos padres y comparten el grupo, así que bajan
+  // junto con ella.
+  type Group = { key: string; minX: number; maxX: number; barY: number; spouseSide: boolean };
+  const groups = new Map<string, Group>();
+  for (const path of paths) {
+    const datum = datumOf(path);
+    if (!datum?.curve || datum.spouse || !datum.is_ancestry || !datum.d || datum.d.length < 6) continue;
+    const key = groupKey(datum);
+    const xs = [datum.d[0][0], datum.d[datum.d.length - 1][0]];
+    let g = groups.get(key);
+    if (!g) {
+      g = { key, minX: Infinity, maxX: -Infinity, barY: datum.d[1][1], spouseSide: false };
+      groups.set(key, g);
+    }
+    g.minX = Math.min(g.minX, ...xs);
+    g.maxX = Math.max(g.maxX, ...xs);
+    if (datum.source?.spouse) g.spouseSide = true;
+  }
+
+  const BLOOD_OFFSETS = [0, -13, 13, -26];
+  const SPOUSE_OFFSETS = [SPOUSE_BAR_SHIFT, 13, -13, -26];
+  const placed: { y: number; minX: number; maxX: number }[] = [];
+  const offsetOf = new Map<string, number>();
+  const ordered = [...groups.values()].sort(
+    (a, b) => Number(a.spouseSide) - Number(b.spouseSide) || a.minX - b.minX,
+  );
+  for (const g of ordered) {
+    const options = g.spouseSide ? SPOUSE_OFFSETS : BLOOD_OFFSETS;
+    const free = options.find((off) =>
+      placed.every(
+        (p) => Math.abs(p.y - (g.barY + off)) >= 9 || p.maxX < g.minX - 6 || p.minX > g.maxX + 6,
+      ),
+    );
+    const off = free ?? options[0];
+    offsetOf.set(g.key, off);
+    placed.push({ y: g.barY + off, minX: g.minX, maxX: g.maxX });
+  }
+
+  const targets: (string | null)[] = paths.map(() => null);
+  const build = () => {
+    const lines: { i: number; key: string; pts: [number, number][] }[] = [];
+    paths.forEach((path, i) => {
+      const datum = datumOf(path);
+      if (!datum?.curve || datum.spouse || !datum.d) return;
+      const key = datum.is_ancestry ? groupKey(datum) : "";
+      const dy = datum.is_ancestry ? (offsetOf.get(key) ?? 0) : 0;
+      const pts = dy
+        ? datum.d.map(([x, y], j): [number, number] => (j >= 1 && j <= 4 ? [x, y + dy] : [x, y]))
+        : datum.d;
+      lines.push({ i, key, pts });
+    });
+    return lines;
+  };
+
+  // Dos grupos de barras vecinas que se solapan (los hijos de una pareja y los que el padre tuvo
+  // con otra persona) se cruzan sí o sí, pero según cuál barra quede arriba se cruzan más o menos
+  // veces: se prueba el orden contrario y se deja el que cruza menos.
+  let lines = build();
+  const crossingsOf = (keys: string[]) => {
+    const mine = lines.filter((l) => keys.includes(l.key));
+    return mine.reduce(
+      (sum, l) => sum + countCrossings(l.pts, lines.filter((o) => o !== l).map((o) => o.pts)),
+      0,
+    );
+  };
+  const gs = ordered;
+  for (let a = 0; a < gs.length; a++) {
+    for (let b = a + 1; b < gs.length; b++) {
+      const ga = gs[a];
+      const gb = gs[b];
+      const ya = ga.barY + (offsetOf.get(ga.key) ?? 0);
+      const yb = gb.barY + (offsetOf.get(gb.key) ?? 0);
+      if (Math.abs(ya - yb) >= 40 || Math.abs(ya - yb) < 1) continue;
+      if (ga.maxX < gb.minX - 6 || gb.maxX < ga.minX - 6) continue;
+      const before = crossingsOf([ga.key, gb.key]);
+      if (!before) continue;
+      const offA = offsetOf.get(ga.key) ?? 0;
+      const offB = offsetOf.get(gb.key) ?? 0;
+      offsetOf.set(ga.key, yb - ga.barY);
+      offsetOf.set(gb.key, ya - gb.barY);
+      const swapped = build();
+      const keep = lines;
+      lines = swapped;
+      if (crossingsOf([ga.key, gb.key]) >= before) {
+        lines = keep;
+        offsetOf.set(ga.key, offA);
+        offsetOf.set(gb.key, offB);
+      }
+    }
+  }
+
+  // Donde una línea cruza a otra, la horizontal se corta un instante (ver link-jumps.ts).
+  for (const l of lines) {
+    targets[l.i] = pathWithJumps(l.pts, lines.filter((o) => o !== l).map((o) => o.pts));
+  }
+  return targets;
 }
 
 // Medidas del árbol, en px. Una tarjeta mide CARD_WIDTH de ancho.
@@ -132,9 +262,11 @@ function setYearLabels(data: ChartDatum[]) {
   }
 }
 
-export default function FamilyTree({ data, mainId, version, onSelectPerson, onRecenter, onAddRelative }: Props) {
+export default function FamilyTree({ data, mainId, line = null, version, resetKey = 0, onSelectPerson, onRecenter, onAddRelative }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<any>(null);
+  const lineRef = useRef<string[] | null>(line);
+  lineRef.current = line;
   const onSelectRef = useRef(onSelectPerson);
   onSelectRef.current = onSelectPerson;
   const onRecenterRef = useRef(onRecenter);
@@ -214,7 +346,9 @@ export default function FamilyTree({ data, mainId, version, onSelectPerson, onRe
       // La raíz de la jerarquía que llega acá es el tronco.
       chart.setModifyTreeHierarchy((root: any, isAncestry: boolean) => {
         const expanded = expandedFor(root.data.id);
-        pruneHierarchy(root, DEFAULT_DEPTH, isAncestry ? expanded.up : expanded.down);
+        const line = lineRef.current;
+        if (!isAncestry && line && line[0] === root.data.id) pruneToLine(root, DEFAULT_DEPTH, expanded.down, line);
+        else pruneHierarchy(root, DEFAULT_DEPTH, isAncestry ? expanded.up : expanded.down);
       });
 
       // Ids de las personas que el árbol calculado tiene en pantalla.
@@ -371,6 +505,23 @@ export default function FamilyTree({ data, mainId, version, onSelectPerson, onRe
           // clase .card-child combinada con .card-male/.card-female).
           this.querySelector(".card")?.classList.toggle("card-child", Boolean(d.data.data.is_child));
 
+          // «Hay un documento por revisar» (se prende en la ficha): borde ámbar y una insignia.
+          const review = Boolean(d.data.data.needs_review);
+          this.querySelector(".card")?.classList.toggle("card-review", review);
+          {
+            const el = this.querySelector(".card");
+            let flag = el?.querySelector<HTMLElement>(".card-review-flag") ?? null;
+            if (el && review && !flag) {
+              flag = document.createElement("div");
+              flag.className = "card-review-flag";
+              flag.setAttribute("title", "Hay un documento por revisar (ábrelo en la ficha)");
+              flag.setAttribute("aria-label", "Hay un documento por revisar");
+              el.appendChild(flag);
+            } else if (!review) {
+              flag?.remove();
+            }
+          }
+
           // El "+" para agregarle un familiar (solo si quien entró puede editar).
           const cardEl = this.querySelector(".card");
           if (cardEl && onAddRelativeRef.current && !cardEl.querySelector(".card-add")) {
@@ -454,8 +605,29 @@ export default function FamilyTree({ data, mainId, version, onSelectPerson, onRe
     if (!chartRef.current || !mainId || mainId === lastMainIdRef.current) return;
     lastMainIdRef.current = mainId;
     chartRef.current.updateMainId?.(mainId);
-    chartRef.current.updateTree({ tree_position: "main_to_middle" });
+    // Con la línea hasta quien mira, el árbol queda largo hacia abajo: se
+    // encuadra entero para que se vea todo el camino.
+    chartRef.current.updateTree({ tree_position: lineRef.current ? "fit" : "main_to_middle" });
   }, [mainId]);
+
+  // "Archivo Zamora Balcázar" (el título): se cierran todas las ramas que se abrieron a mano
+  // y el árbol vuelve a verse entero, centrado, como al entrar.
+  const firstResetRef = useRef(true);
+  useEffect(() => {
+    if (firstResetRef.current) {
+      firstResetRef.current = false;
+      return;
+    }
+    const chart = chartRef.current;
+    if (!chart) return;
+    expandedByTrunkRef.current.clear();
+    if (mainId) {
+      lastMainIdRef.current = mainId;
+      chart.updateMainId?.(mainId);
+    }
+    chart.updateTree({ tree_position: "fit" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resetKey]);
 
   // Se editó una persona: sus datos ya cambiaron en `data` (el mismo objeto
   // que usa el árbol), solo falta volver a pintar las tarjetas, sin mover la vista.

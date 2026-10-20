@@ -103,6 +103,26 @@ describe("validateEvent", () => {
     expect(bautismo.ok && bautismo.value.subtype).toBeNull();
   });
 
+  it("el pendiente solo acepta los tipos conocidos; cualquier otro valor queda sin pendiente", () => {
+    const si = validateEvent({ ...base, review: "familysearch_presencial" });
+    expect(si.ok && si.value.review).toBe("familysearch_presencial");
+    for (const raro of ["", "otro", 5, null, undefined]) {
+      const r = validateEvent({ ...base, review: raro });
+      expect(r.ok && r.value.review).toBeNull();
+    }
+  });
+
+  it("el comentario del pendiente se limpia, se corta en 600 letras y solo vale con un pendiente marcado", () => {
+    const con = validateEvent({ ...base, review: "familysearch_presencial", reviewNote: "  Ver la edad   de los padres \n\n\n\nen el acta  " });
+    expect(con.ok && con.value.reviewNote).toBe("Ver la edad de los padres\n\nen el acta");
+    const largo = validateEvent({ ...base, review: "familysearch_presencial", reviewNote: "a".repeat(900) });
+    expect(largo.ok && largo.value.reviewNote?.length).toBe(600);
+    const vacio = validateEvent({ ...base, review: "familysearch_presencial", reviewNote: "   " });
+    expect(vacio.ok && vacio.value.reviewNote).toBeNull();
+    const sinPendiente = validateEvent({ ...base, review: "", reviewNote: "se pierde" });
+    expect(sinPendiente.ok && sinPendiente.value.reviewNote).toBeNull();
+  });
+
   it("la fuente necesita un enlace web; nunca pasa un javascript:", () => {
     const ok = validateEvent({ ...base, sourceUrl: "https://www.familysearch.org/ark:/1", sourceQuote: "bautizó a María" });
     expect(ok.ok && ok.value.source).toEqual({ url: "https://www.familysearch.org/ark:/1", title: "familysearch.org", quote: "bautizó a María" });

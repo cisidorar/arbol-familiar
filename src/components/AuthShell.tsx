@@ -1,7 +1,7 @@
-// Marco de las pantallas sin sesión (entrar, usar una invitación): una hoja de
-// archivo, tipo ficha mecanografiada, sobre fondo oscuro.
+// Marco de las pantallas sin sesión (entrar, usar una invitación), con la guía
+// de estilo: barra de tinta con el logo, fondo blanco, una sola cosa a la vez.
 
-export const typewriter = { fontFamily: "'Courier Prime', 'Courier New', Courier, monospace" } as const;
+import Logo from "./Logo";
 
 export default function AuthShell({
   title,
@@ -13,32 +13,21 @@ export default function AuthShell({
   children: React.ReactNode;
 }) {
   return (
-    <main
-      className="flex min-h-screen items-center justify-center bg-[#2a2925] px-4 py-8 sm:py-12"
-      style={typewriter}
-    >
-      <div className="w-full max-w-[640px] bg-[#f5f2ea] px-6 py-8 text-[#1f1d1a] shadow-[0_30px_80px_rgba(0,0,0,0.55)] sm:px-12 sm:py-12">
-        <div className="flex justify-end text-[11px] uppercase tracking-[0.22em] text-[#7a756a]">
-          <span>Hoja 1/1</span>
+    <div className="zb flex min-h-screen flex-col bg-white">
+      <header className="bg-ink text-white">
+        <div className="mx-auto flex w-full max-w-5xl items-center gap-3 px-4 py-3 sm:px-6">
+          <Logo size={48} variant="oscuro" />
+          <p className="font-maquina text-xl uppercase leading-none tracking-[0.06em] sm:text-2xl">
+            Archivo Zamora Balcázar
+          </p>
         </div>
+      </header>
 
-        <p
-          className="mt-4 text-[2rem] uppercase leading-[1.1] tracking-[0.04em] sm:text-[2.75rem]"
-          style={{ fontFamily: "var(--font-special-elite), 'Courier New', monospace" }}
-        >
-          Archivo
-          <br />
-          Zamora Balcázar
-        </p>
-
-        <div className="mt-6 text-[15px] leading-relaxed">
-          <h1 className="inline font-bold">{title}.</h1>
-          {intro && <span> {intro}</span>}
-        </div>
-
-        <hr className="mt-6 border-0 border-t-[3px] border-[#1f1d1a]" />
-        <div className="mt-6">{children}</div>
-      </div>
-    </main>
+      <main className="mx-auto w-full max-w-[34rem] flex-1 px-4 pb-16 pt-10 sm:px-6 sm:pt-14">
+        <h1 className="zb-titulo">{title}</h1>
+        {intro && <p className="zb-texto mt-3 text-gris">{intro}</p>}
+        <div className="mt-8">{children}</div>
+      </main>
+    </div>
   );
 }

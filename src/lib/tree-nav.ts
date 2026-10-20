@@ -92,6 +92,69 @@ export function pruneHierarchy(
   walk(root, 0);
 }
 
+/**
+ * Camino de descendientes desde `trunkId` hasta `viewerId` (ambos incluidos),
+ * por el camino más corto. Sirve para "comprimir" el árbol de un ancestro
+ * lejano hasta quien mira. Devuelve null si `viewerId` no desciende de él o si
+ * está a menos de `minSteps` generaciones (un padre o un abuelo se ven bien con
+ * su familia a la vista).
+ */
+export function lineToViewer(
+  rels: ReadonlyMap<string, { children?: string[] }>,
+  trunkId: string,
+  viewerId: string,
+  minSteps = 2,
+): string[] | null {
+  if (trunkId === viewerId) return null;
+  const from = new Map<string, string | null>([[trunkId, null]]);
+  const queue = [trunkId];
+  for (let i = 0; i < queue.length; i++) {
+    const id = queue[i];
+    if (id === viewerId) break;
+    for (const child of rels.get(id)?.children ?? []) {
+      if (!child || from.has(child) || !rels.has(child)) continue;
+      from.set(child, id);
+      queue.push(child);
+    }
+  }
+  if (!from.has(viewerId)) return null;
+  const path: string[] = [];
+  for (let at: string | null = viewerId; at; at = from.get(at) ?? null) path.unshift(at);
+  return path.length - 1 >= minSteps ? path : null;
+}
+
+/**
+ * Como `pruneHierarchy` para los descendientes, pero con una "línea" fija
+ * (el camino hasta quien mira): de cada persona de la línea solo se ve a su
+ * hijo de la línea, sin límite de generaciones, y se acabó la rama en quien
+ * mira. Lo demás se abre persona por persona (`expandedIds`): al abrir a
+ * alguien de la línea se ven todos sus hijos, con el límite de siempre.
+ */
+export function pruneToLine(
+  root: HierarchyNode,
+  defaultDepth: number,
+  expandedIds: ReadonlySet<string>,
+  line: readonly string[],
+): void {
+  const onLine = new Set(line);
+  const walk = (node: HierarchyNode, depth: number) => {
+    if (!node.children) return;
+    if (onLine.has(node.data.id) && !expandedIds.has(node.data.id)) {
+      const keep = node.children.filter((c) => onLine.has(c.data.id));
+      if (keep.length) node.children = keep;
+      else delete node.children;
+      for (const child of node.children ?? []) walk(child, depth + 1);
+      return;
+    }
+    if (depth >= defaultDepth && !expandedIds.has(node.data.id)) {
+      delete node.children;
+      return;
+    }
+    for (const child of node.children) walk(child, depth + 1);
+  };
+  walk(root, 0);
+}
+
 /** Tarjeta del árbol ya calculado, tal como la entrega family-chart. */
 export interface NavNode {
   depth: number;

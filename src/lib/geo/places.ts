@@ -50,7 +50,7 @@ export function comunaByName(name: string, regionCode?: string | null): ComunaEn
 }
 
 /** Comunas cuyo nombre es también el de su provincia (y por eso un texto puede nombrarlas como ciudad, no como comuna). */
-const PROVINCE_NAMES = new Set(
+export const PROVINCE_NAMES = new Set(
   [
     "Arica", "Iquique", "Antofagasta", "Tocopilla", "Copiapó", "Chañaral", "Isla de Pascua", "Los Andes", "Petorca",
     "Quillota", "San Antonio", "San Felipe", "Valparaíso", "Cauquenes", "Curicó", "Linares", "Talca", "Arauco",

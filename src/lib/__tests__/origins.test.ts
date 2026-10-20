@@ -147,3 +147,14 @@ describe("resumen para la pantalla", () => {
     expect(locatedCount(s)).toBe(4);
   });
 });
+
+import { ancestorPhrase } from "../origins";
+describe("ancestorPhrase", () => {
+  it("dice qué es cada antepasado en palabras", () => {
+    expect(ancestorPhrase({ relation: "madre", branch: "materna", generation: 1 })).toBe("Tu mamá");
+    expect(ancestorPhrase({ relation: "padre", branch: "paterna", generation: 1 }, true)).toBe("Su papá");
+    expect(ancestorPhrase({ relation: "tatarabuelo", branch: "materna", generation: 4 }, true)).toBe("Su tatarabuelo, por parte de su mamá");
+    expect(ancestorPhrase({ relation: "abuela", branch: "paterna", generation: 2 })).toBe("Tu abuela, por parte de tu papá");
+    expect(ancestorPhrase({ relation: "tía", branch: "materna", generation: 1 })).toBe("Tu tía, por parte de tu mamá");
+  });
+});

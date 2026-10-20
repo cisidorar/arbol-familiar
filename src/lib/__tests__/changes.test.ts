@@ -20,6 +20,24 @@ describe("describeChange", () => {
     expect(details).toEqual(["Sexo: Sin dato → Mujer", "Estado: Viva / vivo → Fallecida/o"]);
   });
 
+  it("marcar un hecho como pendiente aparece en el historial con el nombre del tipo", () => {
+    const { details } = describeChange({
+      entity: "event", action: "update",
+      before: { type: "BAPM", date: "13 de diciembre de 1862", review: "" },
+      after: { type: "BAPM", date: "13 de diciembre de 1862", review: "familysearch_presencial" },
+    });
+    expect(details).toEqual(["Pendiente: (vacío) → Ir a revisarlo en persona a FamilySearch"]);
+  });
+
+  it("cambiar el comentario del pendiente aparece en el historial", () => {
+    const { details } = describeChange({
+      entity: "event", action: "update",
+      before: { type: "BAPM", review: "familysearch_presencial", reviewNote: "" },
+      after: { type: "BAPM", review: "familysearch_presencial", reviewNote: "Ver la edad de los padres" },
+    });
+    expect(details).toEqual(["Comentario del pendiente: (vacío) → Ver la edad de los padres"]);
+  });
+
   it("hecho agregado: nombra el tipo y lista lo que trae", () => {
     const { summary, details } = describeChange({
       entity: "event", action: "create", before: null,

@@ -1,70 +1,64 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { acceptInvite, login } from "@/app/actions/auth";
+import { Button, Field, Notice } from "./ui";
 
-// Fila de la ficha: etiqueta a la izquierda, línea para escribir a la derecha
-// (en el celular la etiqueta pasa arriba).
-const rowClass = "grid items-end gap-x-4 gap-y-1 sm:grid-cols-[10rem_1fr]";
-const labelClass = "pb-1 text-[15px] font-bold";
-const inputClass =
-  "w-full border-0 border-b-2 border-dotted border-[#7a756a] bg-transparent px-0 py-1 text-[15px] text-[#1f1d1a] outline-none transition-colors focus:border-solid focus:border-[#b3261e]";
-const hintClass = "text-xs text-[#7a756a] sm:col-start-2";
-const buttonClass =
-  "border-[3px] border-[#1f1d1a] bg-transparent px-6 py-2 text-[15px] font-bold uppercase tracking-[0.2em] text-[#1f1d1a] hover:bg-[#1f1d1a] hover:text-[#f5f2ea] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b3261e] disabled:cursor-not-allowed disabled:opacity-60";
-
-function FormError({ message }: { message?: string }) {
-  if (!message) return null;
-  return (
-    <p role="alert" className="border-l-4 border-[#b3261e] pl-3 text-sm text-[#b3261e]">
-      {message}
-    </p>
-  );
-}
+// Pantallas de entrada con la guía de estilo: campos con borde, un solo botón
+// negro y mensajes en tono de conversación.
 
 function Submit({ pending, idle, busy }: { pending: boolean; idle: string; busy: string }) {
   return (
-    <div className="flex justify-end">
-      <button type="submit" disabled={pending} className={buttonClass}>
-        [ {pending ? busy : idle} ]
-      </button>
+    <div className="pt-2">
+      <Button type="submit" disabled={pending} className="w-full sm:w-auto">
+        {pending ? busy : idle}
+      </Button>
     </div>
+  );
+}
+
+/** Casilla con palabras: mostrar lo que se escribe, para quien no ve bien los puntos. */
+function ShowPassword({ shown, onChange }: { shown: boolean; onChange: (shown: boolean) => void }) {
+  return (
+    <label className="flex min-h-12 cursor-pointer items-center gap-3 text-[1.0625rem]">
+      <input
+        type="checkbox"
+        checked={shown}
+        onChange={(e) => onChange(e.target.checked)}
+        className="h-6 w-6 accent-ink"
+      />
+      Mostrar lo que escribo
+    </label>
   );
 }
 
 export function LoginForm() {
   const [state, action, pending] = useActionState(login, undefined);
+  const [shown, setShown] = useState(false);
   return (
-    <form action={action} className="flex flex-col gap-6">
-      <div className={rowClass}>
-        <label htmlFor="email" className={labelClass}>
-          Correo:
-        </label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          autoComplete="username"
-          required
-          autoFocus
-          defaultValue={state?.email}
-          className={inputClass}
-        />
-      </div>
-      <div className={rowClass}>
-        <label htmlFor="password" className={labelClass}>
-          Contraseña:
-        </label>
-        <input
+    <form action={action} className="flex flex-col gap-5">
+      <Field
+        id="email"
+        name="email"
+        label="Tu correo"
+        type="email"
+        autoComplete="username"
+        required
+        autoFocus
+        defaultValue={state?.email}
+      />
+      <div className="flex flex-col gap-1">
+        <Field
           id="password"
           name="password"
-          type="password"
+          label="Tu contraseña"
+          type={shown ? "text" : "password"}
           autoComplete="current-password"
           required
-          className={inputClass}
         />
+        <ShowPassword shown={shown} onChange={setShown} />
       </div>
-      <FormError message={state?.error} />
+      {state?.error && <Notice kind="aviso">{state.error}</Notice>}
       <Submit pending={pending} idle="Entrar" busy="Entrando…" />
     </form>
   );
@@ -82,66 +76,54 @@ export function AcceptInviteForm({
   minLength: number;
 }) {
   const [state, action, pending] = useActionState(acceptInvite, undefined);
+  const [shown, setShown] = useState(false);
+  const type = shown ? "text" : "password";
   return (
-    <form action={action} className="flex flex-col gap-6">
+    <form action={action} className="flex flex-col gap-5">
       <input type="hidden" name="token" value={token} />
-      <div className={rowClass}>
-        <span className={labelClass}>Correo:</span>
-        <p className="break-all border-b-2 border-dotted border-[#7a756a] py-1 text-[15px]">{email}</p>
+      <div className="flex flex-col gap-1.5">
+        <span className="text-[1.125rem] font-bold">Tu correo</span>
+        <p className="break-all rounded-lg bg-paper px-3.5 py-3 text-[1.125rem]">{email}</p>
         {/* Para que el navegador guarde la contraseña junto al correo correcto. */}
         <input type="hidden" name="username" autoComplete="username" value={email} readOnly />
       </div>
       {kind === "invite" && (
-        <div className={rowClass}>
-          <label htmlFor="name" className={labelClass}>
-            Tu nombre:
-          </label>
-          <input
-            id="name"
-            name="name"
-            autoComplete="name"
-            required
-            maxLength={80}
-            autoFocus
-            defaultValue={state?.name}
-            className={inputClass}
-          />
-          <p className={hintClass}>Aparece junto a los cambios que hagas.</p>
-        </div>
+        <Field
+          id="name"
+          name="name"
+          label="Tu nombre"
+          autoComplete="name"
+          required
+          maxLength={80}
+          autoFocus
+          defaultValue={state?.name}
+          hint="Aparece junto a los cambios que hagas."
+        />
       )}
-      <div className={rowClass}>
-        <label htmlFor="password" className={labelClass}>
-          {kind === "reset" ? "Contraseña nueva:" : "Contraseña:"}
-        </label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="new-password"
-          required
-          minLength={minLength}
-          className={inputClass}
-        />
-        <p className={hintClass}>Al menos {minLength} caracteres.</p>
-      </div>
-      <div className={rowClass}>
-        <label htmlFor="confirm" className={labelClass}>
-          Repítela:
-        </label>
-        <input
-          id="confirm"
-          name="confirm"
-          type="password"
-          autoComplete="new-password"
-          required
-          minLength={minLength}
-          className={inputClass}
-        />
-      </div>
-      <FormError message={state?.error} />
+      <Field
+        id="password"
+        name="password"
+        label={kind === "reset" ? "Tu contraseña nueva" : "Elige una contraseña"}
+        type={type}
+        autoComplete="new-password"
+        required
+        minLength={minLength}
+        hint={`Al menos ${minLength} letras o números.`}
+      />
+      <Field
+        id="confirm"
+        name="confirm"
+        label="Escríbela otra vez"
+        type={type}
+        autoComplete="new-password"
+        required
+        minLength={minLength}
+      />
+      <ShowPassword shown={shown} onChange={setShown} />
+      {state?.error && <Notice kind="aviso">{state.error}</Notice>}
       <Submit
         pending={pending}
-        idle={kind === "reset" ? "Guardar y entrar" : "Crear cuenta y entrar"}
+        idle={kind === "reset" ? "Guardar y entrar" : "Crear mi cuenta y entrar"}
         busy="Guardando…"
       />
     </form>

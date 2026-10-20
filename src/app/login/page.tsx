@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 function Command({ children }: { children: string }) {
   return (
-    <code className="mt-1.5 block overflow-x-auto whitespace-nowrap bg-[#1f1d1a] px-3 py-2 text-xs text-[#f5f2ea]">
+    <code className="mt-2 block overflow-x-auto whitespace-nowrap rounded-lg bg-ink px-4 py-3 text-base text-white">
       {children}
     </code>
   );
@@ -25,7 +25,7 @@ export default async function LoginPage() {
   if (setup !== "ready") {
     return (
       <AuthShell title="Falta un paso para poder entrar" intro="Se hace una sola vez, en la terminal, dentro de la carpeta del proyecto.">
-        <ol className="flex flex-col gap-4 text-sm">
+        <ol className="zb-texto flex flex-col gap-5">
           {setup === "needs-migration" && (
             <li>
               1. Crea las tablas de usuarios:
@@ -44,12 +44,14 @@ export default async function LoginPage() {
 
   if (await getSession()) redirect("/");
   return (
-    <AuthShell title="Entrar" intro="El archivo es privado: solo entra quien fue invitado.">
+    <AuthShell title="Entrar" intro="Este archivo es privado: solo entra quien fue invitado.">
       <LoginForm />
-      <hr className="mt-8 border-0 border-t border-[#c9c3b4]" />
-      <p className="mt-4 text-[13px] italic leading-relaxed text-[#7a756a]">
-        ¿Olvidaste tu contraseña o no tienes cuenta? Pídele a quien administra el archivo un enlace nuevo.
-      </p>
+      <div className="mt-10 border-t border-line pt-6">
+        <p className="zb-apoyo">
+          ¿Olvidaste tu contraseña o todavía no tienes cuenta? Pídele a quien administra el archivo que te mande un
+          enlace nuevo.
+        </p>
+      </div>
     </AuthShell>
   );
 }

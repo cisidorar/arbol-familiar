@@ -357,3 +357,41 @@ describe("comprimir a los hermanos", () => {
     expect(siblingsSide({ x: 600 }, [hno("a", 280), hno("b", 0)])).toBe("left");
   });
 });
+
+describe("lineToViewer y pruneToLine", () => {
+  const rels = new Map<string, { children?: string[] }>([
+    ["bruno", { children: ["a", "b"] }],
+    ["a", { children: ["c"] }],
+    ["b", { children: ["d"] }],
+    ["c", { children: ["yo", "hermano"] }],
+    ["d", {}],
+    ["yo", {}],
+    ["hermano", {}],
+  ]);
+
+  it("encuentra el camino de descendientes hasta quien mira", async () => {
+    const { lineToViewer } = await import("../tree-nav");
+    expect(lineToViewer(rels, "bruno", "yo")).toEqual(["bruno", "a", "c", "yo"]);
+  });
+
+  it("no hay línea si no desciende, o si está a menos de dos generaciones", async () => {
+    const { lineToViewer } = await import("../tree-nav");
+    expect(lineToViewer(rels, "b", "yo")).toBeNull();
+    expect(lineToViewer(rels, "c", "yo")).toBeNull();
+    expect(lineToViewer(rels, "yo", "yo")).toBeNull();
+  });
+
+  it("deja solo la línea, sin límite de generaciones", async () => {
+    const { pruneToLine } = await import("../tree-nav");
+    const root = h("bruno", h("a", h("c", h("yo"), h("hermano"))), h("b", h("d")));
+    pruneToLine(root, 2, new Set(), ["bruno", "a", "c", "yo"]);
+    expect(ids(root)).toEqual(["bruno", "a", "c", "yo"]);
+  });
+
+  it("al abrir a alguien de la línea se ven todos sus hijos", async () => {
+    const { pruneToLine } = await import("../tree-nav");
+    const root = h("bruno", h("a", h("c", h("yo"), h("hermano"))), h("b", h("d")));
+    pruneToLine(root, 2, new Set(["bruno"]), ["bruno", "a", "c", "yo"]);
+    expect(ids(root).sort()).toEqual(["a", "b", "bruno", "c", "d", "yo"]);
+  });
+});

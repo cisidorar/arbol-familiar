@@ -5,6 +5,8 @@ import { canonicalCemetery } from "./geo/cemeteries";
 import { normName } from "./geo/places";
 
 export type BurialRow = {
+  /** El hecho de sepultura (para anotar la ubicación de la tumba). */
+  eventId?: string | null;
   personId: string;
   personName: string;
   placeText: string;
@@ -21,6 +23,7 @@ export type BurialRow = {
 };
 
 export type Burial = {
+  eventId: string | null;
   personId: string;
   name: string;
   birth: string | null;
@@ -30,6 +33,8 @@ export type Burial = {
   spot: string | null;
   /** Qué es para la persona del usuario ("tatarabuelo · rama materna"); lo llena la página. */
   relation?: string | null;
+  /** "M" / "F" (o null si no se sabe); lo llena la página. */
+  sex?: string | null;
   /** Pasos en el árbol hasta la persona del usuario (para ordenar); lo llena la página. */
   distance?: number | null;
 };
@@ -80,6 +85,7 @@ export function groupBurials(rows: BurialRow[]): CemeteryGroup[] {
     }
     if (g.people.some((p) => p.personId === r.personId)) continue;
     g.people.push({
+      eventId: r.eventId ?? null,
       personId: r.personId,
       name: r.personName,
       birth: yearOf(r.birth),

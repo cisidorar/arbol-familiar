@@ -109,10 +109,43 @@ describe("layoutAncestry", () => {
     // papá es el de la izquierda: sus hermanos van a su izquierda, el mayor más lejos
     expect(xOf(t.nodes, "tia2")).toBe(t.papa.x - 2 * S);
     expect(xOf(t.nodes, "tio1")).toBe(t.papa.x - S);
-    // mamá es la de la derecha: los suyos a su derecha, sin año al final
-    expect(xOf(t.nodes, "mediotio")).toBe(t.mama.x + S);
-    expect(xOf(t.nodes, "tia3")).toBe(t.mama.x + 2 * S);
+    // mamá es la de la derecha: los suyos a su derecha; primero su hermana de padre y madre
+    // (aunque no tenga año) y después el medio tío, que cuelga solo de la abuela
+    expect(xOf(t.nodes, "tia3")).toBe(t.mama.x + S);
+    expect(xOf(t.nodes, "mediotio")).toBe(t.mama.x + 2 * S);
     for (const n of added) expect(n.y).toBe(t.papa.y);
+  });
+
+  it("agrupa a los hermanos: primero los de padre y madre, después los medio hermanos por pareja del padre", () => {
+    const f = family();
+    f.person("jose", "M");
+    f.person("digna", "F");
+    f.person("isidora", "F");
+    f.person("petronila", "F");
+    f.couple("jose", "isidora");
+    f.couple("jose", "petronila");
+    f.couple("jose", "digna");
+    f.person("manuel", "M", ["jose", "isidora"], 1864);
+    f.person("tomas", "M", ["jose", "petronila"], 1893);
+    f.person("solo", "M", ["jose"], 1860);
+    f.person("rosa", "F", ["jose", "digna"], 1896);
+    f.person("hermana", "F", ["jose", "digna"], 1899);
+    f.person("zamora", "M");
+    f.couple("rosa", "zamora");
+    // Rosa (a la derecha de su pareja) tiene a sus padres arriba; sus hermanos van a su derecha.
+    const zam: LayoutNode = { data: f.byId.get("zamora")!, x: -S, y: 0, depth: 0, tid: "zamora" };
+    const rosa = f.show("rosa", 0, 0);
+    zam.spouse = rosa;
+    rosa.spouses = [zam];
+    f.nodes.push(zam);
+    const jose = f.show("jose", -S / 2, 1);
+    const digna = f.show("digna", S / 2, 1);
+    rosa.parents = [jose, digna];
+    layoutAncestry(f.nodes, { byId: f.byId, sibsOpen: new Set(["rosa"]), separation: S });
+    const order = ["hermana", "solo", "manuel", "tomas"].sort((a, b) => xOf(f.nodes, a) - xOf(f.nodes, b));
+    // Primero la hermana de padre y madre; luego los de José: por pareja (Isidora, Petronila) y, sin pareja anotada, al final.
+    expect(order).toEqual(["hermana", "manuel", "tomas", "solo"]);
+    expect(xOf(f.nodes, "hermana")).toBeGreaterThan(xOf(f.nodes, "rosa"));
   });
 
   it("los hermanos del tronco van del lado contrario a su pareja", () => {
@@ -760,5 +793,58 @@ describe("hijos de un hermano agregado (kidsOpen)", () => {
     // De dónde bajan las líneas: el punto medio de la pareja.
     expect(esposa.sx).toBeCloseTo((tio.x + esposa.x) / 2, 6);
     expect(tio.sx).toBe(tio.x);
+  });
+});
+
+describe("padres de una pareja agregados arriba (spousesUp)", () => {
+  it("no quedan centrados justo sobre un hijo de la fila de abajo (sus líneas se confundirían)", () => {
+    const f = family();
+    const SEP = 300;
+    f.person("bruno", "M");
+    f.person("manuela", "F");
+    f.couple("bruno", "manuela");
+    f.person("francisco", "M", ["bruno", "manuela"], 1855);
+    f.person("ysidora", "F", ["bruno", "manuela"], 1860);
+    f.person("gricelda", "F", ["bruno", "manuela"], 1865);
+    f.person("primitiva", "F", ["bruno", "manuela"], 1870);
+    f.person("pedro", "M");
+    f.person("pastora", "F");
+    f.couple("pedro", "pastora");
+    f.person("carlota", "F", ["pedro", "pastora"], 1857);
+    f.couple("francisco", "carlota");
+
+    const bruno = f.show("bruno", 300, 0);
+    const manuela: LayoutNode = { data: f.byId.get("manuela")!, x: 600, y: 0, depth: 0, spouse: bruno, tid: "manuela" };
+    bruno.spouses = [manuela];
+    f.nodes.push(manuela);
+    const row = (id: string, x: number) => {
+      const n: LayoutNode = { data: f.byId.get(id)!, x, y: 150, depth: 1, tid: id, parents: [bruno, manuela] };
+      f.nodes.push(n);
+      return n;
+    };
+    const francisco = row("francisco", -150);
+    const carlota: LayoutNode = { data: f.byId.get("carlota")!, x: 150, y: 150, depth: 1, spouse: francisco, tid: "carlota" };
+    francisco.spouses = [carlota];
+    f.nodes.push(carlota);
+    row("ysidora", 450);
+    row("gricelda", 750);
+    row("primitiva", 1050);
+
+    const added = layoutAncestry(f.nodes, {
+      byId: f.byId,
+      sibsOpen: new Set(),
+      spousesUpOpen: new Set(["carlota"]),
+      separation: SEP,
+      levelSeparation: 150,
+    });
+    const parents = added.filter((n) => n.data.id === "pedro" || n.data.id === "pastora");
+    expect(parents).toHaveLength(2);
+    const mid = (parents[0].x + parents[1].x) / 2;
+    const below = f.nodes.filter((n) => n.y === 150 && !parents.includes(n));
+    for (const n of below) expect(Math.abs(n.x - mid)).toBeGreaterThanOrEqual(SEP / 3);
+    // Siguen en la fila de los padres de su pareja y sin pisar a nadie.
+    expect(parents.every((p) => p.y === 0)).toBe(true);
+    const sameRow = f.nodes.filter((n) => n.y === 0).sort((a, b) => a.x - b.x);
+    sameRow.slice(1).forEach((n, i) => expect(n.x - sameRow[i].x).toBeGreaterThanOrEqual(SEP - 1));
   });
 });

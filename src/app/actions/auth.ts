@@ -18,13 +18,13 @@ export async function login(_prev: FormState, formData: FormData): Promise<FormS
   const email = normalizeEmail(typed);
   const password = String(formData.get("password") ?? "");
   // El mismo mensaje para correo desconocido y contraseña mala: no se revela cuál falló.
-  const wrong = { error: "Correo o contraseña incorrectos.", email: typed };
+  const wrong = { error: "El correo o la contraseña no coinciden. Revísalos e intenta de nuevo.", email: typed };
   if (!email || !password) return wrong;
 
   const result = await attemptLogin(email, password);
   if (!result.ok) {
     return result.reason === "locked"
-      ? { error: "Demasiados intentos fallidos. Espera 15 minutos y prueba de nuevo.", email: typed }
+      ? { error: "Se intentó entrar muchas veces sin éxito. Espera 15 minutos y vuelve a probar.", email: typed }
       : wrong;
   }
   await createSession(result.userId);
@@ -42,15 +42,15 @@ export async function acceptInvite(_prev: FormState, formData: FormData): Promis
   const confirm = String(formData.get("confirm") ?? "");
 
   const invitation = await getInvitation(token);
-  if (!invitation) return { error: "Este enlace ya no sirve: venció o ya se usó. Pide uno nuevo." };
+  if (!invitation) return { error: "Este enlace ya no sirve: venció o ya se usó. Pídele a quien administra el archivo que te mande uno nuevo." };
 
   const name = invitation.kind === "reset" ? invitation.userName ?? "" : String(formData.get("name") ?? "").trim();
   if (invitation.kind === "invite" && (name.length < 2 || name.length > 80)) {
-    return { error: "Escribe tu nombre." };
+    return { error: "Escribe tu nombre, por favor." };
   }
   const problem = passwordProblem(password);
   if (problem) return { error: problem, name };
-  if (password !== confirm) return { error: "Las dos contraseñas no coinciden.", name };
+  if (password !== confirm) return { error: "Las dos contraseñas no son iguales. Escríbelas de nuevo.", name };
 
   const result = await acceptInvitation(token, name, password);
   if (!result.ok) return { error: result.error, name };

@@ -11,7 +11,7 @@ export const EDITABLE_EVENT_TYPES = [
   { type: "BIRT", label: "Nacimiento", textLabel: "Detalle", textHint: "Hospital, circunstancias…" },
   { type: "BAPM", label: "Bautismo", textLabel: "Detalle", textHint: "Padrinos, parroquia…" },
   { type: "DEAT", label: "Defunción", textLabel: "Causa o detalle", textHint: "" },
-  { type: "BURI", label: "Sepultura", textLabel: "Detalle", textHint: "" },
+  { type: "BURI", label: "Sepultura", textLabel: "Ubicación de la tumba", textHint: "p. ej. cruz 158, patio 8, nicho 24" },
   { type: "RESI", label: "Residencia", textLabel: "Detalle", textHint: "Dirección, con quién vivía…" },
   { type: "OCCU", label: "Trabajo u oficio", textLabel: "Qué hacía", textHint: "Zapatero, regidor municipal de Curicó…" },
   { type: "EDUC", label: "Estudios", textLabel: "Qué estudió", textHint: "" },
@@ -24,6 +24,16 @@ export const EDITABLE_EVENT_TYPES = [
   { type: "MARR", label: "Matrimonio", textLabel: "Detalle", textHint: "Testigos, régimen matrimonial…" },
   { type: "DIV", label: "Divorcio", textLabel: "Detalle", textHint: "" },
   { type: "ENGA", label: "Compromiso", textLabel: "Detalle", textHint: "" },
+] as const;
+
+/**
+ * Oficios que más aparecen en las actas de la familia (campo y ciudad, siglos XIX y XX),
+ * para elegirlos con un toque en vez de escribirlos. Cualquier otro se escribe a mano.
+ */
+export const OCCUPATION_SUGGESTIONS = [
+  "Peón", "Gañán", "Jornalero", "Labrador", "Agricultor", "Inquilino", "Obrero", "Comerciante",
+  "Zapatero", "Carpintero", "Albañil", "Panadero", "Costurera", "Lavandera", "Cocinera", "Empleado",
+  "Dueña de casa",
 ] as const;
 
 export type EditableEventType = (typeof EDITABLE_EVENT_TYPES)[number]["type"];
@@ -39,6 +49,20 @@ export const FAMILY_EVENT_TYPES = new Set<string>(["MARR", "DIV", "ENGA"]);
 
 /** De los hechos de familia, los que se pueden agregar nuevos desde una ficha (eligiendo con quién). */
 export const NEW_FAMILY_EVENT_TYPES = new Set<string>(["MARR"]);
+
+/**
+ * Tipos de pendiente que se le pueden poner a un hecho (solo administradores).
+ * Por ahora uno; la lista queda abierta para sumar otros.
+ */
+export const REVIEW_KINDS = [
+  {
+    key: "familysearch_presencial",
+    label: "Ir a revisarlo en persona a FamilySearch",
+    hint: "El documento no se puede ver en línea: hay que ir a un centro de historia familiar.",
+  },
+] as const;
+export type ReviewKind = (typeof REVIEW_KINDS)[number]["key"];
+const REVIEW_KEYS = new Set<string>(REVIEW_KINDS.map((k) => k.key));
 
 /** Los datos de un hecho tal como se muestran en el formulario. */
 /** Una persona relacionada con el hecho (padrino, testigo…): vinculada al árbol o no todavía. */
@@ -56,6 +80,10 @@ export type EventForm = {
   sourceUrl: string;
   sourceQuote: string;
   participants: ParticipantForm[];
+  /** Pendiente del hecho (ver REVIEW_KINDS); vacío o ausente = ninguno. Solo lo cambian administradores. */
+  review?: string;
+  /** Comentario del pendiente (qué hay que mirar); solo vale si hay pendiente. */
+  reviewNote?: string;
   /** Solo en un hecho de familia nuevo (matrimonio): con qué familia (pareja) se guarda. */
   familyId?: string;
 };
@@ -96,6 +124,10 @@ export type EventValues = {
   description: string | null;
   source: { title: string; url: string; quote: string | null } | null;
   participants: { role: string; name: string; personId: string | null }[];
+  /** Tipo de pendiente, o null. */
+  review: ReviewKind | null;
+  /** Comentario del pendiente, o null (siempre null si no hay pendiente). */
+  reviewNote: string | null;
 };
 
 export type PersonForm = {
@@ -126,6 +158,11 @@ function clean(v: unknown, max: number): string | null {
 }
 
 /** Texto largo: conserva los saltos de línea. */
+/** Comentario de un pendiente: texto corto opcional (máx. 600 letras). */
+export function cleanReviewNote(v: unknown): string | null {
+  return cleanLong(typeof v === "string" ? v.replace(/[ \t]+\n/g, "\n") : v, 600);
+}
+
 function cleanLong(v: unknown, max: number): string | null {
   if (typeof v !== "string") return null;
   const t = v.replace(/\r\n?/g, "\n").replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
@@ -233,10 +270,13 @@ export function validateEvent(input: unknown, currentDate: string | null = null)
     errors.sourceUrl = "Falta el enlace de la fuente.";
   }
 
+  const review = typeof o.review === "string" && REVIEW_KEYS.has(o.review) ? (o.review as ReviewKind) : null;
+  const reviewNote = review ? cleanReviewNote(o.reviewNote) : null;
+
   if (Object.keys(errors).length) return { ok: false, errors };
   return {
     ok: true,
-    value: { type: type!, subtype: type === "EVEN" ? subtype : null, date, place, description, source, participants },
+    value: { type: type!, subtype: type === "EVEN" ? subtype : null, date, place, description, source, participants, review, reviewNote },
   };
 }
 

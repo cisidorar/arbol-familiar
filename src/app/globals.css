@@ -8,6 +8,19 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+
+  /* Guía de estilo del archivo (versión 1). El árbol dibujado no usa estos colores. */
+  --color-ink: #1a1816;
+  --color-paper: #f4f1ea;
+  --color-gris: #4a4740;
+  --color-line: #d6d2ca;
+  --color-terra: #c4572e;
+  --color-hombre: #2f66b8;
+  --color-mujer: #b03a62;
+  --color-aviso: #b3261e;
+  --color-listo: #1f6b43;
+  --font-body: var(--font-atkinson), "Atkinson Hyperlegible", system-ui, sans-serif;
+  --font-maquina: var(--font-special-elite), "Courier New", Courier, monospace;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -344,6 +357,30 @@ div.f3 div.card-add:hover {
   box-shadow: 0 0 0 1px #5b6b85;
 }
 
+/* Marca «hay un documento por revisar»: borde ámbar y una insignia (un documento con lupa)
+   en la esquina de arriba a la izquierda, por fuera de la tarjeta para no tapar el nombre.
+   Se prende y apaga en la ficha de la persona. */
+div.f3 div.card.card-review .card-inner {
+  outline: 3px solid #e08a00;
+  outline-offset: 1px;
+}
+
+div.f3 div.card-review-flag {
+  position: absolute;
+  top: -9px;
+  left: -9px;
+  z-index: 3;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 3h8l4 4v6'/%3E%3Cpath d='M6 3v18h6'/%3E%3Ccircle cx='16' cy='17' r='3'/%3E%3Cpath d='M18.2 19.2 21 22'/%3E%3C/svg%3E")
+      center / 16px 16px no-repeat,
+    #e08a00;
+  box-shadow: 0 0 0 2px #fff;
+  pointer-events: none;
+}
+
 /* "Comprimir": vuelve a ocultar a los hermanos que se desplegaron al lado de
    esta tarjeta. Va del lado donde están, con la flecha apuntando hacia la
    tarjeta (hacia donde se pliegan). */
@@ -387,3 +424,32 @@ div.f3 div.card-collapse:hover {
   opacity: 1;
   background: #3f4c63;
 }
+
+
+/* ============================================================
+   Guía de estilo: "Un archivo que toda la familia pueda usar"
+   Cuatro reglas: letra grande, botones grandes, palabras en vez de solo
+   íconos, una cosa a la vez. Todo lo que lleva la clase `zb` (las pantallas
+   fuera del árbol y el encabezado) parte de acá. Los tamaños van en rem.
+   ============================================================ */
+
+.zb {
+  font-family: var(--font-body);
+  font-size: 1.125rem; /* 18 px: texto normal, nunca menos de 16 px */
+  line-height: 1.55;
+  color: var(--color-ink);
+}
+
+/* Al navegar con teclado se ve un borde azul. */
+.zb :focus-visible,
+.zb:focus-visible {
+  outline: 3px solid var(--color-hombre);
+  outline-offset: 2px;
+}
+
+.zb-titulo { font-family: var(--font-maquina); font-size: clamp(2rem, 6vw, 2.75rem); line-height: 1.12; font-weight: 400; }
+.zb-seccion { font-family: var(--font-maquina); font-size: clamp(1.6rem, 4.5vw, 2rem); line-height: 1.2; font-weight: 400; }
+.zb-nombre { font-size: 1.25rem; line-height: 1.3; font-weight: 700; }
+.zb-texto { font-size: 1.125rem; line-height: 1.55; }
+.zb-apoyo { font-size: 1rem; line-height: 1.5; color: var(--color-gris); }
+.zb-etiqueta { font-size: 0.875rem; line-height: 1.3; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-gris); }

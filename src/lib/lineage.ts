@@ -1,20 +1,26 @@
 // El camino entre dos personas del árbol, para la animación "Ver camino".
 // Lógica pura (sin React ni base de datos).
 
-import { relationLabel, type Ancestor } from "./origins";
+import { ancestorPhrase, relationLabel, type Ancestor } from "./origins";
 
 export type LineageStep = {
   id: string;
   name: string;
   /** Qué es esta persona en el camino ("madre de Catalina", "bisabuela · rama materna"). */
   relation: string;
+  /** Etiqueta corta de la persona ("Abuela"); si falta, se saca del principio de `relation`. */
+  badge?: string;
   /** Un lugar o dato para mostrar debajo (el origen, el cementerio…). */
   place: string | null;
   estimated: boolean;
+  /** Sexo (F/M) para colorear; opcional. */
+  sex?: string | null;
+  /** Cómo se llega a esta persona desde la anterior. */
+  via?: "parent" | "child" | "spouse" | null;
 };
 
 /** El camino de `rootId` hasta el antepasado `target`, de la persona hacia arriba. */
-export function buildAncestorSteps(rootId: string, rootName: string, ancestors: Ancestor[], target: Ancestor): LineageStep[] {
+export function buildAncestorSteps(rootId: string, rootName: string, ancestors: Ancestor[], target: Ancestor, sexById?: Record<string, string | undefined>, tercera = false): LineageStep[] {
   const byId = new Map(ancestors.map((a) => [a.id, a]));
   const up: LineageStep[] = [];
   let cur: Ancestor | undefined = target;
@@ -22,13 +28,16 @@ export function buildAncestorSteps(rootId: string, rootName: string, ancestors: 
     up.push({
       id: cur.id,
       name: cur.name,
-      relation: `${cur.relation} · rama ${cur.branch}`,
+      relation: ancestorPhrase(cur, tercera),
+      badge: cur.relation.charAt(0).toUpperCase() + cur.relation.slice(1),
       place: cur.origin.kind === "none" ? null : cur.origin.label,
       estimated: cur.origin.kind !== "none" && cur.origin.basis !== "birth",
+      sex: sexById?.[cur.id] ?? null,
+      via: cur.lateral ? "child" : "parent",
     });
     cur = cur.childId === rootId ? undefined : byId.get(cur.childId);
   }
-  return [{ id: rootId, name: rootName, relation: "Punto de partida", place: null, estimated: false }, ...up.reverse()];
+  return [{ id: rootId, name: rootName, relation: "Punto de partida", place: null, estimated: false, sex: sexById?.[rootId] ?? null, via: null }, ...up.reverse()];
 }
 
 export type GraphPerson = {
@@ -100,6 +109,8 @@ export function kinshipPath(rootId: string, targetId: string, people: GraphPerso
       relation: c.via && c.from ? `${WORDS[c.via][female ? 1 : 0]} de ${first(c.from)}` : "Punto de partida",
       place: note?.(c.id) ?? null,
       estimated: false,
+      sex: person.data.gender ?? null,
+      via: c.via,
     };
   });
 }
@@ -148,4 +159,32 @@ export function kinshipLabel(rootId: string, targetId: string, people: GraphPers
     else if (n === 2 && k === 3) label = `${g(female, "hijo", "hija")} de tu ${g(genderOf(chain[n + 2].id) === "F", "primo", "prima")}${branch}`;
   }
   return { label: label ?? `pariente (${distance} pasos en el árbol)`, distance };
+}
+
+const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+
+/**
+ * Lo mismo que `kinshipLabel`, pero dicho como lo diría una persona de la familia:
+ * "Tu tatarabuelo, por parte de tu mamá", "Tu papá", "Tu hermana".
+ * Con `tercera` (el mapa o la lista es de otra persona) usa "su" en vez de "tu".
+ */
+export function kinshipPhrase(rootId: string, targetId: string, people: GraphPerson[] | Map<string, GraphPerson>, tercera = false): Kinship | null {
+  const k = kinshipLabel(rootId, targetId, people);
+  if (!k) return null;
+  return { label: phraseFromLabel(k.label, tercera), distance: k.distance };
+}
+
+/** Convierte "abuela · rama materna" en "Tu abuela, por parte de tu mamá". */
+export function phraseFromLabel(label: string, tercera = false): string {
+  const poss = tercera ? "su" : "tu";
+  const [main, rama] = label.split(" · rama ");
+  if (main === "tú") return tercera ? "Es la persona misma" : "Eres tú";
+  if (/^(descendiente|pariente) \(/.test(main)) return cap(main);
+  let text: string;
+  if (main.startsWith("tu ")) text = cap(`${poss} ${main.slice(3)}`);
+  else if (main.includes(" de tu ")) text = cap(main.replace(" de tu ", ` de ${poss} `));
+  else text = cap(`${poss} ${main === "padre" ? "papá" : main === "madre" ? "mamá" : main}`);
+  // A los papás no se les agrega "por parte de": ya son de ese lado.
+  if (rama && main !== "padre" && main !== "madre") text += `, por parte de ${poss} ${rama === "materna" ? "mamá" : "papá"}`;
+  return text;
 }

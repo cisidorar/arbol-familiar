@@ -38,7 +38,7 @@ describe("kinshipPath", () => {
   });
 });
 
-import { kinshipLabel } from "../lineage";
+import { kinshipLabel, kinshipPhrase, phraseFromLabel } from "../lineage";
 describe("kinshipLabel", () => {
   it("nombra el parentesco desde la persona", () => {
     expect(kinshipLabel("Y", "A", people)).toEqual({ label: "abuela · rama materna", distance: 2 });
@@ -47,5 +47,27 @@ describe("kinshipLabel", () => {
     expect(kinshipLabel("Y", "P", people)?.label).toBe("padre · rama paterna");
     expect(kinshipLabel("Y", "Y", people)?.label).toBe("tú");
     expect(kinshipLabel("Y", "Z", people)).toBeNull();
+  });
+});
+
+describe("kinshipPhrase", () => {
+  it("lo dice como la familia", () => {
+    expect(kinshipPhrase("Y", "A", people)?.label).toBe("Tu abuela, por parte de tu mamá");
+    expect(kinshipPhrase("Y", "P", people)?.label).toBe("Tu papá");
+    expect(kinshipPhrase("Y", "T", people)?.label).toBe("Tu tío, por parte de tu mamá");
+    expect(kinshipPhrase("Y", "R", people)?.label).toBe("Tu prima, por parte de tu mamá");
+    expect(kinshipPhrase("Y", "Y", people)?.label).toBe("Eres tú");
+    expect(kinshipPhrase("Y", "Z", people)).toBeNull();
+  });
+  it("en tercera persona usa «su»", () => {
+    expect(kinshipPhrase("Y", "A", people, true)?.label).toBe("Su abuela, por parte de su mamá");
+  });
+  it("traduce las formas compuestas", () => {
+    expect(phraseFromLabel("tatarabuelo · rama materna", true)).toBe("Su tatarabuelo, por parte de su mamá");
+    expect(phraseFromLabel("pareja de tu abuelo · rama paterna")).toBe("Pareja de tu abuelo, por parte de tu papá");
+    expect(phraseFromLabel("hermana de tu bisabuelo · rama materna")).toBe("Hermana de tu bisabuelo, por parte de tu mamá");
+    expect(phraseFromLabel("tu pareja")).toBe("Tu pareja");
+    expect(phraseFromLabel("hermano")).toBe("Tu hermano");
+    expect(phraseFromLabel("pariente (5 pasos en el árbol)")).toBe("Pariente (5 pasos en el árbol)");
   });
 });

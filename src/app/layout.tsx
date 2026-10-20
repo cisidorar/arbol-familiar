@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Special_Elite, Playfair_Display } from "next/font/google";
+import { Special_Elite, Playfair_Display, Atkinson_Hyperlegible } from "next/font/google";
 import "./globals.css";
 
 // Fuente tipo máquina de escribir para el título del archivo (look "archivo
@@ -19,6 +19,14 @@ const playfair = Playfair_Display({
   variable: "--font-playfair",
 });
 
+// Letra para todo lo que no es logo, barra superior o título (guía de estilo):
+// se diseñó para baja visión, cada letra se distingue de las parecidas (Il1, O0, rn/m).
+const atkinson = Atkinson_Hyperlegible({
+  weight: ["400", "700"],
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-atkinson",
+});
+
 export const metadata: Metadata = {
   title: "Archivo Zamora Balcázar",
   description: "Archivo genealógico de la familia Zamora Balcázar",
@@ -26,8 +34,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="es" className={`h-full antialiased ${specialElite.variable} ${playfair.variable}`}>
-      <body suppressHydrationWarning className="min-h-full flex flex-col font-sans">{children}</body>
+    <html lang="es" suppressHydrationWarning className={`h-full antialiased ${specialElite.variable} ${playfair.variable} ${atkinson.variable}`}>
+      <body suppressHydrationWarning className="min-h-full flex flex-col font-sans">
+        {children}
+      </body>
     </html>
   );
 }

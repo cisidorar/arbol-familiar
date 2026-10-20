@@ -7,7 +7,9 @@ import { ROLE_LABELS, type Role } from "@/lib/auth/roles";
 
 export type CurrentUser = { name: string; role: Role };
 
-/** Botón con la inicial de quien entró: su nombre, su rol, la administración y salir. */
+const ITEM = "flex min-h-12 items-center px-4 py-2 hover:bg-paper";
+
+/** Botón con la inicial de quien entró: su nombre, su rol, la administración y cerrar sesión. */
 export default function UserMenu({ user }: { user: CurrentUser }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -26,46 +28,56 @@ export default function UserMenu({ user }: { user: CurrentUser }) {
   }, [open]);
 
   return (
-    <div ref={ref} className="relative shrink-0">
+    <div ref={ref} className="zb relative shrink-0">
       <button
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={`Cuenta de ${user.name}`}
-        className="flex h-10 w-12 items-center justify-center border-2 border-[#f5f2ea] text-sm font-bold uppercase text-[#f5f2ea] hover:bg-[#f5f2ea] hover:text-[#1a1917] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f5f2ea]"
-        style={{ fontFamily: "'Courier New', Courier, monospace" }}
+        aria-label={`Mi cuenta, ${user.name}`}
+        className="flex min-h-12 items-center gap-2.5 rounded-xl border-2 border-white/80 py-1 pl-1.5 pr-3 font-bold text-white hover:bg-white hover:text-ink sm:pr-4"
       >
-        [ {user.name.trim().charAt(0) || "?"} ]
+        <span
+          aria-hidden="true"
+          className="flex h-9 w-9 items-center justify-center rounded-lg bg-paper text-lg font-bold uppercase text-ink"
+        >
+          {user.name.trim().charAt(0) || "?"}
+        </span>
+        <span className="hidden sm:inline">Mi cuenta</span>
+        <span aria-hidden="true" className="hidden text-sm sm:inline">
+          {open ? "▴" : "▾"}
+        </span>
       </button>
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-12 z-40 w-56 overflow-hidden border-2 border-[#1a1917] bg-[#f5f2ea] py-1 text-sm text-[#1f1d1a] shadow-[0_12px_30px_rgba(0,0,0,0.4)]"
+          className="absolute right-0 top-14 z-40 w-72 overflow-hidden rounded-2xl border-2 border-line bg-white py-1 text-[1.125rem] text-ink shadow-[0_12px_30px_rgba(0,0,0,0.35)]"
         >
-          <div className="border-b border-[#c9c3b4] px-3.5 py-2.5">
+          <div className="border-b border-line px-4 py-3">
             <p className="truncate font-bold">{user.name}</p>
-            <p className="text-xs text-[#7a756a]">{ROLE_LABELS[user.role]}</p>
+            <p className="text-base text-gris">{ROLE_LABELS[user.role]}</p>
           </div>
-          <Link href="/" role="menuitem" className="block px-3.5 py-2 hover:bg-[#e9e4d6]">
+          <Link href="/" role="menuitem" className={ITEM}>
             Árbol
           </Link>
-          <Link href="/pendientes" role="menuitem" className="block px-3.5 py-2 hover:bg-[#e9e4d6]">
-            Pendientes de investigación
-          </Link>
-          <Link href="/mapa" role="menuitem" className="block px-3.5 py-2 hover:bg-[#e9e4d6]">
+          <Link href="/mapa" role="menuitem" className={ITEM}>
             Mapa de orígenes
           </Link>
-          <Link href="/cementerios" role="menuitem" className="block px-3.5 py-2 hover:bg-[#e9e4d6]">
+          {user.role === "admin" && (
+            <Link href="/pendientes" role="menuitem" className={ITEM}>
+              Pendientes
+            </Link>
+          )}
+          <Link href="/cementerios" role="menuitem" className={ITEM}>
             Cementerios
           </Link>
           {user.role === "admin" && (
-            <Link href="/admin" role="menuitem" className="block px-3.5 py-2 hover:bg-[#e9e4d6]">
+            <Link href="/admin" role="menuitem" className={ITEM}>
               Usuarios e historial
             </Link>
           )}
-          <form action={logout}>
-            <button type="submit" role="menuitem" className="block w-full px-3.5 py-2 text-left hover:bg-[#e9e4d6]">
-              Salir
+          <form action={logout} className="border-t border-line">
+            <button type="submit" role="menuitem" className={`${ITEM} w-full text-left`}>
+              Cerrar sesión
             </button>
           </form>
         </div>

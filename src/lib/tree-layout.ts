@@ -91,6 +91,30 @@ export function makeChildSort(lookup: (id: string) => LayoutDatum | undefined) {
   };
 }
 
+/**
+ * Qué tan cerca de la persona de la línea directa va cada hermano (menor = más cerca): primero
+ * los hermanos de padre y madre; después, los medio hermanos, empezando por los del padre/madre
+ * que queda de su lado de la fila, y dentro de cada uno por la pareja con la que los tuvo (en el
+ * orden en que se dibujan). Así cada grupo de hermanos queda junto y su barra no atraviesa
+ * la de otro grupo más de lo inevitable.
+ */
+export function siblingRank(
+  datum: { rels: { parents?: string[] } },
+  parents: { id: string; rels: { spouses?: string[] } }[],
+  side: "L" | "R",
+): number {
+  const mine = datum.rels.parents ?? [];
+  const shared = parents.filter((p) => mine.includes(p.id));
+  if (parents.length > 1 && shared.length === parents.length) return 0;
+  const parent = shared[0];
+  if (!parent) return 1_000_000;
+  const idx = parents.indexOf(parent);
+  const near = side === "R" ? idx : parents.length - 1 - idx;
+  const other = mine.find((q) => q !== parent.id);
+  const pi = other ? (parent.rels.spouses ?? []).indexOf(other) : -1;
+  return 1 + near * 100 + (pi < 0 ? 99 : pi);
+}
+
 /** Un hermano con las parejas suyas que se muestran a su lado. */
 type SiblingUnit = { datum: LayoutDatum; partners: LayoutDatum[] };
 
@@ -209,7 +233,13 @@ export function layoutAncestry(
 
   const added: LayoutNode[] = [];
   const addSiblings = (node: LayoutNode, side: Side, edge: number) => {
-    const units = siblingsOf.get(node)!;
+    const parents = parentsOf.get(node)!.map((p) => p.data);
+    const rank = (u: SiblingUnit) => siblingRank(u.datum, parents, side);
+    // La fila se llena de izquierda a derecha: a la derecha de `node` el más cercano va
+    // primero; a su izquierda, al final.
+    const units = [...siblingsOf.get(node)!].sort(
+      (a, b) => (side === "R" ? rank(a) - rank(b) : rank(b) - rank(a)) || byBirth(a.datum, b.datum),
+    );
     // Igual que los hermanos del tronco que arma la librería: fuera de la
     // numeración de generaciones, para que no se tomen por el tronco.
     const depth = node.depth === 0 ? -1 : node.depth;
@@ -345,14 +375,49 @@ export function layoutAncestry(
       // fila (p. ej. los padres de la esposa del tronco, con los del
       // tronco); si no, una generación arriba de donde está la pareja.
       const referenceY = bloodPartner.parents?.[0]?.y ?? spouseNode.y - (opts.levelSeparation ?? S);
-      let step = 0;
-      let centers: number[] = [];
-      do {
-        const left =
-          side === "L" ? spouseNode.x - S * (parents.length + step) : spouseNode.x + S * (1 + step);
-        centers = parents.map((_, i) => left + S * i + half);
-        step++;
-      } while (centers.some((x) => collides(referenceY, x)) && step < 20);
+      // Para cada lado se busca el primer lugar libre en esa fila (corriéndose
+      // una tanda por cada choque). Antes solo se probaba el lado "de afuera":
+      // si estaba ocupado, los padres terminaban muy lejos de su hijo, al otro
+      // extremo del árbol, mezclados con otras familias. Ahora se elige el
+      // lado que los deja más cerca de él.
+      const lowX = Math.min(spouseNode.x, bloodPartner.x);
+      const highX = Math.max(spouseNode.x, bloodPartner.x);
+      // Otra familia en esa fila: se deja el aire de FAMILY_GAP entre una familia y la siguiente,
+      // para que se lean como dos ramas distintas y no como una sola.
+      const tooClose = (x: number) => (occupiedAt.get(referenceY) ?? []).some((ox) => Math.abs(ox - x) < S - 1 + (opts.familyGap ?? 0));
+      const place = (s2: Side) => {
+        let step = 0;
+        let cs: number[] = [];
+        do {
+          const left = s2 === "L" ? lowX - S * (parents.length + step) : highX + S * (1 + step);
+          cs = parents.map((_, i) => left + S * i + half);
+          step++;
+        } while (cs.some((x) => tooClose(x)) && step < 20);
+        const mid = cs.reduce((a, b) => a + b, 0) / cs.length;
+        return { centers: cs, dist: Math.abs(mid - spouseNode.x) };
+      };
+      const first = place(side);
+      const other = place(side === "L" ? "R" : "L");
+      let centers = other.dist + S < first.dist ? other.centers : first.centers;
+      // Las líneas de la pareja bajan desde su punto medio. Si ese punto cae
+      // justo sobre una tarjeta de la fila de abajo (p. ej. un hermano de la
+      // pareja), su línea se funde con la de esa tarjeta y parece su padre o
+      // madre. Se corre medio paso hacia donde haya lugar para que no coincidan.
+      const belowY = referenceY + (opts.levelSeparation ?? S);
+      const midOf = (cs: number[]) => cs.reduce((a, b) => a + b, 0) / cs.length;
+      const clashesBelow = (cs: number[]) =>
+        (occupiedAt.get(belowY) ?? []).some((ox) => Math.abs(ox - midOf(cs)) < S / 3);
+      if (clashesBelow(centers)) {
+        const base = centers;
+        const shifts = [half, -half].sort((a, b) => Math.abs(midOf(base.map((x) => x + a)) - spouseNode.x) - Math.abs(midOf(base.map((x) => x + b)) - spouseNode.x));
+        for (const shift of shifts) {
+          const moved = base.map((x) => x + shift);
+          if (!clashesBelow(moved) && !moved.some((x) => tooClose(x))) {
+            centers = moved;
+            break;
+          }
+        }
+      }
       for (const x of centers) {
         occupiedAt.set(referenceY, [...(occupiedAt.get(referenceY) ?? []), x]);
       }
@@ -409,14 +474,30 @@ export function layoutAncestry(
       }
       if (!found.length) continue;
       found.sort(byBirth);
+      const parentData = (node.parents ?? []).slice().sort((a, b) => a.x - b.x).map((p) => p.data);
 
       // Hacia afuera de su propia pareja, si tiene una ya a la vista; si no,
       // según su género, como en el resto del árbol.
       const partnerX = node.spouse?.x ?? node.spouses?.[0]?.x;
-      const side: Side =
+      let side: Side =
         partnerX !== undefined ? (partnerX > node.x ? "L" : "R") : node.data.data.gender === "F" ? "R" : "L";
 
       let x = side === "L" ? node.x - S : node.x + S;
+      // Si el lugar de al lado ya lo ocupa otra familia (p. ej. el hermano de la
+      // pareja), los hermanos no se saltan esa tarjeta —quedarían separados de
+      // su familia, con la línea de sus padres cruzando por encima de gente que
+      // no es—: se ponen del otro lado, después de la pareja.
+      if (collides(node.y, x)) {
+        const altSide: Side = side === "L" ? "R" : "L";
+        const outer = altSide === "R" ? Math.max(node.x, partnerX ?? node.x) : Math.min(node.x, partnerX ?? node.x);
+        const altX = altSide === "R" ? outer + S : outer - S;
+        if (!collides(node.y, altX)) {
+          side = altSide;
+          x = altX;
+        }
+      }
+      // Más cerca de él: sus hermanos de padre y madre; después los medio hermanos, por grupo.
+      found.sort((a, b) => siblingRank(a, parentData, side) - siblingRank(b, parentData, side) || byBirth(a, b));
       for (const datum of found) {
         while (collides(node.y, x)) x += side === "L" ? -S : S;
         const sibling: LayoutNode = {

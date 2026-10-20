@@ -6,9 +6,14 @@
 // servidor (src/lib/edit.ts) para avisar al tiro, pero quien decide es el
 // servidor.
 
+import BurialPlaceField from "./BurialPlaceField";
+import PlaceField from "./PlaceField";
+import { Notice, buttonClass } from "./ui";
 import { useEffect, useId, useImperativeHandle, useMemo, useRef, useState, type Ref } from "react";
 import {
   EDITABLE_EVENT_TYPES,
+  OCCUPATION_SUGGESTIONS,
+  REVIEW_KINDS,
   EMPTY_EVENT_FORM,
   FAMILY_EVENT_TYPES,
   NEW_FAMILY_EVENT_TYPES,
@@ -58,10 +63,15 @@ type Item = {
   hint?: string;
 };
 
+// Guía de estilo: texto de 18 px, campos y botones de al menos 48 px.
 const inputClass =
-  "mt-1 w-full rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 aria-[invalid=true]:border-red-400";
-const labelClass = "block text-xs font-medium text-gray-600";
-const sectionTitle = "text-[11px] font-semibold uppercase tracking-wider text-gray-500";
+  "mt-1.5 min-h-12 w-full rounded-lg border-2 border-[#b9b5aa] bg-white px-3.5 py-2 text-[1.0625rem] text-gray-900 outline-none placeholder:text-gray-400 focus:border-hombre focus:ring-4 focus:ring-hombre/20 aria-[invalid=true]:border-aviso disabled:bg-[#f3f1ec] disabled:text-gray-400";
+const labelClass = "block text-base font-semibold text-gray-800";
+const sectionTitle = "text-xs font-bold uppercase tracking-wider text-gray-500";
+const textLink = "min-h-11 py-2 text-base font-bold text-ink underline decoration-2 underline-offset-4 hover:text-terra";
+const dangerLink = "min-h-11 shrink-0 px-3 py-2 text-base font-semibold text-aviso underline decoration-2 underline-offset-4 hover:opacity-80";
+const subBox = "flex flex-col gap-4 rounded-xl border border-[#e7e5df] bg-white p-4";
+const outlineBtn = "inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[#d9d7d0] bg-white px-5 py-2 text-base font-medium text-gray-800 transition hover:border-gray-900";
 
 /** Una pareja de la persona, para elegir con quién fue un matrimonio nuevo. */
 export type PartnerChoice = { familyId: string; name: string; hasMarriage: boolean };
@@ -85,7 +95,8 @@ function rowsFor(text: string, min: number): number {
 function FieldError({ id, message }: { id: string; message?: string }) {
   if (!message) return null;
   return (
-    <p id={id} className="mt-1 text-xs text-red-600">
+    <p id={id} role="alert" className="mt-1.5 text-base font-bold text-aviso">
+      <span aria-hidden="true">⚠ </span>
       {message}
     </p>
   );
@@ -166,9 +177,9 @@ function ApproxAgeAtDeath({
   return (
     <div>
       <label htmlFor={`${uid}-age`} className={labelClass}>
-        Edad aproximada al morir (para estimar su nacimiento)
+        Edad aproximada al morir
       </label>
-      <div className="mt-1 flex items-center gap-2">
+      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
         <input
           id={`${uid}-age`}
           type="number"
@@ -177,10 +188,10 @@ function ApproxAgeAtDeath({
           value={age}
           onChange={(e) => apply(e.target.value)}
           placeholder="años"
-          className="w-24 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10"
+          className="min-h-12 w-28 rounded-lg border-2 border-[#8f8a80] bg-white px-3.5 py-2 text-[1.125rem] text-ink outline-none placeholder:text-gris/70 focus:border-hombre focus:ring-4 focus:ring-hombre/20"
         />
-        {birthYear !== null && <span className="text-xs text-gray-500">→ nacería aprox. en {birthYear}</span>}
-        {!deathYear && age && <span className="text-xs text-gray-400">(falta el año de la fecha para estimarlo)</span>}
+        {birthYear !== null && <span className="text-base text-gris">→ nacería aprox. en {birthYear}</span>}
+        {!deathYear && age && <span className="text-base text-gris">(falta el año de la fecha para estimarlo)</span>}
       </div>
     </div>
   );
@@ -217,14 +228,13 @@ export function DateField({
   return (
     <div>
       {mode === "simple" ? (
-        <div className="mt-1 grid grid-cols-[4.5rem_7.5rem_5.5rem] gap-2">
+        <div className="mt-1.5 grid grid-cols-[4.75rem_minmax(0,1fr)_6rem] gap-2.5">
           <select
             id={`${idPrefix}-day`}
             aria-label="Día"
             value={simple.day}
-            disabled={!simple.month}
             onChange={(e) => setAndEmit({ ...simple, day: e.target.value })}
-            className={`${inputClass} disabled:bg-gray-100 disabled:text-gray-400`}
+            className={`${inputClass} mt-0 px-2.5`}
           >
             <option value="">Día</option>
             {Array.from({ length: maxDay }, (_, i) => i + 1).map((d) => (
@@ -242,7 +252,7 @@ export function DateField({
               const day = simple.day && Number(simple.day) > daysInMonth(Number(month), simple.year) ? "" : simple.day;
               setAndEmit({ ...simple, month, day });
             }}
-            className={inputClass}
+            className={`${inputClass} mt-0 px-2.5`}
           >
             <option value="">Mes</option>
             {MONTH_NAMES.map((n, i) => (
@@ -259,7 +269,7 @@ export function DateField({
             onChange={(e) => setAndEmit({ ...simple, year: e.target.value.replace(/[^\d]/g, "").slice(0, 4) })}
             placeholder="Año"
             aria-invalid={Boolean(error)}
-            className={inputClass}
+            className={`${inputClass} mt-0 px-2.5`}
           />
         </div>
       ) : (
@@ -276,14 +286,20 @@ export function DateField({
         />
       )}
 
-      <div className="mt-1.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+      {mode === "simple" && simple.day && !simple.month && (
+        <p className="mt-2 text-base text-gris" role="status">
+          Falta elegir el mes para que se guarde el día {simple.day}.
+        </p>
+      )}
+
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-0">
         {mode === "simple" ? (
-          <label className="flex items-center gap-1.5 text-xs text-gray-500">
+          <label className="flex min-h-11 cursor-pointer items-center gap-2.5 text-base text-ink">
             <input
               type="checkbox"
               checked={simple.approx}
               onChange={(e) => setAndEmit({ ...simple, approx: e.target.checked })}
-              className="h-3.5 w-3.5 rounded border-gray-300"
+              className="h-6 w-6 rounded accent-ink"
             />
             Fecha aproximada
           </label>
@@ -302,9 +318,9 @@ export function DateField({
               setMode("simple");
             }
           }}
-          className="text-[11px] font-medium text-gray-500 underline decoration-gray-300 underline-offset-2 hover:text-gray-900"
+          className={textLink}
         >
-          {mode === "simple" ? "¿Rango, antes/después o década? Escríbela" : "Elegirla con los desplegables"}
+          {mode === "simple" ? "¿Rango, antes o década? Escríbela" : "Elegirla con los desplegables"}
         </button>
       </div>
       <FieldError id={`${idPrefix}-error`} message={error} />
@@ -362,17 +378,19 @@ function ParticipantRow({
   }, []);
 
   const showDropdown = open && !value.personId && value.name.trim().length >= 2;
+  const field = `${inputClass} mt-0`;
 
   return (
-    <div className="flex flex-col gap-1.5 rounded-lg border border-gray-200 bg-white p-2.5">
-      <div className="flex items-start gap-2">
+    <div className="flex flex-col gap-3 rounded-xl border border-[#e7e5df] bg-[#f9f8f5] p-3.5">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[11rem_minmax(0,1fr)]">
         <input
           value={value.role}
           onChange={(e) => onChange({ role: e.target.value })}
           placeholder="Padrino, madrina…"
-          className="w-28 shrink-0 rounded-md border border-gray-200 bg-gray-50 px-2 py-1.5 text-xs text-gray-900 outline-none placeholder:text-gray-400 focus:border-gray-900"
+          aria-label="Qué fue (padrino, testigo…)"
+          className={field}
         />
-        <div ref={boxRef} className="relative min-w-0 flex-1">
+        <div ref={boxRef} className="relative min-w-0">
           <input
             value={value.name}
             onChange={(e) => {
@@ -381,15 +399,14 @@ function ParticipantRow({
             }}
             onFocus={() => setOpen(true)}
             placeholder="Nombre"
-            className={`w-full rounded-md border px-2 py-1.5 text-xs text-gray-900 outline-none placeholder:text-gray-400 focus:border-gray-900 ${
-              value.personId ? "border-emerald-300 bg-emerald-50" : "border-gray-200 bg-white"
-            }`}
+            aria-label="Nombre de la persona"
+            className={`${field} ${value.personId ? "border-listo bg-[#e5f1ea]" : ""}`}
           />
           {showDropdown && (
-            <ul className="absolute left-0 top-full z-10 mt-1 max-h-48 w-full min-w-[14rem] overflow-auto rounded-lg border border-gray-200 bg-white py-1 text-xs shadow-lg">
-              {searching && <li className="px-2.5 py-1.5 text-gray-400">Buscando…</li>}
+            <ul className="absolute left-0 top-full z-10 mt-1 max-h-60 w-full min-w-[14rem] overflow-auto rounded-xl border-2 border-line bg-white py-1 text-base shadow-lg">
+              {searching && <li className="px-3.5 py-2.5 text-gris">Buscando…</li>}
               {!searching && results.length === 0 && (
-                <li className="px-2.5 py-1.5 text-gray-400">Nadie en el árbol con ese nombre: queda pendiente.</li>
+                <li className="px-3.5 py-2.5 text-gris">Nadie en el árbol con ese nombre: queda pendiente.</li>
               )}
               {results.map((r) => (
                 <li key={r.id}>
@@ -399,10 +416,10 @@ function ParticipantRow({
                       onChange({ name: r.displayName, personId: r.id });
                       setOpen(false);
                     }}
-                    className="flex w-full items-center justify-between gap-2 px-2.5 py-1.5 text-left hover:bg-gray-50"
+                    className="flex min-h-12 w-full items-center justify-between gap-3 px-3.5 py-2 text-left hover:bg-paper"
                   >
-                    <span className="min-w-0 truncate">{r.displayName}</span>
-                    <span className="shrink-0 text-gray-400">
+                    <span className="min-w-0 truncate font-bold">{r.displayName}</span>
+                    <span className="shrink-0 text-gris">
                       {r.birthYear ?? "s/f"}
                       {!r.isLiving && " †"}
                     </span>
@@ -412,29 +429,99 @@ function ParticipantRow({
             </ul>
           )}
         </div>
-        <button
-          type="button"
-          onClick={onRemove}
-          aria-label="Quitar persona"
-          className="shrink-0 rounded-md px-1.5 py-1.5 text-xs text-gray-400 hover:bg-red-50 hover:text-red-600"
-        >
-          ✕
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-x-4">
+        {value.personId ? (
+          <p className="text-base font-bold text-listo">
+            <span aria-hidden="true">✓ </span>Vinculada con el árbol.{" "}
+            <button type="button" onClick={() => onChange({ personId: null })} className="underline decoration-2 underline-offset-4">
+              Desvincular
+            </button>
+          </p>
+        ) : value.name.trim() ? (
+          <p className="text-base text-gris">Sin vincular: se guarda el nombre y se puede vincular después.</p>
+        ) : (
+          <span />
+        )}
+        <button type="button" onClick={onRemove} className={dangerLink}>
+          Quitar
         </button>
       </div>
-      {value.personId ? (
-        <p className="text-[11px] text-emerald-700">
-          ✓ Vinculada con el árbol.{" "}
-          <button type="button" onClick={() => onChange({ personId: null })} className="underline underline-offset-2">
-            Desvincular
-          </button>
-        </p>
-      ) : (
-        value.name.trim() && (
-          <p className="text-[11px] text-gray-400">
-            Sin vincular: se guarda el nombre y se puede buscar y vincular más adelante.
-          </p>
-        )
-      )}
+    </div>
+  );
+}
+
+/**
+ * Oficio de la persona: se escribe o se elige con un toque entre los más comunes en
+ * las actas. Un acta anota el oficio de ese momento, así que se explica que cada
+ * documento puede traer uno distinto (y que se agrega un hecho por cada uno).
+ */
+function OccupationField({
+  id,
+  value,
+  onChange,
+  error,
+}: {
+  id: string;
+  value: string;
+  onChange: (v: string) => void;
+  error?: string;
+}) {
+  const current = value.trim().toLowerCase();
+  const picked = (name: string) => current.split(/\s*,\s*/).includes(name.toLowerCase());
+  // Un toque elige el oficio; otro toque en el mismo lo quita; si ya hay otro escrito, se suma.
+  const toggle = (name: string) => {
+    if (picked(name)) {
+      onChange(
+        value
+          .split(/\s*,\s*/)
+          .filter((x) => x.trim() && x.trim().toLowerCase() !== name.toLowerCase())
+          .join(", "),
+      );
+    } else {
+      onChange(value.trim() ? `${value.trim().replace(/,\s*$/, "")}, ${name}` : name);
+    }
+  };
+  return (
+    <div>
+      <label htmlFor={id} className={labelClass}>
+        Oficio u ocupación
+      </label>
+      <textarea
+        id={id}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        rows={rowsFor(value, 1)}
+        placeholder="Escríbelo como lo anota el documento: peón, zapatero, regidor municipal de Curicó…"
+        aria-invalid={Boolean(error)}
+        aria-describedby={error ? `${id}-error` : `${id}-help`}
+        className={`${inputClass} mt-1.5`}
+      />
+      <FieldError id={`${id}-error`} message={error} />
+      <div className="mt-2.5 flex flex-wrap gap-2" role="group" aria-label="Oficios frecuentes">
+        {OCCUPATION_SUGGESTIONS.map((name) => {
+          const on = picked(name);
+          return (
+            <button
+              key={name}
+              type="button"
+              aria-pressed={on}
+              onClick={() => toggle(name)}
+              className={`min-h-9 rounded-full border px-3.5 py-1 text-[0.95rem] transition ${
+                on
+                  ? "border-gray-900 bg-gray-900 font-semibold text-white"
+                  : "border-[#d9d7d0] bg-white text-gray-800 hover:border-gray-900"
+              }`}
+            >
+              {name}
+            </button>
+          );
+        })}
+      </div>
+      <p id={`${id}-help`} className="mt-2.5 text-sm leading-snug text-gray-600">
+        Cada documento anota el oficio de ese momento: alguien puede figurar como peón en un acta y como labrador en otra.
+        Agrega un hecho por cada documento, cada uno con su fuente.
+      </p>
     </div>
   );
 }
@@ -447,27 +534,82 @@ function ParticipantsField({
   onChange: (participants: ParticipantForm[]) => void;
 }) {
   return (
-    <fieldset className="flex flex-col gap-2.5 rounded-lg border border-gray-200 bg-gray-50/70 p-3">
-      <legend className="px-1 text-xs font-medium text-gray-600">Personas relacionadas (padrinos, testigos…)</legend>
-      {participants.length === 0 && <p className="text-xs text-gray-400">Nadie agregado todavía.</p>}
-      <div className="flex flex-col gap-2">
-        {participants.map((p, i) => (
-          <ParticipantRow
-            key={i}
-            value={p}
-            onChange={(patch) => onChange(participants.map((item, idx) => (idx === i ? { ...item, ...patch } : item)))}
-            onRemove={() => onChange(participants.filter((_, idx) => idx !== i))}
-          />
-        ))}
-      </div>
+    <fieldset className={subBox}>
+      <legend className="px-1 text-base font-semibold text-gray-800">Personas relacionadas (padrinos, testigos…)</legend>
+      {participants.length === 0 && <p className="zb-apoyo">Nadie agregado todavía.</p>}
+      {participants.length > 0 && (
+        <div className="flex flex-col gap-3">
+          {participants.map((p, i) => (
+            <ParticipantRow
+              key={i}
+              value={p}
+              onChange={(patch) => onChange(participants.map((item, idx) => (idx === i ? { ...item, ...patch } : item)))}
+              onRemove={() => onChange(participants.filter((_, idx) => idx !== i))}
+            />
+          ))}
+        </div>
+      )}
       <button
         type="button"
         onClick={() => onChange([...participants, { role: "", name: "", personId: null }])}
-        className="self-start text-xs font-medium text-gray-600 underline decoration-gray-300 underline-offset-2 hover:text-gray-900"
+        className={outlineBtn + " self-start"}
       >
         + Agregar una persona
       </button>
     </fieldset>
+  );
+}
+
+/** Año que se muestra a la izquierda de un hecho (el de su fecha, si se puede leer). */
+function yearOfDate(date: string): { year: string | null; approx: boolean } {
+  const m = /\b(\d{4})\b/.exec(date);
+  return { year: m ? m[1] : null, approx: /aprox|antes|después|entre|década/i.test(date) };
+}
+
+/**
+ * Una fila de la línea de vida: el año a la izquierda, un punto en el riel y el
+ * contenido a la derecha, igual que en la ficha (ver TimelineRow en PersonPanel).
+ */
+function TimelineRow({
+  year,
+  approx,
+  dotColor,
+  hideYearOnPhone,
+  rowRef,
+  factKey,
+  children,
+}: {
+  year: string | null;
+  approx: boolean;
+  dotColor: string;
+  hideYearOnPhone?: boolean;
+  rowRef?: Ref<HTMLLIElement>;
+  factKey: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <li ref={rowRef} data-fact={factKey} className="group/item flex gap-3 px-5 sm:gap-4 sm:px-7">
+      <div className={`w-[4.5rem] shrink-0 pt-5 text-right ${hideYearOnPhone ? "hidden sm:block" : ""}`}>
+        {year ? (
+          <div className="text-xl font-semibold leading-none text-gray-900">
+            {approx && <span className="mr-1 text-xs font-normal text-gray-400">c.</span>}
+            {year}
+          </div>
+        ) : (
+          <div className="text-sm leading-[20px] text-gray-400" title="Sin fecha">
+            s/f
+          </div>
+        )}
+      </div>
+      <div className="relative w-5 shrink-0" aria-hidden="true">
+        <span className="absolute bottom-0 left-1/2 top-0 w-0.5 -translate-x-1/2 bg-[#e3e1da] group-first/item:top-6 group-last/item:bottom-auto group-last/item:h-6" />
+        <span
+          className="absolute left-1/2 top-[1.15rem] h-4 w-4 -translate-x-1/2 rounded-full border-[3px] bg-white"
+          style={{ borderColor: dotColor, boxShadow: `0 0 0 3px ${dotColor}22` }}
+        />
+      </div>
+      <div className="min-w-0 flex-1 pb-6 pt-5">{children}</div>
+    </li>
   );
 }
 
@@ -477,10 +619,12 @@ function FactCard({
   takenTypes,
   partners,
   autoFocus,
+  dotColor,
   onChange,
   onParticipantsChange,
   onRemove,
   onRestore,
+  canReview,
 }: {
   item: Item;
   errors: FieldErrors;
@@ -489,109 +633,172 @@ function FactCard({
   /** Parejas con quienes se puede registrar un matrimonio nuevo. */
   partners: PartnerChoice[];
   autoFocus: boolean;
+  /** Color del punto del riel (según el sexo de la persona, como en la ficha). */
+  dotColor: string;
   onChange: (field: keyof EventForm, value: string) => void;
   onParticipantsChange: (participants: ParticipantForm[]) => void;
   onRemove: () => void;
   onRestore: () => void;
+  /** Solo administradores: se ofrece marcar el hecho como pendiente. */
+  canReview: boolean;
 }) {
   const uid = useId();
   const { form } = item;
   const isNew = item.initial === null;
   const [showSource, setShowSource] = useState(Boolean(form.sourceUrl || form.sourceTitle || form.sourceQuote));
-  const cardRef = useRef<HTMLDivElement>(null);
+  // Un hecho guardado se ve como en la ficha; se abre para corregirlo con "Cambiar".
+  const [open, setOpen] = useState(isNew);
+  const rowRef = useRef<HTMLLIElement>(null);
   const typeInfo = EDITABLE_EVENT_TYPES.find((t) => t.type === form.type) ?? EDITABLE_EVENT_TYPES[0];
+  const hasErrors = Object.keys(errors).length > 0;
+  const isJob = form.type === "OCCU";
+  const structuredPlace = form.type === "DEAT" || form.type === "BIRT";
+  const expanded = open || hasErrors;
   const sourceOpen = showSource || Boolean(errors.sourceUrl);
+  const changed = !isNew && item.initial !== null && !same(form, item.initial);
+  const { year, approx } = yearOfDate(form.date);
+  const dot = hasErrors ? "#b3261e" : dotColor;
   // Un matrimonio (o similar) es de la pareja, no de esta persona sola: no
   // cambia de tipo desde acá, y tampoco se ofrece al agregar un hecho nuevo.
-  const isFamilyFact = FAMILY_EVENT_TYPES.has(form.type) && !isNew;
+  // Tampoco se cambia el tipo de un hecho que esta lista no sabe nombrar.
+  const isFamilyFact = !isNew && (FAMILY_EVENT_TYPES.has(form.type) || !EDITABLE_EVENT_TYPES.some((t) => t.type === form.type));
 
   // Un hecho recién agregado queda a la vista y listo para escribir.
   useEffect(() => {
     if (!autoFocus) return;
-    cardRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
-    cardRef.current?.querySelector<HTMLElement>("select, input")?.focus({ preventScroll: true });
+    rowRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+    rowRef.current?.querySelector<HTMLElement>("select, input")?.focus({ preventScroll: true });
   }, [autoFocus]);
 
   if (item.removed) {
     const summary = [form.date, form.place].filter(Boolean).join(" · ");
     return (
-      <div className="flex items-center gap-3 rounded-xl border border-dashed border-red-200 bg-red-50/60 px-3.5 py-2.5">
-        <p className="min-w-0 flex-1 text-xs text-red-800">
-          <span className="font-semibold line-through">{typeLabel(form)}</span>
-          {summary && <span className="line-through"> · {summary}</span>}
-          <span className="block text-red-700">Se borrará al guardar.</span>
-        </p>
-        <button
-          type="button"
-          onClick={onRestore}
-          className="shrink-0 rounded-lg border border-red-200 bg-white px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-50"
-        >
-          Deshacer
-        </button>
-      </div>
+      <TimelineRow year={year} approx={approx} dotColor="#c9c6bd" rowRef={rowRef} factKey={item.key}>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-dashed border-aviso/50 bg-[#fbebe8] px-4 py-3">
+          <p className="min-w-0 flex-1 text-base leading-snug text-gray-900">
+            <span className="font-bold uppercase tracking-wide line-through">{typeLabel(form)}</span>
+            {summary && <span className="line-through"> · {summary}</span>}
+            <span className="block font-semibold text-aviso">Se borrará al guardar.</span>
+          </p>
+          <button type="button" onClick={onRestore} className={outlineBtn}>
+            Deshacer
+          </button>
+        </div>
+      </TimelineRow>
+    );
+  }
+
+  if (!expanded) {
+    const detail = [form.date, form.place].filter(Boolean).join(" · ");
+    const linked = form.participants.filter((p) => p.name.trim());
+    const hasSource = Boolean(form.sourceUrl || form.sourceTitle);
+    return (
+      <TimelineRow year={year} approx={approx} dotColor={dot} rowRef={rowRef} factKey={item.key}>
+        <div className="flex flex-col items-start gap-3 sm:flex-row">
+          <div className="min-w-0 flex-1">
+            <p className="text-[0.8rem] font-bold uppercase tracking-wide text-gray-900">
+              {typeLabel(form)}
+              {item.hint && <span className="font-normal normal-case tracking-normal text-gray-500"> · {item.hint}</span>}
+              {changed && (
+                <span className="ml-2 rounded-full bg-[#fbe9e1] px-2 py-0.5 align-middle text-xs font-bold normal-case tracking-normal text-terra">
+                  Con cambios
+                </span>
+              )}
+            </p>
+            {detail && <p className="mt-1.5 text-base text-gray-700">{detail}</p>}
+            {form.text.trim() && <p className="mt-1.5 whitespace-pre-line text-base text-gray-700">{form.text}</p>}
+            {linked.length > 0 && (
+              <ul className="mt-2 flex flex-col gap-1 text-base text-gray-700">
+                {linked.map((pt, i) => (
+                  <li key={i}>
+                    {pt.role ? `${pt.role}: ` : ""}
+                    {pt.name}
+                    {pt.personId ? <span className="ml-1 text-listo">✓</span> : <span className="ml-1 text-gray-400">(sin vincular)</span>}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {hasSource && (
+              <div className="mt-3 flex max-w-full items-start gap-3 rounded-xl border border-[#e7e5df] bg-[#f9f8f5] px-3.5 py-2.5 text-sm leading-snug text-gray-700">
+                <span className="mt-0.5 shrink-0 rounded-md bg-[#ebe9e3] px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-gray-600">Fuente</span>
+                <span className="min-w-0 flex-1 break-words">{form.sourceTitle || form.sourceUrl}</span>
+              </div>
+            )}
+          </div>
+          <button type="button" onClick={() => setOpen(true)} className={`${outlineBtn} shrink-0`}>
+            Cambiar
+          </button>
+        </div>
+      </TimelineRow>
     );
   }
 
   return (
-    <div ref={cardRef} data-fact={item.key} className="rounded-xl border border-gray-200 bg-white p-3.5 shadow-sm">
-      <div className="flex items-center gap-2">
-        {isFamilyFact ? (
-          // Un matrimonio (y similares) no cambia de tipo desde una ficha: es
-          // de la pareja, se corrige el que ya hay, no se convierte en otro.
-          <span className="rounded-lg bg-gray-100 px-2.5 py-1 text-sm font-semibold text-gray-900">{typeInfo.label}</span>
-        ) : (
-          <>
-            <label htmlFor={`${uid}-type`} className="sr-only">
-              Tipo de hecho
-            </label>
-            <select
-              id={`${uid}-type`}
-              value={form.type}
-              onChange={(e) => onChange("type", e.target.value)}
-              aria-invalid={Boolean(errors.type)}
-              aria-describedby={errors.type ? `${uid}-type-error` : undefined}
-              className="min-w-0 max-w-full rounded-lg border border-gray-200 bg-gray-50 py-1 pl-2 pr-7 text-sm font-semibold text-gray-900 outline-none hover:border-gray-300 focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 aria-[invalid=true]:border-red-400"
-            >
-              {form.type === "" && (
-                <option value="" disabled>
-                  Elige qué hecho es…
-                </option>
-              )}
-              {EDITABLE_EVENT_TYPES.filter((t) => !FAMILY_EVENT_TYPES.has(t.type) || NEW_FAMILY_EVENT_TYPES.has(t.type)).map((t) => {
-                const taken = SINGLE_EVENT_TYPES.has(t.type) && takenTypes.has(t.type);
-                return (
-                  <option key={t.type} value={t.type} disabled={taken}>
-                    {t.label}
-                    {taken ? " (ya está)" : ""}
+    <TimelineRow year={year} approx={approx} dotColor={dot} hideYearOnPhone rowRef={rowRef} factKey={item.key}>
+      <div className="rounded-xl border border-[#e7e5df] bg-[#f9f8f5] p-4">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          {isFamilyFact ? (
+            // Un matrimonio (y similares) no cambia de tipo desde una ficha: es
+            // de la pareja, se corrige el que ya hay, no se convierte en otro.
+            <span className="text-base font-bold uppercase tracking-wide text-gray-900">{typeLabel(form)}</span>
+          ) : (
+            <>
+              <label htmlFor={`${uid}-type`} className="sr-only">
+                Tipo de hecho
+              </label>
+              <select
+                id={`${uid}-type`}
+                value={form.type}
+                onChange={(e) => onChange("type", e.target.value)}
+                aria-invalid={Boolean(errors.type)}
+                aria-describedby={errors.type ? `${uid}-type-error` : undefined}
+                className="min-h-11 min-w-0 max-w-full rounded-lg border-2 border-[#b9b5aa] bg-white py-2 pl-3 pr-9 text-base font-bold text-gray-900 outline-none focus:border-hombre focus:ring-4 focus:ring-hombre/20 aria-[invalid=true]:border-aviso"
+              >
+                {form.type === "" && (
+                  <option value="" disabled>
+                    Elige qué hecho es…
                   </option>
-                );
-              })}
-            </select>
-          </>
-        )}
-        {item.hint && <span className="truncate text-xs text-gray-500">{item.hint}</span>}
-        {isNew && <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">Nuevo</span>}
-        <button
-          type="button"
-          onClick={onRemove}
-          className="ml-auto shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-gray-500 hover:bg-red-50 hover:text-red-700"
-        >
-          Quitar
-        </button>
-      </div>
-      <FieldError id={`${uid}-type-error`} message={errors.type} />
+                )}
+                {EDITABLE_EVENT_TYPES.filter((t) => !FAMILY_EVENT_TYPES.has(t.type) || NEW_FAMILY_EVENT_TYPES.has(t.type)).map((t) => {
+                  const taken = SINGLE_EVENT_TYPES.has(t.type) && takenTypes.has(t.type);
+                  return (
+                    <option key={t.type} value={t.type} disabled={taken}>
+                      {t.label}
+                      {taken ? " (ya está)" : ""}
+                    </option>
+                  );
+                })}
+              </select>
+            </>
+          )}
+          {item.hint && <span className="min-w-0 truncate text-base text-gray-500">{item.hint}</span>}
+          {isNew && <span className="rounded-full bg-[#e5f1ea] px-2.5 py-0.5 text-sm font-bold text-listo">Nuevo</span>}
+          <div className="ml-auto flex items-center">
+            {!isNew && !hasErrors && (
+              <button type="button" onClick={() => setOpen(false)} className="min-h-11 px-3 py-2 text-base font-semibold text-gray-800 underline decoration-2 underline-offset-4 hover:text-terra">
+                Cerrar
+              </button>
+            )}
+            <button type="button" onClick={onRemove} className={dangerLink}>
+              Quitar
+            </button>
+          </div>
+        </div>
+        <FieldError id={`${uid}-type-error`} message={errors.type} />
 
-      <div className="mt-3 flex flex-col gap-3">
+      <div className="mt-4 flex flex-col gap-5">
         {isNew && form.type === "MARR" && (
           <div>
             <label htmlFor={`${uid}-family`} className={labelClass}>
               Con quién se casó
             </label>
             {partners.length === 0 ? (
-              <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900">
-                Todavía no tiene una pareja en el árbol. Primero agrégala con el «+» de su tarjeta (Agregar pareja) y
-                después registra el matrimonio.
-              </p>
+              <div className="mt-1.5">
+                <Notice kind="aviso">
+                  Todavía no tiene una pareja en el árbol. Primero agrégala con el «+» de su tarjeta (Agregar pareja) y
+                  después registra el matrimonio.
+                </Notice>
+              </div>
             ) : (
               <select
                 id={`${uid}-family`}
@@ -633,45 +840,82 @@ function FactCard({
           </div>
         )}
 
-        <div>
-          <span className={labelClass}>Fecha</span>
-          <DateField
-            idPrefix={`${uid}-date`}
-            value={form.date}
-            onChange={(v) => onChange("date", v)}
-            error={errors.date}
-          />
-        </div>
-
-        <div>
-          <label htmlFor={`${uid}-place`} className={labelClass}>
-            Lugar
-          </label>
-          <input
-            id={`${uid}-place`}
-            value={form.place}
-            onChange={(e) => onChange("place", e.target.value)}
-            placeholder="p. ej. Parroquia de San José, Curicó"
-            className={inputClass}
-          />
-        </div>
-
-        <div>
-          <label htmlFor={`${uid}-text`} className={labelClass}>
-            {typeInfo.textLabel}
-          </label>
-          <textarea
+        {isJob && (
+          // El oficio va primero: es lo que se busca al leer la ficha.
+          <OccupationField
             id={`${uid}-text`}
             value={form.text}
-            onChange={(e) => onChange("text", e.target.value)}
-            rows={rowsFor(form.text, 2)}
-            placeholder={typeInfo.textHint}
-            aria-invalid={Boolean(errors.text)}
-            aria-describedby={errors.text ? `${uid}-text-error` : undefined}
-            className={inputClass}
+            onChange={(v) => onChange("text", v)}
+            error={errors.text}
           />
-          <FieldError id={`${uid}-text-error`} message={errors.text} />
-        </div>
+        )}
+
+        {form.type === "BURI" ? (
+          // La sepultura no pide fecha: importa en qué cementerio está.
+          <BurialPlaceField id={`${uid}-place`} value={form.place} onChange={(v) => onChange("place", v)} />
+        ) : (
+          <>
+            <div>
+              <span className={labelClass}>{isJob ? "¿Cuándo?" : "Fecha"}</span>
+              {isJob && (
+                <p className="mt-0.5 text-sm text-gray-600">
+                  El año del documento donde aparece (un acta de matrimonio, un registro civil…) o el período en que lo ejerció.
+                </p>
+              )}
+              <DateField
+                idPrefix={`${uid}-date`}
+                value={form.date}
+                onChange={(v) => onChange("date", v)}
+                error={errors.date}
+              />
+            </div>
+
+            <div>
+              {structuredPlace ? (
+                // Dónde nació o murió: región y comuna de una lista (como los cementerios) y el lugar exacto aparte.
+                <PlaceField
+                  id={`${uid}-place`}
+                  value={form.place}
+                  onChange={(v) => onChange("place", v)}
+                  label={form.type === "DEAT" ? "Dónde murió" : "Dónde nació"}
+                  detailHint={form.type === "DEAT" ? "Hospital San Vicente de Paul, domicilio, fundo…" : "Hospital, domicilio, fundo…"}
+                />
+              ) : (
+                <>
+                  <label htmlFor={`${uid}-place`} className={labelClass}>
+                    {isJob ? "Dónde trabajaba" : "Lugar"}
+                  </label>
+                  <input
+                    id={`${uid}-place`}
+                    value={form.place}
+                    onChange={(e) => onChange("place", e.target.value)}
+                    placeholder={isJob ? "p. ej. Hacienda Escorial, Buin" : "p. ej. Parroquia de San José, Curicó"}
+                    className={inputClass}
+                  />
+                </>
+              )}
+            </div>
+          </>
+        )}
+
+        {!isJob && (
+          <div>
+            <label htmlFor={`${uid}-text`} className={labelClass}>
+              {typeInfo.textLabel}
+            </label>
+            <textarea
+              id={`${uid}-text`}
+              value={form.text}
+              onChange={(e) => onChange("text", e.target.value)}
+              rows={rowsFor(form.text, 2)}
+              placeholder={typeInfo.textHint}
+              aria-invalid={Boolean(errors.text)}
+              aria-describedby={errors.text ? `${uid}-text-error` : undefined}
+              className={inputClass}
+            />
+            <FieldError id={`${uid}-text-error`} message={errors.text} />
+          </div>
+        )}
 
         {form.type === "DEAT" && (
           <ApproxAgeAtDeath date={form.date} text={form.text} onChangeText={(t) => onChange("text", t)} />
@@ -683,8 +927,8 @@ function FactCard({
         />
 
         {sourceOpen ? (
-          <fieldset className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-gray-50/70 p-3">
-            <legend className="px-1 text-xs font-medium text-gray-600">Fuente (de dónde salió el dato)</legend>
+          <fieldset className={subBox}>
+            <legend className="px-1 text-base font-semibold text-gray-800">Fuente (de dónde salió el dato)</legend>
             <div>
               <label htmlFor={`${uid}-surl`} className={labelClass}>
                 Enlace
@@ -727,16 +971,55 @@ function FactCard({
             </div>
           </fieldset>
         ) : (
-          <button
-            type="button"
-            onClick={() => setShowSource(true)}
-            className="self-start text-xs font-medium text-gray-600 underline decoration-gray-300 underline-offset-2 hover:text-gray-900"
-          >
+          <button type="button" onClick={() => setShowSource(true)} className={outlineBtn + " self-start"}>
             + Agregar la fuente (enlace)
           </button>
         )}
+
+        {canReview && (
+          <div className={`rounded-xl border-2 p-4 ${form.review ? "border-[#e08a00] bg-[#fff6e0]" : "border-[#e7e5df] bg-white"}`}>
+            <label htmlFor={`${uid}-review`} className={labelClass}>
+              Pendiente
+            </label>
+            <select
+              id={`${uid}-review`}
+              value={form.review ?? ""}
+              onChange={(e) => onChange("review", e.target.value)}
+              className={inputClass}
+            >
+              <option value="">Ninguno</option>
+              {REVIEW_KINDS.map((k) => (
+                <option key={k.key} value={k.key}>
+                  {k.label}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1.5 text-sm text-gray-600">
+              {REVIEW_KINDS.find((k) => k.key === form.review)?.hint ??
+                "Si queda marcado, la persona se señala en el árbol y el hecho aparece en la pestaña Pendientes."}
+            </p>
+            {form.review ? (
+              <div className="mt-3">
+                <label htmlFor={`${uid}-review-note`} className={labelClass}>
+                  Comentario (opcional)
+                </label>
+                <textarea
+                  id={`${uid}-review-note`}
+                  value={form.reviewNote ?? ""}
+                  onChange={(e) => onChange("reviewNote", e.target.value)}
+                  rows={rowsFor(form.reviewNote ?? "", 3)}
+                  maxLength={600}
+                  placeholder="p. ej. Ver si el acta confirma la edad de los padres"
+                  className={inputClass}
+                />
+                <p className="mt-1.5 text-sm text-gray-600">Se muestra en Pendientes y en la ficha, para acordarte qué buscar.</p>
+              </div>
+            ) : null}
+          </div>
+        )}
       </div>
-    </div>
+      </div>
+    </TimelineRow>
   );
 }
 
@@ -753,6 +1036,7 @@ export function FichaForm({
   notEditable,
   partners = [],
   startWithNew,
+  canReview = false,
   onSave,
   onClose,
 }: {
@@ -765,6 +1049,8 @@ export function FichaForm({
   partners?: PartnerChoice[];
   /** Abrir ya con un hecho nuevo en blanco (botón "Agregar un hecho"). */
   startWithNew: boolean;
+  /** Solo administradores: cada hecho puede marcarse como pendiente. */
+  canReview?: boolean;
   onSave: (payload: FichaPayload) => Promise<SaveOutcome>;
   /** Salir del formulario sin guardar. */
   onClose: () => void;
@@ -793,6 +1079,7 @@ export function FichaForm({
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const [tab, setTab] = useState<"datos" | "vida">(startWithNew ? "vida" : "datos");
 
   const changedItems = useMemo(
     () =>
@@ -851,7 +1138,8 @@ export function FichaForm({
   /** Deja a la vista (y con el cursor) el primer campo con error. */
   const showFirstError = () => {
     requestAnimationFrame(() => {
-      const field = formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]');
+      // Solo cuenta lo que está a la vista (la otra pestaña queda oculta).
+      const field = Array.from(formRef.current?.querySelectorAll<HTMLElement>('[aria-invalid="true"]') ?? []).find((el) => el.offsetParent !== null);
       field?.scrollIntoView({ block: "center", behavior: "smooth" });
       field?.focus({ preventScroll: true });
     });
@@ -864,7 +1152,11 @@ export function FichaForm({
     setEventErrors(ev);
     const count = Object.keys(p).length + Object.values(ev).reduce((n, e) => n + Object.keys(e).length, 0);
     setError(count ? `No se guardó: hay ${count === 1 ? "un campo" : `${count} campos`} por revisar.` : message);
-    if (count) showFirstError();
+    if (count) {
+      // Se abre la pestaña donde está el primer error, antes de buscarlo.
+      setTab(Object.keys(p).length ? "datos" : "vida");
+      showFirstError();
+    }
   };
 
   const submit = async (e: React.FormEvent) => {
@@ -902,11 +1194,41 @@ export function FichaForm({
   const usedSingleTypes = (except: string) =>
     new Set(items.filter((it) => it.key !== except && !it.removed && SINGLE_EVENT_TYPES.has(it.form.type)).map((it) => it.form.type));
 
+  const personChanged = !same(personForm, person);
+  const unsaved = [
+    personChanged && "los datos de la persona",
+    changedItems.length > 0 && `${changedItems.length} ${changedItems.length === 1 ? "hecho" : "hechos"}`,
+  ]
+    .filter(Boolean)
+    .join(" y ");
+
   return (
     <form ref={formRef} onSubmit={submit} noValidate className="flex min-h-0 flex-1 flex-col">
-      <div className="flex-1 overflow-y-auto bg-gray-50 px-5 py-4">
-        <h3 className={sectionTitle}>Datos de la persona</h3>
-        <div className="mt-2 flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-3.5 shadow-sm">
+      {/* Pestañas, como en la ficha: los datos de la persona y su línea de vida. */}
+      <div role="tablist" className="flex shrink-0 gap-1 overflow-x-auto border-b border-[#e7e5df] bg-white px-4 sm:px-6">
+        {([["datos", "Datos", null], ["vida", "Línea de vida", items.filter((it) => !it.removed).length]] as const).map(([key, label, n]) => {
+          const bad = key === "datos" ? Object.keys(personErrors).length > 0 : Object.keys(eventErrors).length > 0;
+          return (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={tab === key}
+              onClick={() => setTab(key)}
+              className={`-mb-px shrink-0 border-b-[3px] px-3 py-3.5 text-lg font-bold transition ${tab === key ? "border-[#1a1917] text-gray-900" : "border-transparent text-gray-500 hover:text-gray-800"}`}
+            >
+              {label}
+              {n !== null && <span className="ml-1.5 text-base font-normal text-gray-500">{n}</span>}
+              {bad && <span aria-label="hay campos por revisar" className="ml-1.5 text-aviso">⚠</span>}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="flex-1 overflow-y-auto bg-white">
+        <div role="tabpanel" hidden={tab !== "datos"} className="px-5 py-6 sm:px-7">
+          <h3 className={sectionTitle}>Datos de la persona</h3>
+          <div className="mt-3 flex flex-col gap-5">
           <div>
             <label htmlFor={`${uid}-given`} className={labelClass}>
               Nombres
@@ -921,7 +1243,7 @@ export function FichaForm({
             />
             <FieldError id={`${uid}-given-error`} message={personErrors.given} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <div>
               <label htmlFor={`${uid}-pat`} className={labelClass}>
                 Apellido paterno
@@ -935,7 +1257,7 @@ export function FichaForm({
               <input id={`${uid}-mat`} value={personForm.surnameMat} onChange={(e) => setPersonField("surnameMat", e.target.value)} className={inputClass} />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <div>
               <label htmlFor={`${uid}-sex`} className={labelClass}>
                 Sexo
@@ -981,95 +1303,87 @@ export function FichaForm({
               className={inputClass}
             />
           </div>
+          </div>
         </div>
 
-        <h3 className={`${sectionTitle} mt-6`}>Hechos de su vida</h3>
-        <div className="mt-2 flex flex-col gap-3">
-          {items.length === 0 && <p className="text-sm text-gray-500">Todavía no tiene hechos. Agrega el primero.</p>}
-          {items.map((item) => (
-            <FactCard
-              key={item.key}
-              item={item}
-              errors={eventErrors[item.key] ?? {}}
-              takenTypes={usedSingleTypes(item.key)}
-              partners={partners}
-              autoFocus={focusKey === item.key}
-              onChange={(field, value) => setFactField(item, field, value)}
-              onParticipantsChange={(participants) => patchItem(item.key, { form: { ...item.form, participants } })}
-              onRemove={() => removeItem(item)}
-              onRestore={() => patchItem(item.key, { removed: false })}
-            />
-          ))}
-          <button
-            type="button"
-            onClick={addItem}
-            className="flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-gray-300 bg-white px-3 py-2.5 text-sm font-medium text-gray-700 hover:border-gray-400 hover:bg-gray-50"
-          >
-            <span aria-hidden="true" className="text-base leading-none">+</span>
-            Agregar un hecho
-          </button>
-        </div>
-
+        <div role="tabpanel" hidden={tab !== "vida"} className="pb-4 pt-2">
+          {items.length === 0 && <p className="px-5 pt-4 text-base text-gray-500 sm:px-7">Todavía no tiene hechos. Agrega el primero.</p>}
+          <ul>
+            {items.map((item) => (
+              <FactCard
+                key={item.key}
+                item={item}
+                errors={eventErrors[item.key] ?? {}}
+                takenTypes={usedSingleTypes(item.key)}
+                partners={partners}
+                canReview={canReview}
+                autoFocus={focusKey === item.key}
+                dotColor={personForm.sex === "F" ? "#c44f72" : personForm.sex === "M" ? "#3f7fcb" : "#8f8a80"}
+                onChange={(field, value) => setFactField(item, field, value)}
+                onParticipantsChange={(participants) => patchItem(item.key, { form: { ...item.form, participants } })}
+                onRemove={() => removeItem(item)}
+                onRestore={() => patchItem(item.key, { removed: false })}
+              />
+            ))}
+          </ul>
+          <div className="px-5 pt-1 sm:px-7">
+            <button type="button" onClick={addItem} className={`${outlineBtn} w-full border-dashed`}>
+              <span aria-hidden="true">+</span> Agregar un hecho
+            </button>
+          </div>
         {notEditable.length > 0 && (
-          <div className="mt-6 rounded-xl border border-gray-200 bg-white/70 p-3.5 text-xs leading-relaxed text-gray-500">
-            <p className="font-medium text-gray-600">No se cambian desde aquí</p>
-            <ul className="mt-1 list-disc pl-4">
+          <div className="mx-5 mb-6 mt-2 rounded-xl border border-[#e7e5df] bg-[#f9f8f5] p-4 text-base leading-relaxed text-gray-600 sm:mx-7">
+            <p className="font-semibold text-gray-800">No se cambian desde aquí</p>
+            <ul className="mt-1.5 list-disc pl-5">
               {notEditable.map((label) => (
                 <li key={label}>{label}</li>
               ))}
             </ul>
-            <p className="mt-1.5">El nacimiento o la muerte de otra persona se corrige en su propia ficha.</p>
+            <p className="mt-2">El nacimiento o la muerte de otra persona se corrige en su propia ficha.</p>
           </div>
         )}
+        </div>
       </div>
 
-      <div className="shrink-0 border-t border-gray-200 bg-white px-5 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.04)]">
+      <div className="shrink-0 border-t border-[#e7e5df] bg-white px-4 py-3.5 shadow-[0_-6px_16px_rgba(0,0,0,0.05)] sm:px-6">
         {error && (
-          <p role="alert" className="mb-2.5 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-            {error}
-          </p>
+          <div className="mb-3">
+            <Notice kind="aviso">{error}</Notice>
+          </div>
         )}
         {confirmDiscard ? (
           <div>
-            <p className="text-sm font-medium text-gray-800">¿Salir sin guardar los cambios?</p>
-            <div className="mt-2 flex gap-2">
-              <button
-                type="button"
-                onClick={() => setConfirmDiscard(false)}
-                className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
-              >
+            <p className="text-[1.25rem] font-bold text-ink">¿Salir sin guardar los cambios?</p>
+            <div className="mt-3 flex flex-wrap gap-3">
+              <button type="button" onClick={() => setConfirmDiscard(false)} className={buttonClass("principal")}>
                 Seguir editando
               </button>
-              <button
-                type="button"
-                onClick={onClose}
-                className="rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
-              >
+              <button type="button" onClick={onClose} className={buttonClass("secundario", "text-aviso! border-aviso!")}>
                 Salir sin guardar
               </button>
             </div>
           </div>
         ) : (
-          <div className="flex items-center gap-2">
-            <button
-              type="submit"
-              disabled={saving}
-              className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {saving ? "Guardando…" : "Guardar cambios"}
-            </button>
-            <button
-              type="button"
-              onClick={requestClose}
-              disabled={saving}
-              className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
-            >
-              Cancelar
-            </button>
-            <span className="ml-auto text-right text-[11px] leading-tight text-gray-400">
-              {dirty ? "Hay cambios sin guardar" : "Sin cambios todavía"}
-            </span>
-          </div>
+          <>
+            <p className="mb-2.5 flex items-center gap-2 text-base" aria-live="polite">
+              {dirty ? (
+                <>
+                  <span aria-hidden="true" className="h-3 w-3 shrink-0 rounded-full bg-terra" />
+                  <span className="font-bold text-ink">Sin guardar: {unsaved}</span>
+                </>
+              ) : (
+                <span className="text-gris">Todavía no has cambiado nada.</span>
+              )}
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <button type="submit" disabled={saving} className={buttonClass("principal", "flex-1 whitespace-nowrap px-5 sm:flex-none sm:px-7")}>
+                {saving ? "Guardando…" : "Guardar cambios"}
+              </button>
+              <button type="button" onClick={requestClose} disabled={saving} className={buttonClass("secundario", "px-5 sm:px-6")}>
+                Cancelar
+              </button>
+            </div>
+          </>
         )}
       </div>
     </form>

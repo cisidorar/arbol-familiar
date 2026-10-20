@@ -1,7 +1,7 @@
 // Cómo se cuenta, en palabras, un cambio del historial (tabla change_log).
 // Lógica pura: recibe el antes y el después tal como se guardaron.
 
-import { EDITABLE_EVENT_TYPES } from "./edit";
+import { EDITABLE_EVENT_TYPES, REVIEW_KINDS } from "./edit";
 import { relationPhrase } from "./relatives";
 
 export type Change = {
@@ -29,6 +29,8 @@ const EVENT_FIELDS: [string, string][] = [
   ["sourceUrl", "Enlace de la fuente"],
   ["sourceTitle", "Fuente"],
   ["sourceQuote", "Cita"],
+  ["review", "Pendiente"],
+  ["reviewNote", "Comentario del pendiente"],
 ];
 
 const SEX: Record<string, string> = { M: "Hombre", F: "Mujer", U: "Sin dato" };
@@ -44,6 +46,7 @@ function show(field: string, value: unknown): string {
   if (field === "sex") return SEX[String(value)] ?? String(value);
   if (field === "isLiving") return value ? "Viva / vivo" : "Fallecida/o";
   if (field === "type") return eventTypeLabel({ type: value });
+  if (field === "review") return REVIEW_KINDS.find((k) => k.key === value)?.label ?? String(value);
   const text = String(value).replace(/\s+/g, " ");
   return text.length > 90 ? `${text.slice(0, 90)}…` : text;
 }

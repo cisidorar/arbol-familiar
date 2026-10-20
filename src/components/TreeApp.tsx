@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { lineToViewer } from "@/lib/tree-nav";
 import { canEdit } from "@/lib/auth/roles";
 import AppHeader from "./AppHeader";
 import type { CurrentUser } from "./UserMenu";
@@ -71,6 +72,8 @@ export default function TreeApp({ data, user, homeId, selfId }: { data: any[]; u
     setVersion((v) => v + 1);
   };
 
+  // Sube cada vez que se toca el título: el árbol vuelve a su vista de partida.
+  const [resetKey, setResetKey] = useState(0);
   const [mainId, setMainId] = useState<string | null>(
     (homeId && data.some((d) => d.id === homeId) ? homeId : null) ?? data[0]?.id ?? null,
   );
@@ -82,6 +85,16 @@ export default function TreeApp({ data, user, homeId, selfId }: { data: any[]; u
     if (mainId) setTrail((t) => [...t, mainId].slice(-30));
     setMainId(id);
   };
+
+  // Si el centro es un antepasado lejano de quien mira, se comprime el árbol a
+  // la línea que baja hasta esa persona.
+  const viewerId = [selfId, homeId].find((id) => id && data.some((d) => d.id === id)) ?? null;
+  const line = useMemo(() => {
+    if (!mainId || !viewerId) return null;
+    return lineToViewer(new Map(data.map((d) => [d.id as string, d.rels])), mainId, viewerId);
+    // `version` cambia cuando se agregan o quitan personas (los datos se mutan en el lugar).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, mainId, viewerId, version]);
 
   const previousId = trail[trail.length - 1] ?? null;
   const previous = previousId ? data.find((d) => d.id === previousId) : null;
@@ -96,7 +109,10 @@ export default function TreeApp({ data, user, homeId, selfId }: { data: any[]; u
     const mine = [selfId, homeId].find((id) => id && data.some((d) => d.id === id)) ?? data[0]?.id;
     if (!mine) return;
     setSelectedId(null);
-    recenter(mine);
+    setAdding(null);
+    setTrail([]);
+    setMainId(mine);
+    setResetKey((k) => k + 1);
     window.history.replaceState(null, "", "/");
   };
 
@@ -109,8 +125,10 @@ export default function TreeApp({ data, user, homeId, selfId }: { data: any[]; u
         floating
         onHome={goHome}
         onSelectPerson={(id) => {
+          // Buscar a alguien es partir de nuevo: no deja un "Volver a…" atrás.
           setSelectedId(id);
-          recenter(id);
+          setTrail([]);
+          setMainId(id);
         }}
       />
 
@@ -118,7 +136,9 @@ export default function TreeApp({ data, user, homeId, selfId }: { data: any[]; u
         <FamilyTree
           data={data}
           mainId={mainId}
+          line={line}
           version={version}
+          resetKey={resetKey}
           onSelectPerson={(id) => setSelectedId(id)}
           onRecenter={recenter}
           onAddRelative={

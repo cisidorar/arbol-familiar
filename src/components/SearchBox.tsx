@@ -44,8 +44,8 @@ export default function SearchBox({ onSelect }: { onSelect: (id: string) => void
   }, []);
 
   return (
-    <div ref={containerRef} className="relative flex w-full items-end gap-3">
-      <label htmlFor="buscar" className="sr-only shrink-0 pb-1 text-[15px] font-bold text-[#f5f2ea] sm:not-sr-only">
+    <div ref={containerRef} className="zb relative flex w-full items-center gap-3">
+      <label htmlFor="buscar" className="sr-only">
         Buscar:
       </label>
       <div className="relative min-w-0 flex-1">
@@ -61,8 +61,8 @@ export default function SearchBox({ onSelect }: { onSelect: (id: string) => void
               (e.target as HTMLInputElement).blur();
             }
           }}
-          placeholder="nombre, apellido o lugar…"
-          className="w-full border-0 border-b border-dotted border-[#f5f2ea]/50 bg-transparent py-1 pr-6 text-[15px] text-[#f5f2ea] outline-none transition-colors placeholder:text-[#f5f2ea]/40 focus:border-solid focus:border-[#f5f2ea] [&::-webkit-search-cancel-button]:hidden"
+          placeholder="Buscar persona o lugar"
+          className="min-h-12 w-full rounded-lg border-2 border-transparent bg-white py-2 pl-3.5 pr-12 text-[1.125rem] text-ink outline-none placeholder:text-gris/70 focus:border-hombre [&::-webkit-search-cancel-button]:hidden"
         />
         {q && (
           <button
@@ -71,20 +71,20 @@ export default function SearchBox({ onSelect }: { onSelect: (id: string) => void
               setResults([]);
               setSearched(false);
             }}
-            aria-label="Limpiar búsqueda"
-            className="absolute right-0 top-1/2 -translate-y-1/2 px-1 text-[#f5f2ea]/50 hover:text-[#f5f2ea]"
+            aria-label="Borrar lo escrito"
+            className="absolute right-1 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-md text-gris hover:bg-paper hover:text-ink"
           >
             ✕
           </button>
         )}
 
         {open && searched && (
-          <ul className="absolute left-0 top-full z-10 mt-2 max-h-72 w-full min-w-[16rem] overflow-auto border-2 border-[#1a1917] bg-[#f5f2ea] py-1 text-[#1f1d1a] shadow-[0_12px_30px_rgba(0,0,0,0.4)]">
+          <ul className="absolute left-0 top-full z-10 mt-2 max-h-80 w-full min-w-[18rem] overflow-auto rounded-xl border-2 border-line bg-white py-1 text-ink shadow-[0_12px_30px_rgba(0,0,0,0.3)]">
             {results.length > 0 ? (
               results.map((r) => (
                 <li key={r.id}>
                   <button
-                    className="flex w-full items-center justify-between px-3.5 py-2 text-left text-sm hover:bg-[#e9e4d6]"
+                    className="flex min-h-12 w-full items-center justify-between gap-3 px-4 py-2 text-left text-[1.125rem] hover:bg-paper"
                     onClick={() => {
                       onSelect(r.id);
                       setOpen(false);
@@ -92,14 +92,16 @@ export default function SearchBox({ onSelect }: { onSelect: (id: string) => void
                     }}
                   >
                     <span>{r.displayName}</span>
-                    <span className="text-xs text-[#7a756a]">
-                      {r.birthYear ?? "s/f"} {!r.isLiving && "†"}
+                    <span className="shrink-0 text-base text-gris">
+                      {r.birthYear ?? "sin año"} {!r.isLiving && "†"}
                     </span>
                   </button>
                 </li>
               ))
             ) : (
-              <li className="px-3.5 py-2.5 text-sm text-[#7a756a]">Sin resultados para "{q}"</li>
+              <li className="px-4 py-3 text-[1.0625rem] text-gris">
+                No encontramos a nadie con &laquo;{q}&raquo;. Prueba con solo el apellido.
+              </li>
             )}
           </ul>
         )}

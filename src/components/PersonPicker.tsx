@@ -7,7 +7,7 @@ export type PersonRef = { id: string; name: string };
 type Result = { id: string; displayName: string; birthYear: number | null };
 
 const field =
-  "w-full rounded-lg border border-[#cfc8b8] bg-white px-3 py-2 text-sm text-[#1f1d1a] placeholder:text-[#9a9486] focus:border-[#1a1917] focus:outline-none";
+  "min-h-12 w-full rounded-lg border-2 border-[#8f8a80] bg-white px-3.5 py-2 text-[1.125rem] text-ink placeholder:text-gris/70 focus:border-hombre focus:outline-none";
 
 /** Buscador de una persona del árbol (usa la misma búsqueda del encabezado del árbol). */
 export default function PersonPicker({
@@ -40,9 +40,9 @@ export default function PersonPicker({
 
   if (value) {
     return (
-      <div className="flex items-center gap-2 rounded-lg border border-[#cfc8b8] bg-[#f6f3ec] px-3 py-2 text-sm text-[#1f1d1a]">
-        <span className="min-w-0 flex-1 truncate">{value.name}</span>
-        <button type="button" onClick={() => onChange(null)} className="text-xs text-[#6b6558] underline">
+      <div className="flex min-h-12 items-center gap-2 rounded-lg border-2 border-line bg-paper px-3.5 py-1 text-[1.125rem] text-ink">
+        <span className="min-w-0 flex-1 truncate font-bold">{value.name}</span>
+        <button type="button" onClick={() => onChange(null)} className="min-h-12 px-2 font-bold underline decoration-2 underline-offset-4">
           Quitar
         </button>
       </div>
@@ -63,13 +63,13 @@ export default function PersonPicker({
         aria-label={placeholder}
       />
       {open && (
-        <ul className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-[#d9d3c4] bg-white text-sm text-[#1f1d1a] shadow-lg">
-          {results.length === 0 && <li className="px-3 py-2 text-[#6b6558]">Nadie con ese nombre.</li>}
+        <ul className="absolute z-20 mt-1 max-h-72 w-full overflow-auto rounded-lg border-2 border-line bg-white text-[1.125rem] text-ink shadow-lg">
+          {results.length === 0 && <li className="px-3.5 py-3 text-gris">No encontramos a nadie con ese nombre.</li>}
           {results.map((r) => (
             <li key={r.id}>
               <button
                 type="button"
-                className="block w-full px-3 py-2 text-left hover:bg-[#f1ede2]"
+                className="block min-h-12 w-full px-3.5 py-2.5 text-left hover:bg-paper"
                 onClick={() => {
                   onChange({ id: r.id, name: r.displayName });
                   setQ("");
@@ -78,7 +78,7 @@ export default function PersonPicker({
                 }}
               >
                 {r.displayName}
-                {r.birthYear ? <span className="text-[#6b6558]"> · {r.birthYear}</span> : null}
+                {r.birthYear ? <span className="text-gris"> · {r.birthYear}</span> : null}
               </button>
             </li>
           ))}

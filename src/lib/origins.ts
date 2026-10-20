@@ -50,6 +50,8 @@ export type Ancestor = {
   origin: Origin;
   /** El hijo/a (más cercano a la persona) por el que se llegó a este antepasado: sirve para armar el camino. */
   childId: string;
+  /** Es hermano/a de un antepasado (tío, tío abuelo…), no antepasado directo: su camino baja desde el padre o madre (`childId`). */
+  lateral?: boolean;
 };
 
 const LINEAL: Record<number, [string, string]> = {
@@ -69,7 +71,7 @@ export function relationLabel(generation: number, gender: string | undefined): s
 type PersonNode = {
   id: string;
   data: { gender?: string; label?: string };
-  rels: { parents: string[] };
+  rels: { parents: string[]; children?: string[] };
 };
 
 /**
@@ -115,7 +117,37 @@ export function collectAncestors(
     }
     frontier = next;
   }
+
+  // Los hermanos de cada antepasado (tíos, tíos abuelos…): los otros hijos de sus padres.
+  const direct = [...out];
+  for (const a of direct) {
+    for (const parentId of byId.get(a.id)?.rels.parents ?? []) {
+      for (const sibId of byId.get(parentId)?.rels.children ?? []) {
+        const sib = byId.get(sibId);
+        if (!sib || seen.has(sibId)) continue;
+        seen.add(sibId);
+        out.push({
+          id: sibId,
+          name: sib.data.label ?? "(sin nombre)",
+          generation: a.generation,
+          branch: a.branch,
+          relation: siblingLabel(a.generation, sib.data.gender),
+          origin: pickOrigin(facts.get(sibId)),
+          childId: parentId,
+          lateral: true,
+        });
+      }
+    }
+  }
   return out;
+}
+
+function siblingLabel(generation: number, gender: string | undefined): string {
+  const f = gender === "F";
+  if (generation === 1) return f ? "tía" : "tío";
+  if (generation === 2) return f ? "tía abuela" : "tío abuelo";
+  if (generation === 3) return f ? "tía bisabuela" : "tío bisabuelo";
+  return f ? "hermana de antepasado" : "hermano de antepasado";
 }
 
 export type Filters = {
@@ -212,4 +244,17 @@ export function topRegions(summary: Summary, limit = 3): [string, number][] {
 /** Cuántos tienen algún lugar conocido (en Chile o fuera) sobre el total filtrado. */
 export function locatedCount(summary: Summary): number {
   return summary.total - summary.none.length;
+}
+
+/**
+ * Qué es el antepasado para la persona del mapa, en palabras de la familia:
+ * "Su tatarabuelo, por parte de su mamá". `tercera` = false dice "tu" (es el mapa de quien mira).
+ */
+export function ancestorPhrase(a: Pick<Ancestor, "relation" | "branch" | "generation">, tercera = false): string {
+  const poss = tercera ? "su" : "tu";
+  if (a.generation === 1 && !(a.relation === "tío" || a.relation === "tía")) {
+    return `${poss.charAt(0).toUpperCase()}${poss.slice(1)} ${a.relation === "madre" ? "mamá" : a.relation === "padre" ? "papá" : a.relation}`;
+  }
+  const lado = a.branch === "materna" ? "mamá" : "papá";
+  return `${poss.charAt(0).toUpperCase()}${poss.slice(1)} ${a.relation}, por parte de ${poss} ${lado}`;
 }

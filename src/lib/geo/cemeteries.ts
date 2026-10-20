@@ -41,11 +41,13 @@ function titleCase(text: string): string {
   return text
     .split(" ")
     .filter(Boolean)
-    .map((w, i) => {
+    .map((w, i, all) => {
       const lower = w.toLowerCase();
       const fixed = WORD_FIXES[normName(w)];
       if (fixed) return fixed;
-      if (i > 0 && SMALL_WORDS.has(lower)) return lower;
+      // "Parque Cementerio El Almendral": el artículo justo después del tipo de lugar es parte del nombre propio.
+      const afterKind = i > 0 && /^(cementerio|parque|camposanto)$/i.test(normName(all[i - 1]));
+      if (i > 0 && SMALL_WORDS.has(lower) && !(afterKind && /^(el|la|los|las)$/.test(lower))) return lower;
       return lower.charAt(0).toUpperCase() + lower.slice(1);
     })
     .join(" ");

@@ -24,6 +24,8 @@ export type TimelineEntry = {
   /** Titular: la frase del hecho, o el nombre de la categoría si no hay frase. */
   title: string;
   place: string | null;
+  /** Nombre del lugar sin la comuna, más la comuna y la región (si se conocen). */
+  placeInfo?: { name: string; comuna: string | null; region: string | null } | null;
   description: string | null;
   age: number | null;
   person: { id: string; name: string } | null;
@@ -36,6 +38,10 @@ export type TimelineEntry = {
    * todavía vive en data/investigacion.json (pasa a la base al editarlo).
    */
   edit?: { id: string | null; research: string | null; form: EventForm } | null;
+  /** Marcado «por revisar» (solo hechos guardados en la base). */
+  needsReview?: boolean;
+  /** Comentario del pendiente (solo si está marcado). */
+  reviewNote?: string | null;
   /** Escrito o corregido en la app: el archivo de investigación no lo reemplaza. */
   manual?: boolean;
   /** Nacimiento de un hijo/a sin fecha propia: se le puede anotar una tentativa (solo en la ficha de los padres). */

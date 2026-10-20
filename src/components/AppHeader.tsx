@@ -4,13 +4,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import SearchBox from "./SearchBox";
 import UserMenu, { type CurrentUser } from "./UserMenu";
+import Logo from "./Logo";
 
 export type Section = "arbol" | "mapa" | "pendientes" | "cementerios" | "admin";
 
-const NAV: { key: Exclude<Section, "admin">; href: string; label: string; short?: string }[] = [
+const NAV: { key: Exclude<Section, "admin">; href: string; label: string; short?: string; adminOnly?: boolean }[] = [
   { key: "arbol", href: "/", label: "Árbol" },
   { key: "mapa", href: "/mapa", label: "Mapa de orígenes", short: "Mapa" },
-  { key: "pendientes", href: "/pendientes", label: "Pendientes" },
+  { key: "pendientes", href: "/pendientes", label: "Pendientes", adminOnly: true },
   { key: "cementerios", href: "/cementerios", label: "Cementerios" },
 ];
 
@@ -44,15 +45,14 @@ export default function AppHeader({
   const arbol = current === "arbol";
   // Fuera del árbol, en pantallas medianas se omite el buscador para que todo quepa en UNA fila
   // (si la barra de secciones bajaba a una segunda fila, el título quedaba arriba y sobraba fondo oscuro).
-  const navClass = arbol ? "hidden lg:flex" : "flex lg:ml-auto xl:ml-0";
+  const navClass = arbol ? "hidden xl:flex" : "flex lg:ml-auto xl:ml-0";
 
   return (
     <header
-      className={`${floating ? "absolute left-0 top-0 z-20 w-full" : "relative z-20"} border-b border-[#3a3833] bg-[#1a1917] shadow-md print:hidden`}
-      style={{ fontFamily: "'Courier New', Courier, monospace" }}
+      className={`zb ${floating ? "absolute left-0 top-0 z-20 w-full" : "relative z-20"} border-b border-white/10 bg-ink text-white shadow-md print:hidden`}
     >
-      <div className="flex w-full flex-wrap items-center gap-x-3 gap-y-2 lg:gap-x-4 px-4 py-3 sm:px-6 sm:py-3.5">
-        {/* Línea de arriba + título forman un solo bloque, centrado en la altura del encabezado. */}
+      <div className="flex w-full flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 sm:px-6 lg:gap-x-4">
+        {/* Logo + nombre: un solo bloque, al tocarlo se vuelve al árbol. */}
         <Link
           href="/"
           onClick={(e) => {
@@ -60,25 +60,27 @@ export default function AppHeader({
             e.preventDefault();
             onHome();
           }}
-          className="flex min-w-0 shrink-0 flex-col justify-center text-[#f5f2ea]" aria-label="Archivo Zamora Balcázar, ir al árbol">
-          <span className="mb-1.5 hidden whitespace-nowrap text-[11px] uppercase leading-none tracking-[0.22em] text-[#f5f2ea]/60 sm:block">
-            Fondo familiar · {count} personas registradas
-          </span>
-          <span
-            className="block truncate text-lg uppercase leading-none tracking-wider sm:text-xl sm:tracking-[0.06em] lg:text-2xl xl:text-[1.7rem]"
-            style={{ fontFamily: "var(--font-special-elite)" }}
-          >
-            Archivo Zamora Balcázar
+          className="flex min-w-0 shrink-0 items-center gap-3 text-white"
+          aria-label="Archivo Zamora Balcázar, ir al árbol"
+        >
+          <Logo size={48} variant="oscuro" className="shrink-0" />
+          <span className="flex min-w-0 flex-col justify-center">
+            <span className="mb-1 hidden whitespace-nowrap text-sm font-bold uppercase leading-none tracking-[0.1em] text-white/70 md:block">
+              Fondo familiar · {count} personas
+            </span>
+            <span className="block truncate font-maquina text-xl uppercase leading-none tracking-[0.06em] lg:text-xl xl:text-2xl">
+              Archivo Zamora Balcázar
+            </span>
           </span>
         </Link>
 
         {/* En el teléfono, fuera del árbol, el buscador se omite para no alargar el encabezado. */}
-        <div className={`${arbol ? "flex" : "hidden xl:flex"} order-last w-full min-w-0 max-w-md items-center sm:order-none sm:ml-auto sm:w-auto sm:flex-1`}>
+        <div className={`${arbol ? "flex" : "hidden xl:flex"} order-last w-full min-w-0 max-w-md items-center sm:order-none sm:ml-auto sm:w-auto sm:min-w-[12rem] sm:flex-1`}>
           <SearchBox onSelect={select} />
         </div>
 
-        <nav aria-label="Secciones" className={`${navClass} order-last w-full items-center justify-between gap-1 text-sm lg:order-none lg:w-auto lg:justify-start`}>
-          {NAV.map((s) => {
+        <nav aria-label="Secciones" className={`${navClass} order-last w-full min-w-0 items-center justify-between gap-0.5 overflow-x-auto [scrollbar-width:none] sm:gap-1 lg:order-none lg:w-auto lg:justify-start`}>
+          {NAV.filter((s) => !s.adminOnly || user.role === "admin").map((s) => {
             const on = s.key === current;
             return (
               <Link
@@ -87,14 +89,14 @@ export default function AppHeader({
                 aria-current={on ? "page" : undefined}
                 className={
                   on
-                    ? "rounded-full bg-[#f5f2ea] px-3 py-2 font-semibold lg:px-3.5 text-[#1a1917] lg:py-1.5"
-                    : "rounded-full px-3 py-2 text-[#f5f2ea]/80 lg:px-3.5 hover:bg-white/10 hover:text-[#f5f2ea] lg:py-1.5"
+                    ? "flex min-h-12 shrink-0 items-center rounded-full bg-white px-3 text-base font-bold text-ink sm:px-4 sm:text-[1.125rem]"
+                    : "flex min-h-12 shrink-0 items-center rounded-full px-3 text-base text-white/90 hover:bg-white/15 hover:text-white sm:px-4 sm:text-[1.125rem]"
                 }
               >
                 {s.short ? (
                   <>
-                    <span className="xl:hidden">{s.short}</span>
-                    <span className="hidden xl:inline">{s.label}</span>
+                    <span className="2xl:hidden">{s.short}</span>
+                    <span className="hidden 2xl:inline">{s.label}</span>
                   </>
                 ) : (
                   s.label
@@ -104,7 +106,7 @@ export default function AppHeader({
           })}
         </nav>
 
-        <div className="ml-auto sm:ml-0">
+        <div className="ml-auto flex items-center gap-3 sm:ml-0">
           <UserMenu user={user} />
         </div>
       </div>

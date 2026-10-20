@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import SectionHeader from "@/components/SectionHeader";
+import { PageTitle } from "@/components/ui";
 import { InvitationRow, InviteForm, MemberRow } from "@/components/AdminPanel";
 import { requireAdmin } from "@/lib/auth/session";
 import { describeChange } from "@/lib/changes";
@@ -11,14 +12,14 @@ export const dynamic = "force-dynamic";
 function Section({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
     <section>
-      <h2 className="text-sm font-semibold text-gray-900">{title}</h2>
-      {hint && <p className="mt-0.5 text-xs text-gray-500">{hint}</p>}
-      <div className="mt-3">{children}</div>
+      <h2 className="zb-seccion">{title}</h2>
+      {hint && <p className="zb-apoyo mt-1">{hint}</p>}
+      <div className="mt-4">{children}</div>
     </section>
   );
 }
 
-const card = "overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm";
+const card = "overflow-hidden rounded-2xl border-2 border-line bg-white";
 
 export default async function AdminPage() {
   const session = await requireAdmin();
@@ -29,10 +30,12 @@ export default async function AdminPage() {
   ]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="zb min-h-screen bg-white text-ink [color-scheme:light]">
       <SectionHeader current="admin" />
 
-      <main className="mx-auto flex max-w-3xl flex-col gap-9 px-4 py-8">
+      <main className="mx-auto flex max-w-3xl flex-col gap-12 px-4 py-8 sm:px-6 lg:py-10">
+        <PageTitle intro="Quién puede entrar al archivo, qué puede hacer y qué se ha cambiado.">Usuarios e historial</PageTitle>
+
         <Section
           title="Invitar a alguien"
           hint="Nadie puede registrarse por su cuenta: solo entra quien recibe un enlace tuyo."
@@ -43,7 +46,7 @@ export default async function AdminPage() {
         </Section>
 
         <Section title={`Personas con acceso (${members.length})`}>
-          <ul className={`${card} divide-y divide-gray-100`}>
+          <ul className={`${card} divide-y-2 divide-line`}>
             {members.map((m) => (
               <MemberRow key={m.id} member={m} isSelf={m.id === session.user.id} />
             ))}
@@ -52,7 +55,7 @@ export default async function AdminPage() {
 
         {invitations.length > 0 && (
           <Section title="Enlaces pendientes" hint="Creados y todavía sin usar.">
-            <ul className={`${card} divide-y divide-gray-100`}>
+            <ul className={`${card} divide-y-2 divide-line`}>
               {invitations.map((i) => (
                 <InvitationRow key={i.id} invitation={i} />
               ))}
@@ -65,22 +68,22 @@ export default async function AdminPage() {
           hint="Los últimos 100 cambios hechos en la app, con lo que había antes y lo que quedó."
         >
           {changes.length === 0 ? (
-            <p className={`${card} px-4 py-5 text-sm text-gray-500`}>Todavía nadie ha editado nada.</p>
+            <p className={`${card} zb-texto px-5 py-6 text-gris`}>Todavía nadie ha editado nada.</p>
           ) : (
-            <ul className={`${card} divide-y divide-gray-100`}>
+            <ul className={`${card} divide-y-2 divide-line`}>
               {changes.map((c) => {
                 const { summary, details } = describeChange(c);
                 return (
-                  <li key={c.id} className="px-4 py-3">
-                    <p className="text-sm text-gray-800">
-                      <span className="font-medium text-gray-900">{c.userName}</span> {summary}{" "}
-                      <span className="font-medium text-gray-900">{c.personName ?? "una persona borrada"}</span>
+                  <li key={c.id} className="px-4 py-4 sm:px-5">
+                    <p className="zb-texto">
+                      <span className="font-bold">{c.userName}</span> {summary}{" "}
+                      <span className="font-bold">{c.personName ?? "una persona borrada"}</span>
                     </p>
-                    <p className="mt-0.5 text-xs tabular-nums text-gray-400">{c.when.replace(/^(\d+)-(\d+)-(\d+)/, "$3/$2/$1")}</p>
+                    <p className="zb-apoyo mt-0.5 tabular-nums">{c.when.replace(/^(\d+)-(\d+)-(\d+)/, "$3/$2/$1")}</p>
                     {details.length > 0 && (
-                      <ul className="mt-1.5 flex flex-col gap-0.5">
+                      <ul className="mt-2 flex flex-col gap-1">
                         {details.map((d, i) => (
-                          <li key={i} className="break-words text-xs leading-relaxed text-gray-600">
+                          <li key={i} className="zb-apoyo break-words">
                             {d}
                           </li>
                         ))}

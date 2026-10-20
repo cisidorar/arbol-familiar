@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import AuthShell from "@/components/AuthShell";
+import { LinkButton, Notice } from "@/components/ui";
 import { AcceptInviteForm } from "@/components/AuthForms";
 import { MIN_PASSWORD_LENGTH } from "@/lib/auth/password";
 import { ROLE_HELP, ROLE_LABELS } from "@/lib/auth/roles";
@@ -20,12 +20,12 @@ export default async function InvitationPage({ params }: { params: Promise<{ tok
   if (!invitation) {
     return (
       <AuthShell title="Este enlace ya no sirve">
-        <p className="text-[15px] leading-relaxed">
-          Venció o ya se usó. Pídele a quien administra el archivo que te mande uno nuevo.
-        </p>
-        <Link href="/login" className="mt-4 inline-block text-[15px] font-bold underline underline-offset-4">
-          Ir a la pantalla de entrada
-        </Link>
+        <Notice kind="aviso">
+          Este enlace venció o ya se usó. Pídele a quien administra el archivo que te mande uno nuevo.
+        </Notice>
+        <div className="mt-6">
+          <LinkButton href="/login">Ir a la pantalla de entrada</LinkButton>
+        </div>
       </AuthShell>
     );
   }
@@ -33,10 +33,10 @@ export default async function InvitationPage({ params }: { params: Promise<{ tok
   const isReset = invitation.kind === "reset";
   return (
     <AuthShell
-      title={isReset ? "Elige una contraseña nueva" : "Te invitaron al archivo familiar"}
+      title={isReset ? "Elige tu contraseña nueva" : "Te invitaron al archivo familiar"}
       intro={
         isReset
-          ? `Hola${invitation.userName ? `, ${invitation.userName}` : ""}. Al guardarla se cierran tus sesiones abiertas.`
+          ? `Hola${invitation.userName ? `, ${invitation.userName}` : ""}. Al guardarla se cerrarán las sesiones que tengas abiertas en otros aparatos.`
           : `Entrarás como ${ROLE_LABELS[invitation.role].toLowerCase()}: ${ROLE_HELP[invitation.role].toLowerCase()}`
       }
     >

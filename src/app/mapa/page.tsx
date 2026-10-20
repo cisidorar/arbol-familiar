@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import MapPersonPicker from "@/components/MapPersonPicker";
 import OriginsMap from "@/components/OriginsMap";
 import SectionHeader from "@/components/SectionHeader";
+import { PageTitle } from "@/components/ui";
 import { canEdit } from "@/lib/auth/roles";
 import { requireSession } from "@/lib/auth/session";
 import { getPersonFacts } from "@/lib/data/origins";
@@ -17,10 +18,10 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    // Colores propios y esquema claro fijo: con el Mac en modo oscuro el texto heredado quedaría casi blanco.
-    <div className="min-h-screen bg-[#f6f3ec] text-[#1f1d1a] [color-scheme:light]">
+    // Fondo blanco y esquema claro fijo: con el Mac en modo oscuro el texto heredado quedaría casi blanco.
+    <div className="zb min-h-screen bg-white text-ink [color-scheme:light]">
       <SectionHeader current="mapa" />
-      <main className="mx-auto max-w-[90rem] px-4 py-6 sm:px-6 lg:py-8">{children}</main>
+      <main className="mx-auto max-w-[120rem] px-4 py-8 sm:px-6 lg:px-10 lg:py-10 2xl:px-14">{children}</main>
     </div>
   );
 }
@@ -34,19 +35,15 @@ export default async function MapaPage({ searchParams }: { searchParams: Promise
   if (!rootId) {
     return (
       <Shell>
-        <h1 className="text-2xl font-semibold" style={{ fontFamily: "var(--font-playfair)" }}>
+        <PageTitle intro="Tu usuario todavía no está vinculado a una persona del árbol, así que no sé de quién son los antepasados que quieres ver. Elige a alguien.">
           Mapa de orígenes
-        </h1>
-        <p className="mt-1 max-w-xl text-sm text-[#4f4a3f]">
-          Tu usuario todavía no está vinculado a una persona del árbol, así que no sé de quién son los antepasados
-          que quieres ver. Elige a alguien:
-        </p>
-        <div className="mt-4 max-w-sm">
+        </PageTitle>
+        <div className="mt-6 max-w-md">
           <MapPersonPicker autoFocus />
         </div>
-        <p className="mt-6 max-w-xl text-xs text-[#6b6558]">
-          Para que se abra siempre con tus antepasados, vincula tu usuario con{" "}
-          <code className="rounded bg-[#ece7da] px-1.5 py-0.5">npm run usuario -- vincular …</code>.
+        <p className="zb-apoyo mt-8 max-w-xl">
+          Para que se abra siempre con tus antepasados, pídele a quien administra el archivo que vincule tu usuario con tu
+          nombre en el árbol.
         </p>
       </Shell>
     );
@@ -57,8 +54,8 @@ export default async function MapaPage({ searchParams }: { searchParams: Promise
   if (!root) {
     return (
       <Shell>
-        <p className="text-sm text-[#4f4a3f]">No encuentro a esa persona en el árbol. Elige a otra:</p>
-        <div className="mt-4 max-w-sm">
+        <PageTitle intro="No encuentro a esa persona en el árbol. Elige a otra.">Mapa de orígenes</PageTitle>
+        <div className="mt-6 max-w-md">
           <MapPersonPicker autoFocus />
         </div>
       </Shell>
@@ -87,6 +84,8 @@ export default async function MapaPage({ searchParams }: { searchParams: Promise
         regions={REGIONES}
         zone={zone}
         canEdit={canEdit(session.role)}
+        sexById={Object.fromEntries(people.map((p) => [p.id, p.data.gender]))}
+        birthYearById={Object.fromEntries(people.map((p) => [p.id, p.data.birth_year]))}
       />
     </Shell>
   );
