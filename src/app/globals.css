@@ -453,3 +453,7 @@ div.f3 div.card-collapse:hover {
 .zb-texto { font-size: 1.125rem; line-height: 1.55; }
 .zb-apoyo { font-size: 1rem; line-height: 1.5; color: var(--color-gris); }
 .zb-etiqueta { font-size: 0.875rem; line-height: 1.3; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-gris); }
+
+/* Tamaño de la letra elegido en la portada (botones "A A A"): todo va en rem. */
+html[data-texto="grande"] { font-size: 112.5%; }
+html[data-texto="enorme"] { font-size: 125%; }

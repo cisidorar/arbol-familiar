@@ -12,7 +12,7 @@ import { NextResponse, type NextRequest } from "next/server";
 const SESSION_COOKIE = "azb_session";
 
 function isPublic(pathname: string): boolean {
-  return pathname === "/login" || pathname.startsWith("/invitacion/");
+  return pathname === "/" || pathname === "/login" || pathname.startsWith("/invitacion/");
 }
 
 export function proxy(request: NextRequest) {

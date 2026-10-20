@@ -1,5 +1,7 @@
 import TreeApp from "@/components/TreeApp";
-import { requireSession } from "@/lib/auth/session";
+import Landing from "@/components/Landing";
+import { getSession, requireSession } from "@/lib/auth/session";
+import { getPublicStats } from "@/lib/data/public-stats";
 import { getLinkedPersonId } from "@/lib/data/users";
 import { getDefaultTreeId, getFamilyChartData } from "@/lib/data/tree";
 
@@ -25,7 +27,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ p
       </main>
     );
   }
-  // El archivo es privado: sin sesión (y sin acceso a este árbol) se va al login.
+  // El archivo es privado: sin sesión (o sin acceso a este árbol) se ve la portada
+  // pública, que solo tiene cifras generales, y de ahí se pasa al login.
+  if (!(await getSession())) return <Landing stats={await getPublicStats(treeId)} />;
   const session = await requireSession();
   const data = await getFamilyChartData(session.treeId);
   // ?persona=<id> (viene del buscador de las otras vistas): el árbol se abre centrado en esa persona.
