@@ -11,12 +11,16 @@
  * La contraseña se pide por teclado y no se muestra. (Para automatizar, se
  * puede pasar en la variable de entorno CLAVE.)
  */
-import "dotenv/config";
+import dotenv from "dotenv";
 import { createInterface } from "node:readline";
 import { passwordProblem } from "../src/lib/auth/password";
 import { normalizeEmail, ROLE_LABELS } from "../src/lib/auth/roles";
 import { getPool } from "../src/lib/db/pool";
 import { findPersonsByName, linkUserToPerson, listMembers, upsertUserWithRole } from "../src/lib/data/users";
+
+// La conexión (Supabase) está en .env.local; .env va después y no pisa lo ya leído.
+dotenv.config({ path: ".env.local" });
+dotenv.config();
 
 function askHidden(question: string): Promise<string> {
   return new Promise((resolve) => {
