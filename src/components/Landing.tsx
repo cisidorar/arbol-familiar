@@ -5,7 +5,6 @@
 
 import Link from "next/link";
 import Logo from "./Logo";
-import TextSize from "./TextSize";
 import { buttonClass } from "./ui";
 import type { PublicStats } from "@/lib/data/public-stats";
 
@@ -213,7 +212,6 @@ export default function Landing({ stats }: { stats: PublicStats | null }) {
             </span>
           </Link>
           <div className="ml-auto flex items-center gap-2 sm:gap-3">
-            <TextSize />
             <Link
               href="/login"
               className="flex min-h-12 items-center rounded-full border border-white/50 px-4 text-base font-bold text-white hover:bg-white/10 sm:px-5"
