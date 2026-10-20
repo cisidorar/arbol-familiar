@@ -26,6 +26,8 @@ export default function TreeApp({ data, user, homeId, selfId }: { data: any[]; u
 
   // El "+" de una tarjeta: a quién se le está agregando un familiar.
   const [adding, setAdding] = useState<AddTarget | null>(null);
+  // En el teléfono la leyenda va plegada (un botón "?") para no tapar el árbol.
+  const [legendOpen, setLegendOpen] = useState(false);
 
   // Se agregó a alguien: llegan los datos del árbol al día. Se suman a los
   // mismos objetos que ya tiene el árbol (la persona nueva y los vínculos de
@@ -160,7 +162,18 @@ export default function TreeApp({ data, user, homeId, selfId }: { data: any[]; u
       )}
 
       {/* Leyenda discreta: qué significan los colores y qué hace cada clic. */}
-      <div className="pointer-events-none absolute bottom-4 left-4 z-10 flex flex-col gap-1.5 rounded-xl border border-gray-200/80 bg-white/90 px-3.5 py-2.5 text-xs text-gray-500 shadow-sm backdrop-blur-sm">
+      <button
+        type="button"
+        onClick={() => setLegendOpen((o) => !o)}
+        aria-expanded={legendOpen}
+        aria-label={legendOpen ? "Ocultar la ayuda" : "Mostrar la ayuda del árbol"}
+        className="absolute bottom-4 left-4 z-10 flex h-12 w-12 items-center justify-center rounded-full border border-gray-300 bg-white text-lg font-bold text-gray-700 shadow-md sm:hidden"
+      >
+        {legendOpen ? "×" : "?"}
+      </button>
+      <div
+        className={`pointer-events-none absolute bottom-20 left-4 z-10 max-w-[calc(100%-2rem)] flex-col gap-1.5 rounded-xl border border-gray-200/80 bg-white/95 px-3.5 py-2.5 text-xs text-gray-500 shadow-sm backdrop-blur-sm sm:bottom-4 sm:flex ${legendOpen ? "flex" : "hidden"}`}
+      >
         <div className="flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: "#3f7fcb" }} />
           Hombre

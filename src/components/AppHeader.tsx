@@ -60,15 +60,15 @@ export default function AppHeader({
             e.preventDefault();
             onHome();
           }}
-          className="flex min-w-0 shrink-0 items-center gap-3 text-white"
+          className="flex min-w-0 flex-1 items-center gap-2.5 text-white sm:flex-none sm:shrink-0 sm:gap-3"
           aria-label="Archivo Zamora Balcázar, ir al árbol"
         >
-          <Logo size={48} variant="oscuro" className="shrink-0" />
+          <Logo size={44} variant="oscuro" className="shrink-0 sm:h-12 sm:w-12" />
           <span className="flex min-w-0 flex-col justify-center">
             <span className="mb-1 hidden whitespace-nowrap text-sm font-bold uppercase leading-none tracking-[0.1em] text-white/70 md:block">
               Fondo familiar · {count} personas
             </span>
-            <span className="block truncate font-maquina text-xl uppercase leading-none tracking-[0.06em] lg:text-xl xl:text-2xl">
+            <span className="block truncate font-maquina text-base uppercase leading-none tracking-[0.04em] sm:text-xl sm:tracking-[0.06em] xl:text-2xl">
               Archivo Zamora Balcázar
             </span>
           </span>

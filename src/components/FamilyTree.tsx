@@ -262,6 +262,33 @@ function setYearLabels(data: ChartDatum[]) {
   }
 }
 
+/**
+ * En el teléfono "ver todo" deja las tarjetas diminutas e ilegibles: se acerca
+ * hasta un tamaño que se lee y se centra en el tronco (con el dedo se puede
+ * mover y acercar o alejar). En pantallas anchas no hace nada.
+ */
+let f3Lib: any = null; // la librería, cargada la primera vez que se dibuja el árbol
+const PHONE_MAX_WIDTH = 640;
+const PHONE_MIN_SCALE = 0.8;
+function readableOnPhone(chart: any, container: HTMLElement | null, transitionTime: number) {
+  if (!container || container.clientWidth >= PHONE_MAX_WIDTH) return;
+  const svg = chart.svg as any;
+  const tree = chart.store?.getTree?.();
+  const main = tree?.data?.[0];
+  if (!svg || !main) return;
+  const rect = svg.getBoundingClientRect();
+  // La vista todavía no llega al "ver todo" (la librería la mueve de forma asíncrona): se calcula contra el árbol entero.
+  const fitK = Math.min(rect.width / tree.dim.width, rect.height / tree.dim.height, 1);
+  if (fitK >= PHONE_MIN_SCALE) return;
+  f3Lib?.handlers.cardToMiddle({
+    datum: { x: main.x, y: main.y },
+    svg,
+    svg_dim: { width: rect.width, height: rect.height },
+    scale: PHONE_MIN_SCALE,
+    transition_time: transitionTime,
+  });
+}
+
 export default function FamilyTree({ data, mainId, line = null, version, resetKey = 0, onSelectPerson, onRecenter, onAddRelative }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<any>(null);
@@ -299,6 +326,7 @@ export default function FamilyTree({ data, mainId, line = null, version, resetKe
     let cancelled = false;
     (async () => {
       const f3 = await import("family-chart");
+      f3Lib = f3;
       if (cancelled || !containerRef.current) return;
 
       const chart = f3.createChart(containerRef.current, data as any);
@@ -588,6 +616,7 @@ export default function FamilyTree({ data, mainId, line = null, version, resetKe
       // ahí quedan activas las transiciones, más cortas, para los clics.
       chart.setTransitionTime(0);
       chart.updateTree({ initial: true, tree_position: "fit" });
+      readableOnPhone(chart, containerRef.current, 0);
       chart.setTransitionTime(400);
     })();
 
@@ -608,6 +637,7 @@ export default function FamilyTree({ data, mainId, line = null, version, resetKe
     // Con la línea hasta quien mira, el árbol queda largo hacia abajo: se
     // encuadra entero para que se vea todo el camino.
     chartRef.current.updateTree({ tree_position: lineRef.current ? "fit" : "main_to_middle" });
+    if (lineRef.current) readableOnPhone(chartRef.current, containerRef.current, 400);
   }, [mainId]);
 
   // "Archivo Zamora Balcázar" (el título): se cierran todas las ramas que se abrieron a mano
@@ -626,6 +656,7 @@ export default function FamilyTree({ data, mainId, line = null, version, resetKe
       chart.updateMainId?.(mainId);
     }
     chart.updateTree({ tree_position: "fit" });
+    readableOnPhone(chart, containerRef.current, 400);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetKey]);
 
