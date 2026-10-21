@@ -5,12 +5,13 @@
 import Link from "next/link";
 import SiteBrand, { BRAND_ROW } from "./SiteBrand";
 import ScatteredCards, { LOGIN_CARDS } from "./ScatteredCards";
+import { PORTADA } from "@/lib/portada-contenido";
 
 export default function AuthShell({
   title,
   intro,
-  heading = "Bienvenido de vuelta a la familia.",
-  lead = "El archivo es privado. Solo entran las personas invitadas por la familia.",
+  heading = "Hola de nuevo, familia.",
+  lead = "Entra para ver cómo va la investigación y sumar lo tuyo: una foto, un recuerdo, un nombre que falta.",
   children,
 }: {
   title: string;
@@ -33,6 +34,7 @@ export default function AuthShell({
             {heading}
           </h2>
           <p className="mt-4 max-w-md text-base leading-relaxed text-white/80 sm:mt-6 sm:text-lg">{lead}</p>
+          <p className="mt-4 text-sm font-bold uppercase tracking-[0.18em] text-white/60">Actualizado el {PORTADA.actualizado}</p>
         </div>
 
         {/* Fichas de ejemplo (de antepasados fallecidos): solo en pantallas anchas */}

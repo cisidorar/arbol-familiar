@@ -4,7 +4,6 @@ import AuthShell from "@/components/AuthShell";
 import { LoginForm } from "@/components/AuthForms";
 import { getSession } from "@/lib/auth/session";
 import { getSetupState } from "@/lib/data/users";
-import Link from "next/link";
 
 export const metadata: Metadata = { title: "Entrar · Archivo Zamora Balcázar" };
 export const dynamic = "force-dynamic";
@@ -45,15 +44,12 @@ export default async function LoginPage() {
 
   if (await getSession()) redirect("/inicio");
   return (
-    <AuthShell title="Entrar al archivo" intro="Escribe tu correo y tu contraseña.">
+    <AuthShell title="Entrar al archivo" intro="Usa el correo con el que te invitaron.">
       <LoginForm />
       <div className="mt-8 border-t border-line pt-6">
         <p className="text-[1.0625rem] font-bold">¿Aún no tienes acceso?</p>
         <p className="zb-apoyo mt-1.5">
-          Escríbele a quien administra el archivo y te enviará una invitación.{" "}
-          <Link href="/#como-entrar" className="font-bold text-ink underline decoration-2 underline-offset-4 hover:text-terra">
-            Pedir invitación
-          </Link>
+          El archivo es solo para la familia. Pídeselo a quien te habló de él y te llegará una invitación por correo.
         </p>
       </div>
     </AuthShell>
