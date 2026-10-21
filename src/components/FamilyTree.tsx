@@ -109,6 +109,8 @@ function straightenLinks(container: HTMLElement) {
 function computeStraightTargets(paths: SVGPathElement[]): (string | null)[] {
   // Todos los hijos de unos mismos padres terminan su línea en el mismo punto
   // (el punto medio entre los dos padres): sirve de identificador del grupo.
+  // Las líneas van del hijo al punto medio de sus padres, sean los de la línea directa, los
+  // de un hermano agregado o los hijos de alguien que baja.
   const groupKey = (d: LinkDatum) => {
     const end = d.d?.[d.d.length - 1];
     return end ? `${Math.round(end[0])},${Math.round(end[1])}` : "";
@@ -130,7 +132,7 @@ function computeStraightTargets(paths: SVGPathElement[]): (string | null)[] {
   const groups = new Map<string, Group>();
   for (const path of paths) {
     const datum = datumOf(path);
-    if (!datum?.curve || datum.spouse || !datum.is_ancestry || !datum.d || datum.d.length < 6) continue;
+    if (!datum?.curve || datum.spouse || !datum.d || datum.d.length < 6) continue;
     const key = groupKey(datum);
     const xs = [datum.d[0][0], datum.d[datum.d.length - 1][0]];
     let g = groups.get(key);
@@ -168,8 +170,8 @@ function computeStraightTargets(paths: SVGPathElement[]): (string | null)[] {
     paths.forEach((path, i) => {
       const datum = datumOf(path);
       if (!datum?.curve || datum.spouse || !datum.d) return;
-      const key = datum.is_ancestry ? groupKey(datum) : "";
-      const dy = datum.is_ancestry ? (offsetOf.get(key) ?? 0) : 0;
+      const key = groupKey(datum);
+      const dy = offsetOf.get(key) ?? 0;
       const pts = dy
         ? datum.d.map(([x, y], j): [number, number] => (j >= 1 && j <= 4 ? [x, y + dy] : [x, y]))
         : datum.d;
