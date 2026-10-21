@@ -54,15 +54,15 @@ div.f3 {
      bg = relleno de la tarjeta */
   --male-color: #3f7fcb;
   --male-border: #a3c4ea;
-  --male-bg: #ffffff;
+  --male-bg: #dfeaf8;
   --female-color: #c44f72;
   --female-border: #ecb3c3;
-  --female-bg: #ffffff;
+  --female-bg: #fbe6ec;
   --genderless-color: #8a97a8;
   --genderless-border: #cbd3dd;
-  --genderless-bg: #ffffff;
-  --text-color: #1a1917;
-  --text-muted: #4a4740;
+  --genderless-bg: #f1f4f8;
+  --text-color: #111111;
+  --text-muted: #4a5468;
 }
 
 /* Tarjeta: avatar a la izquierda, nombre y fecha a la derecha, en grilla
@@ -128,25 +128,20 @@ div.f3 div.card-female.card-child .card-inner.card-rect {
   --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23c44f72'%3E%3Ccircle cx='7.3' cy='8.3' r='1.9'/%3E%3Ccircle cx='16.7' cy='8.3' r='1.9'/%3E%3Ccircle cx='12' cy='8' r='4.3'/%3E%3Cpath d='M8 20c0-2.8 1.8-5 4-5s4 2.2 4 5z'/%3E%3C/svg%3E");
 }
 
-/* Avatar: círculo con la inicial del nombre, en el color de acento (FamilyTree.tsx
-   pone `data-initial` en la tarjeta). */
+/* Avatar: círculo blanco con silueta del color de acento (sin fotos por
+   ahora, fase 0 pendiente: los enlaces de MyHeritage ya vencieron). */
 div.f3 div.card-rect::before {
-  content: attr(data-initial);
+  content: "";
   grid-column: 1;
   grid-row: 1 / span 2;
   align-self: center;
-  display: grid;
-  place-items: center;
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--accent) 16%, #ffffff);
-  color: var(--accent);
-  font-family: var(--font-body);
-  font-size: 22px;
-  font-weight: 700;
-  line-height: 1;
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent);
+  background: #ffffff var(--icon) center / 24px 24px no-repeat;
+  box-shadow:
+    0 0 0 1px rgba(30, 42, 68, 0.05),
+    0 1px 3px rgba(30, 42, 68, 0.14);
 }
 
 /* Nombre */
@@ -154,10 +149,10 @@ div.f3 div.card-rect > div:nth-of-type(1) {
   grid-column: 2;
   grid-row: 1;
   align-self: end;
-  font-family: var(--font-body);
-  font-size: 15.5px;
+  font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  font-size: 14px;
   font-weight: 700;
-  line-height: 1.22;
+  line-height: 1.25;
   overflow-wrap: anywhere;
   white-space: normal;
   color: var(--text-color);
@@ -172,10 +167,8 @@ div.f3 div.card-rect > div:nth-of-type(2) {
   grid-column: 2;
   grid-row: 2;
   align-self: start;
-  margin-top: 3px;
-  font-family: var(--font-body);
-  font-size: 15px;
-  font-weight: 400;
+  margin-top: 2px;
+  font-size: 11.5px;
   line-height: 1.3;
   color: var(--text-muted);
 }
@@ -261,8 +254,8 @@ div.f3 div.mini-tree:hover line {
 div.f3 div.mini-tree:is([data-dir="up"], [data-dir="down"], [data-dir="left"], [data-dir="right"]) {
   --arrow: #5b6b85;
   box-sizing: border-box;
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
   right: auto;
   display: grid;
   place-items: center;
@@ -279,21 +272,13 @@ div.f3 div.mini-tree:is([data-dir="up"], [data-dir="down"], [data-dir="left"], [
   display: none;
 }
 
-/* El círculo se ve de 32 px, pero se puede tocar en una zona más grande. */
-div.f3 div.mini-tree:is([data-dir="up"], [data-dir="down"], [data-dir="left"], [data-dir="right"])::after {
-  content: "";
-  position: absolute;
-  inset: -6px;
-  border-radius: 9999px;
-}
-
 /* La flecha: dos bordes de un cuadradito girado. */
 div.f3 div.mini-tree:is([data-dir="up"], [data-dir="down"], [data-dir="left"], [data-dir="right"])::before {
   content: "";
-  width: 10px;
-  height: 10px;
-  border-top: 2.5px solid var(--arrow);
-  border-left: 2.5px solid var(--arrow);
+  width: 7px;
+  height: 7px;
+  border-top: 2px solid var(--arrow);
+  border-left: 2px solid var(--arrow);
   border-radius: 1px;
 }
 
@@ -304,8 +289,8 @@ div.f3 div.mini-tree:is([data-dir="up"], [data-dir="down"], [data-dir="left"], [
 }
 
 div.f3 div.mini-tree[data-dir="up"] {
-  top: -36px;
-  left: calc(50% - 16px);
+  top: -32px;
+  left: calc(50% - 13px);
 }
 div.f3 div.mini-tree[data-dir="up"]::before {
   transform: translateY(2px) rotate(45deg);
@@ -313,23 +298,23 @@ div.f3 div.mini-tree[data-dir="up"]::before {
 
 div.f3 div.mini-tree[data-dir="down"] {
   top: auto;
-  bottom: -36px;
-  left: calc(50% - 16px);
+  bottom: -32px;
+  left: calc(50% - 13px);
 }
 div.f3 div.mini-tree[data-dir="down"]::before {
   transform: translateY(-2px) rotate(225deg);
 }
 
 div.f3 div.mini-tree[data-dir="left"] {
-  top: calc(50% - 16px);
-  left: -38px;
+  top: calc(50% - 13px);
+  left: -32px;
 }
 div.f3 div.mini-tree[data-dir="left"]::before {
   transform: translateX(2px) rotate(-45deg);
 }
 
 div.f3 div.mini-tree[data-dir="right"] {
-  top: calc(50% - 16px);
+  top: calc(50% - 13px);
   left: calc(100% + 6px);
 }
 div.f3 div.mini-tree[data-dir="right"]::before {
@@ -342,19 +327,19 @@ div.f3 div.mini-tree[data-dir="right"]::before {
    sin depender de la letra. */
 div.f3 div.card-add {
   position: absolute;
-  top: -11px;
-  right: -11px;
+  top: 5px;
+  right: 5px;
   z-index: 2;
-  width: 30px;
-  height: 30px;
+  width: 20px;
+  height: 20px;
   border-radius: 9999px;
   background:
-    linear-gradient(#5b6b85, #5b6b85) center / 14px 2.5px no-repeat,
-    linear-gradient(#5b6b85, #5b6b85) center / 2.5px 14px no-repeat,
-    #ffffff;
-  box-shadow: 0 0 0 1.5px rgb(91 107 133 / 0.45), 0 2px 5px rgb(15 23 42 / 0.15);
+    linear-gradient(#5b6b85, #5b6b85) center / 10px 2px no-repeat,
+    linear-gradient(#5b6b85, #5b6b85) center / 2px 10px no-repeat,
+    rgb(255 255 255 / 0.75);
+  box-shadow: 0 0 0 1px rgb(91 107 133 / 0.25);
   cursor: pointer;
-  opacity: 0.8;
+  opacity: 0.55;
   transition:
     opacity 0.15s ease-in-out,
     box-shadow 0.15s ease-in-out;
@@ -366,8 +351,8 @@ div.f3 div.card:hover div.card-add {
 
 div.f3 div.card-add:hover {
   background:
-    linear-gradient(#ffffff, #ffffff) center / 14px 2.5px no-repeat,
-    linear-gradient(#ffffff, #ffffff) center / 2.5px 14px no-repeat,
+    linear-gradient(#ffffff, #ffffff) center / 10px 2px no-repeat,
+    linear-gradient(#ffffff, #ffffff) center / 2px 10px no-repeat,
     #5b6b85;
   box-shadow: 0 0 0 1px #5b6b85;
 }
@@ -401,10 +386,10 @@ div.f3 div.card-review-flag {
    tarjeta (hacia donde se pliegan). */
 div.f3 div.card-collapse {
   position: absolute;
-  top: calc(50% - 16px);
+  top: calc(50% - 11px);
   z-index: 3;
-  width: 32px;
-  height: 32px;
+  width: 22px;
+  height: 22px;
   border-radius: 9999px;
   background: #5b6b85;
   box-shadow: 0 0 0 1px #5b6b85;
@@ -413,20 +398,20 @@ div.f3 div.card-collapse {
   transition: opacity 0.15s ease-in-out, background 0.15s ease-in-out;
 }
 div.f3 div.card-collapse[data-side="right"] {
-  left: calc(100% + 8px);
+  left: calc(100% + 6px);
 }
 div.f3 div.card-collapse[data-side="left"] {
-  right: calc(100% + 8px);
+  right: calc(100% + 6px);
 }
 div.f3 div.card-collapse::before {
   content: "";
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 9px;
-  height: 9px;
-  border-top: 2.5px solid #fff;
-  border-left: 2.5px solid #fff;
+  width: 7px;
+  height: 7px;
+  border-top: 2px solid #fff;
+  border-left: 2px solid #fff;
 }
 /* Hermanos a la derecha: la flecha apunta a la izquierda, y al revés. */
 div.f3 div.card-collapse[data-side="right"]::before {

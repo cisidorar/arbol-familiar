@@ -258,7 +258,7 @@ function setYearLabels(data: ChartDatum[]) {
   for (const d of data as any[]) {
     const y = d.data.birth_year;
     const dy = d.data.death_year;
-    d.data.birth_year_label = y ? (dy ? `${y}–${dy}` : `n. ${y}`) : d.data.is_living ? "" : "† sin fechas";
+    d.data.birth_year_label = y ? (dy ? `${y}–${dy}` : `n. ${y}`) : d.data.is_living ? "" : "†";
   }
 }
 
@@ -532,8 +532,6 @@ export default function FamilyTree({ data, mainId, line = null, version, resetKe
           // Muerte infantil: silueta de niño/a en vez de adulto (ver globals.css,
           // clase .card-child combinada con .card-male/.card-female).
           this.querySelector(".card")?.classList.toggle("card-child", Boolean(d.data.data.is_child));
-          // La inicial del nombre va en el círculo de la tarjeta (ver globals.css).
-          this.querySelector(".card-inner")?.setAttribute("data-initial", String(d.data.data.first_name ?? "").trim().charAt(0).toUpperCase());
 
           // «Hay un documento por revisar» (se prende en la ficha): borde ámbar y una insignia.
           const review = Boolean(d.data.data.needs_review);
