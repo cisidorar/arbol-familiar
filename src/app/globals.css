@@ -478,3 +478,23 @@ html[data-texto="enorme"] { font-size: 125%; }
     padding-bottom: calc(4.25rem + env(safe-area-inset-bottom));
   }
 }
+
+/* Inicio: la tarjeta "Te tocó" (sorteo de antepasado). */
+@keyframes azb-shake {
+  0%, 100% { transform: rotate(-3deg) translate(0, 0); }
+  20% { transform: rotate(-6deg) translate(-4px, 2px); }
+  40% { transform: rotate(0deg) translate(5px, -3px); }
+  60% { transform: rotate(-5deg) translate(-3px, -2px); }
+  80% { transform: rotate(-1deg) translate(4px, 3px); }
+}
+@keyframes azb-drop {
+  0% { transform: translateY(-70px) rotate(14deg) scale(0.88); opacity: 0; }
+  55% { transform: translateY(8px) rotate(-6deg) scale(1.02); opacity: 1; }
+  78% { transform: translateY(-3px) rotate(-2deg) scale(1); }
+  100% { transform: translateY(0) rotate(-3deg) scale(1); opacity: 1; }
+}
+.azb-shake { animation: azb-shake 0.32s linear infinite; }
+.azb-drop { animation: azb-drop 0.75s cubic-bezier(0.2, 0.8, 0.3, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .azb-shake, .azb-drop { animation: none; transform: rotate(-3deg); }
+}
