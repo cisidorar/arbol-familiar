@@ -7,9 +7,53 @@ import Link from "next/link";
 import ScatteredCards from "./ScatteredCards";
 import SiteBrand, { BRAND_ROW } from "./SiteBrand";
 import { buttonClass } from "./ui";
-import type { PublicStats } from "@/lib/data/public-stats";
+import type { PublicStats, PublicSurname } from "@/lib/data/public-stats";
 
 /* ---------- Secciones ---------- */
+
+/** Ficha de un apellido: lo general a la vista y la rama "tapada" hasta entrar. */
+function SurnameCard({ s, i }: { s: PublicSurname; i: number }) {
+  const rot = ["-rotate-1", "rotate-1", "-rotate-[0.5deg]", "rotate-[1.5deg]"][i % 4];
+  return (
+    <Link
+      href="/login"
+      aria-label={`Apellido ${s.surname}: entra para ver la rama completa`}
+      className={`group relative flex h-full flex-col rounded-md bg-[#f7f4ed] px-5 pb-5 pt-4 text-ink shadow-[0_10px_24px_-14px_rgba(0,0,0,0.55)] ring-1 ring-black/5 transition duration-300 hover:-translate-y-1 hover:rotate-0 hover:shadow-[0_22px_36px_-16px_rgba(0,0,0,0.6)] ${rot}`}
+    >
+      <div className="flex items-center justify-between font-maquina text-[0.7rem] uppercase tracking-[0.18em] text-gris">
+        <span>Apellido</span>
+        <span>{s.people} personas</span>
+      </div>
+      <div className="mt-1 h-px bg-terra" aria-hidden="true" />
+      <p className="mt-3 font-maquina text-[1.75rem] leading-none">{s.surname}</p>
+      <p className="mt-2 text-base text-gris">
+        Desde {s.since}
+        {s.place ? `, sobre todo en ${s.place}` : ""}
+      </p>
+
+      {/* La rama, tapada: solo trazos, ningún nombre real. */}
+      <div className="relative mt-5 flex-1" aria-hidden="true">
+        <div className="space-y-2.5 blur-[3px]">
+          {[78, 62, 70].map((w, k) => (
+            <div key={k} className="flex items-center gap-2.5">
+              <span className="h-6 w-6 shrink-0 rounded-full bg-ink/15" />
+              <span className="h-3 rounded-full bg-ink/20" style={{ width: `${w}%` }} />
+            </div>
+          ))}
+        </div>
+        <span className="absolute inset-0 flex items-center justify-center">
+          <span className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-sm font-bold text-white transition group-hover:bg-terra">
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round">
+              <rect x="5" y="11" width="14" height="9" rx="2" />
+              <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+            </svg>
+            Entra para ver la rama
+          </span>
+        </span>
+      </div>
+    </Link>
+  );
+}
 
 function Stat({ value, label }: { value: string; label: string }) {
   return (
@@ -20,7 +64,7 @@ function Stat({ value, label }: { value: string; label: string }) {
   );
 }
 
-export default function Landing({ stats }: { stats: PublicStats | null }) {
+export default function Landing({ stats, surnames = [] }: { stats: PublicStats | null; surnames?: PublicSurname[] }) {
   const items = [
     stats && { value: stats.people.toLocaleString("es-CL"), label: "personas" },
     stats?.generations && { value: String(stats.generations), label: "generaciones" },
@@ -50,8 +94,8 @@ export default function Landing({ stats }: { stats: PublicStats | null }) {
               Toda la familia, de generación en generación, en un solo lugar.
             </h1>
             <p className="mt-5 max-w-xl text-lg leading-relaxed text-white/80">
-              Recorre el árbol, descubre de dónde venían nuestros antepasados, encuentra dónde descansan y ayuda a
-              completar lo que falta.
+              Nombres, fechas y lugares de quienes vinieron antes que nosotros, reunidos y cuidados por la propia
+              familia.
             </p>
             <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-3">
               <Link
@@ -76,28 +120,41 @@ export default function Landing({ stats }: { stats: PublicStats | null }) {
         </div>
       </section>
 
+      {/* Apellidos que sigue el archivo */}
+      {surnames.length > 0 && (
+        <section className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
+          <p className="text-sm font-bold uppercase tracking-[0.18em] text-gris">Las familias del archivo</p>
+          <h2 className="mt-3 max-w-2xl font-maquina text-[1.75rem] leading-tight sm:text-4xl">Apellidos que seguimos</h2>
+          <p className="mt-3 max-w-2xl text-lg text-gris">
+            Cada ficha es una rama de la familia. Aquí se ve solo lo general; la historia completa queda para quienes
+            entran al archivo.
+          </p>
+          <ul className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {surnames.map((s, i) => (
+              <li key={s.surname}>
+                <SurnameCard s={s} i={i} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {/* Cierre */}
       <section className="bg-paper">
         <div className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
-          <h2 className="max-w-2xl font-maquina text-[1.75rem] leading-tight sm:text-4xl">
-            ¿Tienes fotos, actas o recuerdos?
-          </h2>
+          <h2 className="max-w-2xl font-maquina text-[1.75rem] leading-tight sm:text-4xl">¿Eres parte de la familia?</h2>
           <p className="mt-3 max-w-xl text-lg text-gris">
-            Cada dato ayuda. Si vas a un centro de historia familiar, en Pendientes verás qué documentos revisar y
-            podrás corregir las fichas ahí mismo.
+            El archivo es privado: solo entra quien fue invitado. Si llevas alguno de estos apellidos o tienes fotos,
+            actas o recuerdos, pídele tu invitación a quien lo administra.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             <Link href="/login" className={buttonClass("principal")}>
-              Ver pendientes
+              Entrar al archivo
             </Link>
-            <a href="#como-entrar" className={buttonClass("secundario")}>
+            <Link href="/login" className={buttonClass("secundario")}>
               Pedir acceso
-            </a>
+            </Link>
           </div>
-          <p id="como-entrar" className="mt-8 max-w-xl scroll-mt-6 border-l-4 border-terra pl-4 text-base leading-relaxed text-gris">
-            El archivo es privado: solo entra quien fue invitado. Para pedir acceso, escríbele a quien administra el
-            archivo en tu familia y te mandará un enlace de invitación.
-          </p>
         </div>
       </section>
 
