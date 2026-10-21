@@ -527,7 +527,9 @@ export function layoutAncestry(
     for (const n of [...nodes, ...added]) {
       occupiedAt.set(n.y, [...(occupiedAt.get(n.y) ?? []), n.x]);
     }
-    const collides = (y: number, x: number) => (occupiedAt.get(y) ?? []).some((ox) => Math.abs(ox - x) < S - 1);
+    // Los hijos de familias distintas dejan un hueco de media tarjeta entre grupos: si quedan
+    // pegados (los de un hermano junto a los de otro), se leen como una sola fila de hermanos.
+    const collides = (y: number, x: number) => (occupiedAt.get(y) ?? []).some((ox) => Math.abs(ox - x) < S * 1.5 - 1);
 
     for (const node of [...added]) {
       if (!node.sibling || node.spouse || !opts.kidsOpen.has(node.data.id)) continue;

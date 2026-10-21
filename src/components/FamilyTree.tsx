@@ -154,7 +154,7 @@ function computeStraightTargets(paths: SVGPathElement[]): (string | null)[] {
     const options = g.spouseSide ? SPOUSE_OFFSETS : BLOOD_OFFSETS;
     const free = options.find((off) =>
       placed.every(
-        (p) => Math.abs(p.y - (g.barY + off)) >= 9 || p.maxX < g.minX - 6 || p.minX > g.maxX + 6,
+        (p) => Math.abs(p.y - (g.barY + off)) >= 9 || p.maxX < g.minX - 60 || p.minX > g.maxX + 60,
       ),
     );
     const off = free ?? options[0];
