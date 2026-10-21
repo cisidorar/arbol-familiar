@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import SearchBox from "./SearchBox";
 import UserMenu, { type CurrentUser } from "./UserMenu";
 import Logo from "./Logo";
+import MobileTabBar from "./MobileTabBar";
 
 export type Section = "arbol" | "mapa" | "pendientes" | "cementerios" | "admin";
 
@@ -45,9 +46,11 @@ export default function AppHeader({
   const arbol = current === "arbol";
   // Fuera del árbol, en pantallas medianas se omite el buscador para que todo quepa en UNA fila
   // (si la barra de secciones bajaba a una segunda fila, el título quedaba arriba y sobraba fondo oscuro).
-  const navClass = arbol ? "hidden xl:flex" : "flex lg:ml-auto xl:ml-0";
+  // En el teléfono las secciones van en la barra de abajo (MobileTabBar).
+  const navClass = arbol ? "hidden xl:flex" : "hidden sm:flex lg:ml-auto xl:ml-0";
 
   return (
+    <>
     <header
       className={`zb ${floating ? "absolute left-0 top-0 z-20 w-full" : "relative z-20"} border-b border-white/10 bg-ink text-white shadow-md print:hidden`}
     >
@@ -111,5 +114,7 @@ export default function AppHeader({
         </div>
       </div>
     </header>
+    <MobileTabBar current={current} isAdmin={user.role === "admin"} pad={!floating} />
+    </>
   );
 }

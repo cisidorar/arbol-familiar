@@ -9,7 +9,7 @@
 import BurialPlaceField from "./BurialPlaceField";
 import PlaceField from "./PlaceField";
 import { Notice, buttonClass } from "./ui";
-import { useEffect, useId, useImperativeHandle, useMemo, useRef, useState, type Ref } from "react";
+import { useEffect, useId, useImperativeHandle, useMemo, useRef, useState, type ReactNode, type Ref } from "react";
 import {
   EDITABLE_EVENT_TYPES,
   OCCUPATION_SUGGESTIONS,
@@ -1039,6 +1039,7 @@ export function FichaForm({
   canReview = false,
   onSave,
   onClose,
+  footer,
 }: {
   ref?: Ref<FichaFormHandle>;
   person: PersonForm;
@@ -1054,6 +1055,8 @@ export function FichaForm({
   onSave: (payload: FichaPayload) => Promise<SaveOutcome>;
   /** Salir del formulario sin guardar. */
   onClose: () => void;
+  /** Lo que va al final del formulario (por ejemplo, eliminar a la persona). */
+  footer?: ReactNode;
 }) {
   const uid = useId();
   const formRef = useRef<HTMLFormElement>(null);
@@ -1304,6 +1307,7 @@ export function FichaForm({
             />
           </div>
           </div>
+          {footer}
         </div>
 
         <div role="tabpanel" hidden={tab !== "vida"} className="pb-4 pt-2">

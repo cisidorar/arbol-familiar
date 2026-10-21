@@ -417,8 +417,7 @@ export default function PersonPanel({
     }
   };
 
-  // Eliminar a la persona: pide confirmar antes.
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  // Eliminar a la persona (desde el formulario de edición, escribiendo su nombre para confirmar).
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
@@ -446,7 +445,6 @@ export default function PersonPanel({
   };
 
   useEffect(() => {
-    setConfirmDelete(false);
     setDeleteError(null);
     setEditing(null);
     setJustSaved(false);
@@ -752,6 +750,11 @@ export default function PersonPanel({
           canReview={Boolean(person.canReview)}
           onSave={save}
           onClose={() => setEditing(null)}
+          footer={
+            onPersonDeleted ? (
+              <DeleteZone name={person.displayName} deleting={deleting} error={deleteError} onDelete={remove} />
+            ) : null
+          }
         />
       ) : (
         <>
@@ -820,7 +823,7 @@ export default function PersonPanel({
                       <div className="min-w-0 flex-1 basis-48">
                         <p className="text-sm text-gray-500">{fem ? "Sepultada en" : person.sex === "M" ? "Sepultado en" : "Sepultura"}</p>
                         <p className="text-xl font-bold leading-snug text-gray-900">{site}</p>
-                        {where ? <p className="text-base text-gray-600">{where}</p> : <p className="text-sm text-amber-700">Sin comuna asignada</p>}
+                        {where ? <p className="text-base text-gray-600">{where}</p> : canEdit ? <p className="text-sm text-amber-700">Sin comuna asignada</p> : null}
                         {tomb && <p className="mt-0.5 text-sm text-gray-500">{tomb}</p>}
                       </div>
                       {where && (
@@ -1033,45 +1036,54 @@ export default function PersonPanel({
                   ? `Editado${person.edited.by ? ` por ${person.edited.by}` : ""} el ${formatEdited(person.edited.at)}`
                   : "Archivo Zamora Balcázar"}
               </span>
-            {person && !editing && canEdit && onPersonDeleted && (
-              confirmDelete ? (
-                <div role="alertdialog" aria-label="Confirmar eliminación" className="absolute inset-x-5 bottom-16 z-10 rounded-xl border border-red-200 shadow-lg bg-red-50 p-4 text-sm text-red-900">
-                  <p className="text-base font-medium">¿Eliminar a {person.displayName} del árbol?</p>
-                  <p className="mt-1 text-sm text-red-800">
-                    Se borran sus datos y hechos. Sus hijos y demás familiares se quedan en el árbol. Queda anotado en el historial.
-                  </p>
-                  {deleteError && <p role="alert" className="mt-2 text-sm font-medium">{deleteError}</p>}
-                  <div className="mt-3 flex gap-2">
-                    <button
-                      onClick={remove}
-                      disabled={deleting}
-                      className="rounded-lg bg-red-700 px-3.5 py-2 text-sm font-medium text-white hover:bg-red-800 disabled:opacity-60"
-                    >
-                      {deleting ? "Eliminando…" : "Sí, eliminar"}
-                    </button>
-                    <button
-                      onClick={() => { setConfirmDelete(false); setDeleteError(null); }}
-                      disabled={deleting}
-                      className="rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setConfirmDelete(true)}
-                  className="shrink-0 text-sm font-medium text-red-700 underline decoration-red-200 underline-offset-2 hover:text-red-800"
-                >
-                  Eliminar a esta persona
-                </button>
-              )
-            )}
             </div>
           </div>
         </>
       )}
     </aside>
     </>
+  );
+}
+
+/** Al final del formulario de edición: eliminar a la persona, escribiendo su nombre para confirmar. */
+function DeleteZone({ name, deleting, error, onDelete }: { name: string; deleting: boolean; error: string | null; onDelete: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [typed, setTyped] = useState("");
+  const norm = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  const first = name.trim().split(/\s+/)[0] ?? "";
+  const ok = first !== "" && norm(typed) === norm(first);
+  return (
+    <div className="mx-5 mb-6 mt-4 border-t border-[#e7e5df] pt-5 sm:mx-7">
+      {!open ? (
+        <button type="button" onClick={() => setOpen(true)} className="min-h-11 text-base font-medium text-red-700 underline decoration-red-200 underline-offset-4 hover:text-red-800">
+          Eliminar a esta persona del árbol…
+        </button>
+      ) : (
+        <div role="alertdialog" aria-label="Confirmar eliminación" className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-900">
+          <p className="text-[1.125rem] font-bold">¿Eliminar a {name} del árbol?</p>
+          <p className="mt-1 text-base text-red-800">
+            Se borran sus datos y hechos. Sus hijos y demás familiares se quedan en el árbol. Queda anotado en el historial.
+          </p>
+          <label className="mt-3 block text-base">
+            Para confirmar, escribe <strong>{first}</strong>:
+            <input
+              value={typed}
+              onChange={(e) => setTyped(e.target.value)}
+              autoComplete="off"
+              className="mt-1.5 block min-h-12 w-full rounded-lg border-2 border-red-200 bg-white px-3 text-[1.125rem] text-ink focus:border-red-700 focus:outline-none"
+            />
+          </label>
+          {error && <p role="alert" className="mt-2 text-base font-medium">{error}</p>}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button type="button" onClick={onDelete} disabled={!ok || deleting} className="min-h-12 rounded-full bg-red-700 px-5 text-base font-bold text-white hover:bg-red-800 disabled:opacity-40">
+              {deleting ? "Eliminando…" : "Sí, eliminar"}
+            </button>
+            <button type="button" onClick={() => { setOpen(false); setTyped(""); }} disabled={deleting} className="min-h-12 rounded-full border border-gray-300 bg-white px-5 text-base font-bold text-gray-700 hover:bg-gray-50">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
