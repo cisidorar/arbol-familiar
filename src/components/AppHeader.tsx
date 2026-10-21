@@ -7,9 +7,10 @@ import UserMenu, { type CurrentUser } from "./UserMenu";
 import Logo from "./Logo";
 import MobileTabBar from "./MobileTabBar";
 
-export type Section = "arbol" | "mapa" | "pendientes" | "cementerios" | "admin";
+export type Section = "inicio" | "arbol" | "mapa" | "pendientes" | "cementerios" | "admin";
 
 const NAV: { key: Exclude<Section, "admin">; href: string; label: string; short?: string; adminOnly?: boolean }[] = [
+  { key: "inicio", href: "/inicio", label: "Inicio" },
   { key: "arbol", href: "/", label: "Árbol" },
   { key: "mapa", href: "/mapa", label: "Mapa de orígenes", short: "Mapa" },
   { key: "pendientes", href: "/pendientes", label: "Pendientes", adminOnly: true },

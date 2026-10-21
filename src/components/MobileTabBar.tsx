@@ -11,6 +11,18 @@ const icon = (d: React.ReactNode) => (
 
 const TABS: Tab[] = [
   {
+    key: "inicio",
+    href: "/inicio",
+    label: "Inicio",
+    icon: icon(
+      <>
+        <path d="M4 11 12 4l8 7" />
+        <path d="M6 10v10h12V10" />
+        <path d="M10 20v-6h4v6" />
+      </>,
+    ),
+  },
+  {
     key: "arbol",
     href: "/",
     label: "Árbol",
@@ -80,9 +92,9 @@ export default function MobileTabBar({ current, isAdmin, pad = true }: { current
               <Link
                 href={t.href}
                 aria-current={on ? "page" : undefined}
-                className={`flex min-h-[4.25rem] flex-col items-center justify-center gap-1 text-[0.8125rem] font-bold leading-none ${on ? "text-white" : "text-white/60"}`}
+                className={`flex min-h-[4.25rem] flex-col items-center justify-center gap-1 text-[0.75rem] font-bold leading-none tracking-tight ${on ? "text-white" : "text-white/60"}`}
               >
-                <span className={`grid h-8 w-14 place-items-center rounded-full ${on ? "bg-white text-ink" : ""}`}>{t.icon}</span>
+                <span className={`grid h-8 w-12 place-items-center rounded-full ${on ? "bg-white text-ink" : ""}`}>{t.icon}</span>
                 {t.label}
               </Link>
             </li>

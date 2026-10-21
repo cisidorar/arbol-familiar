@@ -56,6 +56,9 @@ export default function UserMenu({ user }: { user: CurrentUser }) {
             <p className="truncate font-bold">{user.name}</p>
             <p className="text-base text-gris">{ROLE_LABELS[user.role]}</p>
           </div>
+          <Link href="/inicio" role="menuitem" className={ITEM}>
+            Inicio
+          </Link>
           <Link href="/" role="menuitem" className={ITEM}>
             Árbol
           </Link>

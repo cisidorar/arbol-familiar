@@ -43,7 +43,7 @@ export default async function LoginPage() {
     );
   }
 
-  if (await getSession()) redirect("/");
+  if (await getSession()) redirect("/inicio");
   return (
     <AuthShell title="Entrar al archivo" intro="Escribe tu correo y tu contraseña.">
       <LoginForm />

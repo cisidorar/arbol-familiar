@@ -29,7 +29,7 @@ export async function login(_prev: FormState, formData: FormData): Promise<FormS
   }
   // Casilla "Mantener la sesión abierta": sin ella la sesión dura un día y se cierra con el navegador.
   await createSession(result.userId, formData.get("remember") === "on");
-  redirect("/");
+  redirect("/inicio");
 }
 
 export async function logout(): Promise<void> {
@@ -56,5 +56,5 @@ export async function acceptInvite(_prev: FormState, formData: FormData): Promis
   const result = await acceptInvitation(token, name, password);
   if (!result.ok) return { error: result.error, name };
   await createSession(result.userId);
-  redirect("/");
+  redirect("/inicio");
 }

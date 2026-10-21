@@ -887,6 +887,9 @@ export default function PersonPanel({
                       <span aria-hidden="true" className="leading-none">+</span> Agregar un hecho
                     </button>
                   )}
+                  <a href={`/persona/${person.id}`} className={btnOutline}>
+                    Página de la ficha
+                  </a>
                   <a href={`/mapa?persona=${person.id}`} className={btnOutline}>
                     Mapa de antepasados
                   </a>
