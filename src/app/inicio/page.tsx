@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import LinkSelf from "@/components/LinkSelf";
-import PersonChipLink from "@/components/PersonChipLink";
 import AncestorRoulette, { type RoulettePerson } from "@/components/AncestorRoulette";
 import SectionHeader from "@/components/SectionHeader";
-import { canAdmin } from "@/lib/auth/roles";
 import { requireSession } from "@/lib/auth/session";
 import { getFamilyChartData } from "@/lib/data/tree";
 import { getFamilyOnDates, todayInChile, type FamilyDateItem } from "@/lib/data/today";
@@ -16,9 +14,9 @@ import { kinshipPhrase, type GraphPerson } from "@/lib/lineage";
 export const metadata: Metadata = { title: "Inicio · Archivo Zamora Balcázar" };
 export const dynamic = "force-dynamic";
 
+const randomItem = <T,>(list: T[]): T => list[Math.floor(Math.random() * list.length)];
 const MONTHS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
-const GEN_NAMES = ["Padres", "Abuelos", "Bisabuelos", "Tatarabuelos"];
 
 function Names({ people }: { people: { id: string; name: string }[] }) {
   return (
@@ -91,20 +89,6 @@ export default async function InicioPage() {
   );
   const me = selfId ? byId.get(selfId) : undefined;
 
-  // Su línea directa: padres, abuelos, bisabuelos y tatarabuelos.
-  const generations: { name: string; people: NonNullable<ReturnType<typeof byId.get>>[] }[] = [];
-  if (me) {
-    let frontier = [me.id];
-    const seen = new Set<string>([me.id]);
-    for (let g = 0; g < GEN_NAMES.length; g++) {
-      const next: string[] = [];
-      for (const id of frontier) for (const par of byId.get(id)?.rels.parents ?? []) if (!seen.has(par) && byId.has(par)) { seen.add(par); next.push(par); }
-      if (!next.length) break;
-      generations.push({ name: GEN_NAMES[g], people: next.map((id) => byId.get(id)!) });
-      frontier = next;
-    }
-  }
-
   const todayItems = items.filter((i) => i.inDays === 0);
   const soon = items.filter((i) => i.inDays > 0).slice(0, 6);
 
@@ -134,7 +118,7 @@ export default async function InicioPage() {
       blurb,
     };
   });
-  const startId = roulette.length ? roulette[Math.floor(Math.random() * roulette.length)].id : "";
+  const startId = roulette.length ? randomItem(roulette).id : "";
 
   // La nota amarilla: el primer hecho de los próximos días, dicho con su parentesco.
   const graph: GraphPerson[] = chart.map((p) => ({ id: p.id, data: { gender: p.data.gender, label: p.data.label }, rels: p.rels }));
@@ -251,39 +235,7 @@ export default async function InicioPage() {
         )}
 
         {/* Su línea directa, o preguntar quién es */}
-        {me ? (
-          <section aria-label="Tu línea directa">
-            <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-line pb-3">
-              <h2 className="zb-seccion">Tu línea directa</h2>
-              <Link href="/mapa" className="font-bold underline decoration-2 underline-offset-4 hover:text-terra">
-                Ver de dónde vienen →
-              </Link>
-            </div>
-            {generations.length === 0 ? (
-              <p className="zb-texto mt-5 text-gris">Todavía no hay padres anotados para {me.label.split(" ")[0]}.</p>
-            ) : (
-              <div className="mt-5 space-y-6">
-                {generations.map((g) => (
-                  <div key={g.name}>
-                    <h3 className="zb-etiqueta">{g.name}</h3>
-                    <ul className="mt-2 grid gap-2 sm:grid-cols-2">
-                      {g.people.map((p) => (
-                        <li key={p.id}>
-                          <PersonChipLink p={p} />
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            )}
-            <p className="mt-5">
-              <Link href={`/persona/${me.id}`} className="font-bold underline decoration-2 underline-offset-4 hover:text-terra">
-                Ver tu ficha →
-              </Link>
-            </p>
-          </section>
-        ) : (
+        {!me && (
           <section aria-label="¿Quién eres en el árbol?" className="rounded-3xl bg-[#f1efea] p-6 sm:p-8">
             <h2 className="zb-seccion">¿Quién eres en el árbol?</h2>
             <p className="zb-texto mt-3 max-w-2xl text-gris">
