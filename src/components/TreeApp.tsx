@@ -75,7 +75,7 @@ export default function TreeApp({ data, user, homeId, selfId }: { data: any[]; u
   };
 
   // Sube cada vez que se toca el título: el árbol vuelve a su vista de partida.
-  const [resetKey, setResetKey] = useState(0);
+  const [resetKey] = useState(0);
   const [mainId, setMainId] = useState<string | null>(
     (homeId && data.some((d) => d.id === homeId) ? homeId : null) ?? data[0]?.id ?? null,
   );
@@ -106,18 +106,6 @@ export default function TreeApp({ data, user, homeId, selfId }: { data: any[]; u
     setMainId(previousId);
   };
 
-  // El título del archivo vuelve al perfil propio (si no hay, al de partida), con su papá y su mamá.
-  const goHome = () => {
-    const mine = [selfId, homeId].find((id) => id && data.some((d) => d.id === id)) ?? data[0]?.id;
-    if (!mine) return;
-    setSelectedId(null);
-    setAdding(null);
-    setTrail([]);
-    setMainId(mine);
-    setResetKey((k) => k + 1);
-    window.history.replaceState(null, "", "/");
-  };
-
   return (
     <div className="h-screen w-screen overflow-hidden bg-white">
       <AppHeader
@@ -125,7 +113,6 @@ export default function TreeApp({ data, user, homeId, selfId }: { data: any[]; u
         user={user}
         count={data.length}
         floating
-        onHome={goHome}
         onSelectPerson={(id) => {
           // Buscar a alguien es partir de nuevo: no deja un "Volver a…" atrás.
           setSelectedId(id);

@@ -29,7 +29,6 @@ export default function AppHeader({
   count,
   floating = false,
   onSelectPerson,
-  onHome,
   textSize = false,
 }: {
   current: Section;
@@ -39,8 +38,6 @@ export default function AppHeader({
   floating?: boolean;
   /** En el árbol: centra el dibujo en la persona. En las otras páginas se abre el árbol en ella. */
   onSelectPerson?: (id: string) => void;
-  /** En el árbol: al tocar el título se vuelve al perfil propio (con su papá y su mamá) sin recargar. */
-  onHome?: () => void;
   /** Muestra los botones A A A de tamaño de letra junto a la cuenta. */
   textSize?: boolean;
 }) {
@@ -62,14 +59,9 @@ export default function AppHeader({
       <div className="flex w-full flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 sm:px-6 lg:gap-x-4">
         {/* Logo + nombre: un solo bloque, al tocarlo se vuelve al árbol. */}
         <Link
-          href="/"
-          onClick={(e) => {
-            if (!onHome) return;
-            e.preventDefault();
-            onHome();
-          }}
+          href="/inicio"
           className="flex min-w-0 flex-1 items-center gap-2.5 text-white sm:flex-none sm:shrink-0 sm:gap-3"
-          aria-label="Archivo Zamora Balcázar, ir al árbol"
+          aria-label="Archivo Zamora Balcázar, ir al inicio"
         >
           <Logo size={44} variant="oscuro" className="shrink-0 sm:h-12 sm:w-12" />
           <span className="flex min-w-0 flex-col justify-center">
