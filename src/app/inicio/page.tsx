@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import LinkSelf from "@/components/LinkSelf";
 import PersonChipLink from "@/components/PersonChipLink";
-import AncestorRoulette, { SurpriseButton, type RoulettePerson } from "@/components/AncestorRoulette";
+import AncestorRoulette, { type RoulettePerson } from "@/components/AncestorRoulette";
 import SectionHeader from "@/components/SectionHeader";
 import { canAdmin } from "@/lib/auth/roles";
 import { requireSession } from "@/lib/auth/session";
@@ -116,7 +116,7 @@ export default async function InicioPage() {
 
   // "Te tocó": los antepasados directos con una frase corta, y uno al azar de partida.
   const minBirth = Math.min(...direct.map((a) => byId.get(a.id)?.birth ?? Infinity));
-  const roulette: RoulettePerson[] = direct.map((a) => {
+  const roulette: RoulettePerson[] = direct.filter((a) => byId.get(a.id)?.birth).map((a) => {
     const p = byId.get(a.id);
     const place = a.origin.kind === "none" ? null : a.origin.label;
     const at = place ? ` en ${place}` : "";
@@ -124,14 +124,12 @@ export default async function InicioPage() {
     const blurb =
       p?.birth && p.birth === minBirth
         ? `Es el antepasado más antiguo del archivo. Nació${at} en ${p.birth}${lived}.`
-        : p?.birth
-          ? `Nació${at} en ${p.birth}${lived}.`
-          : "Todavía sabemos poco de esta persona; su ficha tiene lo que hay en el archivo.";
+        : `Nació${at} en ${p?.birth}${lived}.`;
     return {
       id: a.id,
       name: a.name,
       rel: `Tu ${a.relation}`,
-      years: p?.birth && p?.death ? `${p.birth} – ${p.death}` : p?.birth ? `n. ${p.birth}` : p?.death ? `† ${p.death}` : "",
+      years: p?.death ? `${p.birth} – ${p.death}` : `n. ${p?.birth}`,
       place,
       blurb,
     };
@@ -154,7 +152,7 @@ export default async function InicioPage() {
 
   return (
     <div className="zb min-h-screen bg-white text-ink [color-scheme:light]">
-      <SectionHeader current="inicio" textSize />
+      <SectionHeader current="inicio" />
 
       <header className="bg-ink text-white">
         <div className="mx-auto grid max-w-6xl gap-10 px-4 pb-12 pt-10 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:pb-16 lg:pt-14">
@@ -165,13 +163,6 @@ export default async function InicioPage() {
               ¿Qué quieres descubrir hoy? Elige un camino o deja que el archivo te sorprenda.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
-              {roulette.length > 1 ? (
-                <SurpriseButton className="inline-flex min-h-12 items-center gap-2 rounded-full bg-terra px-6 text-[1.0625rem] font-bold text-white hover:bg-white hover:text-ink" />
-              ) : (
-                <a href="/sorpresa" className="inline-flex min-h-12 items-center gap-2 rounded-full bg-terra px-6 text-[1.0625rem] font-bold text-white hover:bg-white hover:text-ink">
-                  <span aria-hidden>🎲</span> Antepasado sorpresa
-                </a>
-              )}
               <Link href="/" className="inline-flex min-h-12 items-center rounded-full border-2 border-white/80 px-6 text-[1.0625rem] font-bold text-white hover:bg-white hover:text-ink">
                 Ver mi árbol
               </Link>
