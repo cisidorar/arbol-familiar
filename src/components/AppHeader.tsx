@@ -6,6 +6,7 @@ import SearchBox from "./SearchBox";
 import UserMenu, { type CurrentUser } from "./UserMenu";
 import Logo from "./Logo";
 import MobileTabBar from "./MobileTabBar";
+import TextSize from "./TextSize";
 
 export type Section = "inicio" | "arbol" | "mapa" | "pendientes" | "cementerios" | "admin";
 
@@ -29,6 +30,7 @@ export default function AppHeader({
   floating = false,
   onSelectPerson,
   onHome,
+  textSize = false,
 }: {
   current: Section;
   user: CurrentUser;
@@ -39,6 +41,8 @@ export default function AppHeader({
   onSelectPerson?: (id: string) => void;
   /** En el árbol: al tocar el título se vuelve al perfil propio (con su papá y su mamá) sin recargar. */
   onHome?: () => void;
+  /** Muestra los botones A A A de tamaño de letra junto a la cuenta. */
+  textSize?: boolean;
 }) {
   const router = useRouter();
   const select = onSelectPerson ?? ((id: string) => router.push(`/?persona=${id}`));
@@ -79,7 +83,7 @@ export default function AppHeader({
         </Link>
 
         {/* En el teléfono, fuera del árbol, el buscador se omite para no alargar el encabezado. */}
-        <div className={`${arbol ? "flex" : "hidden xl:flex"} order-last w-full min-w-0 max-w-md items-center sm:order-none sm:ml-auto sm:w-auto sm:min-w-[12rem] sm:flex-1`}>
+        <div className={`${arbol ? "flex" : textSize ? "hidden" : "hidden xl:flex"} order-last w-full min-w-0 max-w-md items-center sm:order-none sm:ml-auto sm:w-auto sm:min-w-[12rem] sm:flex-1`}>
           <SearchBox onSelect={select} />
         </div>
 
@@ -111,6 +115,11 @@ export default function AppHeader({
         </nav>
 
         <div className="ml-auto flex items-center gap-3 sm:ml-0">
+          {textSize && (
+            <div className="hidden lg:block">
+              <TextSize />
+            </div>
+          )}
           <UserMenu user={user} />
         </div>
       </div>
