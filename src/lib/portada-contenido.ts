@@ -4,7 +4,6 @@
 export const PORTADA = {
   /** Fecha de la última vez que se tocó esta lista (texto libre). */
   actualizado: "21 de octubre de 2026",
-  firma: "Cata",
 
   /** "Lo último que encontramos": cada entrada es una historia corta. */
   hallazgos: [
@@ -34,11 +33,4 @@ export const PORTADA = {
     },
   ],
 
-  /** "Preguntas abiertas": lo que todavía no sabemos y donde la familia puede ayudar. */
-  preguntas: [
-    "¿Alguien sabe algo de Anastacia Araya, la madre de Pabla? Creemos que murió en Buin en 1888, pero todavía no lo hemos podido confirmar.",
-    "¿De dónde venían Gregorio Balcázar y Dominga Bravo, los papás de Isidoro? Vivieron en Maipo, pero antes de eso no tenemos nada.",
-    "¿Quiénes fueron los papás de José Canelo, de Casablanca? Sabemos que se casó con Josefa Duarte, pero no encontramos su propio bautizo.",
-    "¿Tienes fotos de Rosa Elvira Canelo, de Manuel Zamora o de cualquiera de los abuelos? Una sola foto ya cambia mucho.",
-  ],
 };

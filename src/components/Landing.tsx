@@ -1,7 +1,7 @@
 // Portada pública del archivo: lo que ve quien llega sin haber iniciado sesión.
-// Pensada para un grupo chico (unos 20 primos y tíos): una carta de la familia con
-// lo último de la investigación, preguntas abiertas y cómo aportar. Solo antepasados
-// fallecidos hace mucho y cifras generales; para ver el árbol hay que entrar con invitación.
+// Pensada para un grupo chico (primos y tíos): una bienvenida cercana, los apellidos
+// que sigue el archivo y lo último de la investigación. Solo antepasados fallecidos
+// hace mucho y cifras generales; para ver el árbol hay que entrar con invitación.
 
 import Link from "next/link";
 import ScatteredCards from "./ScatteredCards";
@@ -10,118 +10,147 @@ import { buttonClass } from "./ui";
 import { PORTADA } from "@/lib/portada-contenido";
 import type { PublicStats, PublicSurname } from "@/lib/data/public-stats";
 
-function lista(items: string[]) {
-  if (items.length < 2) return items.join("");
-  return `${items.slice(0, -1).join(", ")} y ${items[items.length - 1]}`;
+function Stat({ value, label }: { value: string; label: string }) {
+  return (
+    <div>
+      <p className="font-maquina text-3xl leading-none sm:text-4xl">{value}</p>
+      <p className="mt-1.5 text-sm text-white/70">{label}</p>
+    </div>
+  );
+}
+
+/** Ficha de un apellido: cuántas personas, desde cuándo y dónde. */
+function SurnameCard({ s, i }: { s: PublicSurname; i: number }) {
+  const rot = ["-rotate-1", "rotate-1", "-rotate-[0.5deg]", "rotate-[1.5deg]"][i % 4];
+  return (
+    <Link
+      href="/login"
+      aria-label={`${s.surname}: ${s.people} personas. Entra para ver la rama`}
+      className={`group flex h-full flex-col rounded-md bg-[#f7f4ed] px-3.5 pb-3.5 pt-3.5 sm:px-5 sm:pb-4 sm:pt-4 text-ink shadow-[0_10px_24px_-14px_rgba(0,0,0,0.55)] ring-1 ring-black/5 transition duration-300 hover:-translate-y-1 hover:rotate-0 hover:shadow-[0_22px_36px_-16px_rgba(0,0,0,0.6)] ${rot}`}
+    >
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="min-w-0 truncate font-maquina text-[1.2rem] leading-none sm:text-[1.625rem]">{s.surname}</p>
+        <p className="shrink-0 font-maquina text-[1.2rem] leading-none text-terra sm:text-[1.625rem]">{s.people}</p>
+      </div>
+      <div className="mt-2 h-px bg-terra" aria-hidden="true" />
+      <p className="mt-2 flex-1 text-[0.9375rem] leading-snug text-gris sm:text-base">
+        {s.people === 1 ? "persona" : "personas"} · desde {s.since}
+        {s.place ? ` · ${s.place}` : ""}
+      </p>
+      <p className="mt-3 hidden text-sm font-bold text-ink/70 sm:block transition group-hover:text-terra">
+        Ver la rama <span aria-hidden="true">→</span>
+      </p>
+    </Link>
+  );
 }
 
 export default function Landing({ stats, surnames = [] }: { stats: PublicStats | null; surnames?: PublicSurname[] }) {
-  const cifras = stats
-    ? [
-        `${stats.people.toLocaleString("es-CL")} personas`,
-        stats.generations ? `${stats.generations} generaciones` : null,
-        stats.oldestYear ? `el registro más antiguo es de ${stats.oldestYear}` : null,
-      ].filter(Boolean)
-    : [];
-  const apellidos = surnames.map((s) => s.surname);
+  const items = [
+    stats && { value: stats.people.toLocaleString("es-CL"), label: "personas" },
+    stats?.generations && { value: String(stats.generations), label: "generaciones" },
+    stats?.oldestYear && { value: String(stats.oldestYear), label: "el registro más antiguo" },
+  ].filter(Boolean) as { value: string; label: string }[];
 
   return (
-    <div className="zb min-h-screen bg-paper text-ink">
-      <header className={`${BRAND_ROW} w-full gap-3`}>
-        <SiteBrand light />
-        <Link
-          href="/login"
-          className="ml-auto flex min-h-12 items-center rounded-full border border-ink/40 px-5 text-base font-bold hover:bg-ink hover:text-white"
-        >
-          Entrar
-        </Link>
-      </header>
+    <div className="zb min-h-screen bg-white text-ink">
+      {/* Bienvenida */}
+      <section className="overflow-hidden bg-ink text-white">
+        <header className={`${BRAND_ROW} w-full gap-3`}>
+          <SiteBrand />
+          <Link
+            href="/login"
+            className="ml-auto flex min-h-12 items-center rounded-full border border-white/50 px-5 text-base font-bold text-white hover:bg-white/10"
+          >
+            Entrar
+          </Link>
+        </header>
 
-      {/* Carta de la familia */}
-      <section className="mx-auto grid w-full max-w-6xl gap-10 px-4 pb-14 pt-8 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-14 lg:pb-20 lg:pt-12">
-        <div>
-          <p className="text-sm font-bold uppercase tracking-[0.18em] text-gris">
-            Archivo Zamora Balcázar · actualizado el {PORTADA.actualizado}
-          </p>
-          <h1 className="mt-4 font-maquina text-[2.5rem] leading-[1.08] sm:text-6xl">Hola, familia.</h1>
-          <div className="mt-6 max-w-xl space-y-4 text-[1.1875rem] leading-relaxed">
-            <p>
-              Aquí vamos juntando lo que hemos encontrado de{apellidos.length ? ` los ${lista(apellidos)}` : " nuestros antepasados"}: nombres,
-              fechas, lugares y alguna que otra historia.
+        <div className="mx-auto grid w-full max-w-6xl gap-12 px-4 pb-16 pt-8 sm:px-6 sm:pt-12 lg:grid-cols-2 lg:items-center lg:gap-10 lg:pb-20">
+          <div>
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-white/70">
+              Actualizado el {PORTADA.actualizado}
             </p>
-            <p>
-              Es un lugar para mirar cómo va la investigación y, si quieres, para sumar lo tuyo: una foto, un recuerdo, un nombre que
-              falta.
-            </p>
+            <h1 className="mt-4 font-maquina text-[2.75rem] leading-[1.05] sm:text-6xl">Hola, familia.</h1>
+            <div className="mt-6 max-w-xl space-y-4 text-[1.1875rem] leading-relaxed text-white/85">
+              <p>Aquí vamos juntando lo que hemos encontrado de nuestros antepasados: nombres, fechas, lugares y alguna que otra historia.</p>
+              <p>Pasa a mirar cómo va la investigación y, si tienes algo, súmalo: una foto, un recuerdo, un nombre que falta.</p>
+            </div>
+            <div className="mt-7">
+              <Link
+                href="/login"
+                className={buttonClass("principal", "!border-paper !bg-paper !text-ink hover:!bg-white hover:!border-white")}
+              >
+                Entrar al archivo <span aria-hidden="true">→</span>
+              </Link>
+            </div>
+            {items.length > 0 && (
+              <div className="mt-10 grid max-w-md grid-cols-3 gap-4 border-t border-white/15 pt-6">
+                {items.map((s) => (
+                  <Stat key={s.label} {...s} />
+                ))}
+              </div>
+            )}
           </div>
-          <p className="mt-5 font-maquina text-xl">— {PORTADA.firma}</p>
-          {cifras.length > 0 && (
-            <p className="mt-6 max-w-xl border-t border-ink/15 pt-4 text-base text-gris">
-              Llevamos {cifras.join("; ")}.
-            </p>
-          )}
-        </div>
 
-        {/* Fichas tiradas en el suelo: de antepasados fallecidos; al pasar el mouse se agrandan */}
-        <div className="rounded-3xl bg-ink px-2 py-4 sm:px-6">
-          <ScatteredCards className="mx-auto h-[24rem] w-full max-w-[30rem] sm:h-[26rem]" />
+          {/* Fichas tiradas en el suelo: de antepasados fallecidos; al pasar el mouse se agrandan */}
+          <ScatteredCards className="mx-auto h-[26rem] w-full max-w-[32rem] sm:h-[31rem]" />
         </div>
       </section>
 
+      {/* Apellidos */}
+      {surnames.length > 0 && (
+        <section className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
+          <h2 className="font-maquina text-[1.75rem] leading-tight sm:text-4xl">Nuestros apellidos</h2>
+          <p className="mt-3 max-w-2xl text-lg text-gris">Las ramas que vamos siguiendo y cuántas personas tiene cada una en el archivo.</p>
+          <ul className="mt-10 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
+            {surnames.map((s, i) => (
+              <li key={s.surname}>
+                <SurnameCard s={s} i={i} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {/* Lo último que encontramos */}
-      <section className="bg-white">
-        <div className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 sm:py-16">
+      <section className="bg-paper">
+        <div className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
           <h2 className="font-maquina text-[1.75rem] leading-tight sm:text-4xl">Lo último que encontramos</h2>
-          <ul className="mt-8 grid gap-5 md:grid-cols-2">
+          <p className="mt-3 max-w-2xl text-lg text-gris">Algunas historias que fueron apareciendo en los registros.</p>
+          <ul className="mt-10 grid gap-5 md:grid-cols-2">
             {PORTADA.hallazgos.map((h) => (
-              <li key={h.titulo} className="rounded-2xl border border-line bg-paper/60 p-6">
+              <li key={h.titulo} className="rounded-2xl bg-white p-6 shadow-[0_6px_18px_-12px_rgba(0,0,0,0.4)] ring-1 ring-black/5">
                 <p className="text-sm font-bold uppercase tracking-[0.14em] text-terra">{h.cuando}</p>
                 <h3 className="mt-2 text-[1.25rem] font-bold leading-snug">{h.titulo}</h3>
                 <p className="mt-2 text-[1.0625rem] leading-relaxed text-gris">{h.texto}</p>
               </li>
             ))}
           </ul>
-          <p className="mt-6 text-base text-gris">Las fichas completas, con sus fuentes, están adentro.</p>
         </div>
       </section>
 
-      {/* Preguntas abiertas */}
-      <section className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 sm:py-16">
-        <h2 className="font-maquina text-[1.75rem] leading-tight sm:text-4xl">Preguntas abiertas</h2>
-        <p className="mt-3 max-w-2xl text-lg text-gris">Cosas que todavía no sabemos. Si tienes una pista, cuéntanosla.</p>
-        <ul className="mt-8 space-y-4">
-          {PORTADA.preguntas.map((q) => (
-            <li key={q} className="flex gap-4 rounded-2xl bg-white p-5 text-[1.0625rem] leading-relaxed shadow-[0_6px_16px_-12px_rgba(0,0,0,0.5)] ring-1 ring-black/5">
-              <span aria-hidden="true" className="font-maquina text-2xl leading-none text-terra">?</span>
-              <span>{q}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
-
       {/* Aportar */}
-      <section className="bg-white">
-        <div className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 sm:py-16">
+      <section className="bg-ink text-white">
+        <div className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
           <h2 className="max-w-2xl font-maquina text-[1.75rem] leading-tight sm:text-4xl">¿Tienes algo de la familia?</h2>
-          <p className="mt-3 max-w-xl text-lg text-gris">
-            Fotos, actas, cartas, anécdotas de los abuelos, cómo se llamaba alguien. Cuéntaselo a {PORTADA.firma}, por donde
-            hablen siempre, y lo vamos sumando.
+          <p className="mt-3 max-w-xl text-lg text-white/80">
+            Fotos, actas, cartas o anécdotas de los abuelos: todo suma. Entra al archivo para verlo completo y dejar lo tuyo.
           </p>
-          <div className="mt-7 flex flex-wrap items-center gap-4">
-            <Link href="/login" className={buttonClass("principal")}>
-              Entrar y ver la investigación
+          <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-3">
+            <Link
+              href="/login"
+              className={buttonClass("principal", "!border-paper !bg-paper !text-ink hover:!bg-white hover:!border-white")}
+            >
+              Entrar al archivo
             </Link>
-            <p className="max-w-sm text-base text-gris">¿Todavía no tienes tu acceso? Pídeselo a {PORTADA.firma}.</p>
+            <p className="max-w-sm text-base text-white/70">¿Aún no tienes acceso? Pídeselo a quien te habló del archivo.</p>
           </div>
         </div>
       </section>
 
-      <footer className="border-t border-line">
-        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-5 text-base text-gris sm:px-6">
-          <p>Hecho por {PORTADA.firma} para la familia · 2026</p>
-          <Link href="/login" className="font-bold text-ink underline decoration-2 underline-offset-4 hover:text-terra">
-            Entrar
-          </Link>
+      <footer className="bg-ink">
+        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 border-t border-white/15 px-4 py-5 text-base text-white/60 sm:px-6">
+          <p>Archivo Zamora Balcázar · Solo para la familia</p>
         </div>
       </footer>
     </div>
