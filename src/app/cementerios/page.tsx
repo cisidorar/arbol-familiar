@@ -26,32 +26,9 @@ export default async function CementeriosPage() {
   const graph: GraphPerson[] = people.map((p) => ({ id: p.id, data: { gender: p.data.gender, label: p.data.label }, rels: p.rels }));
   const byId = new Map(graph.map((p) => [p.id, p]));
 
-  // Solo la familia de quien mira: sus antepasados (y las parejas de ellos), sus descendientes,
-  // su pareja, sus hermanos y los hermanos de sus antepasados. Los parientes de otras ramas (el primo, por ejemplo) no aparecen.
-  const walk = (start: string[], rel: "parents" | "children") => {
-    const seen = new Set<string>();
-    let frontier = start;
-    while (frontier.length) {
-      const next: string[] = [];
-      for (const id of frontier) for (const o of byId.get(id)?.rels[rel] ?? []) if (!seen.has(o)) { seen.add(o); next.push(o); }
-      frontier = next;
-    }
-    return seen;
-  };
-  let mine: Set<string> | null = null;
-  if (selfId && byId.has(selfId)) {
-    const up = walk([selfId], "parents");
-    const down = walk([selfId], "children");
-    const set = new Set<string>([selfId, ...up, ...down]);
-    for (const id of [selfId, ...up, ...down]) for (const sp of byId.get(id)?.rels.spouses ?? []) set.add(sp);
-    // Hermanos (de la persona y de cada antepasado): los hijos de sus padres.
-    for (const id of [selfId, ...up]) for (const par of byId.get(id)?.rels.parents ?? []) for (const sib of byId.get(par)?.rels.children ?? []) set.add(sib);
-    mine = set;
-  }
-
-  const places: GuidePlace[] = groups.map((g) => ({ ...g, people: mine ? g.people.filter((b) => mine!.has(b.personId)) : g.people })).filter((g) => g.people.length).map((g) => {
+  const places: GuidePlace[] = groups.map((g) => ({ ...g, people: g.people })).filter((g) => g.people.length).map((g) => {
     const comuna = g.comunaCode && g.regionCode ? comunasOfRegion(g.regionCode).find((c) => c.code === g.comunaCode) : undefined;
-    // Qué es cada persona para quien mira; los más cercanos primero.
+    // Todas las personas del árbol; qué es cada una para quien mira, los más cercanos primero.
     const withKin = g.people
       .map((b) => {
         const k = selfId ? kinshipPhrase(selfId, b.personId, byId) : null;
