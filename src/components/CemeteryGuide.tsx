@@ -28,10 +28,8 @@ const shortRegion = (name: string) => name.replace(/^Metropolitana.*/, "Metropol
 const norm = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 /** Más personas primero; si empatan, por nombre. */
-/** Qué tan cerca de quien mira está la persona más cercana enterrada ahí (99 si no se sabe). */
-const closest = (p: GuidePlace) => p.people.reduce((m, b) => Math.min(m, b.distance ?? 99), 99);
-// Primero los cementerios con familia más cercana; a igual cercanía, los de más personas.
-const byPeople = (a: GuidePlace, b: GuidePlace) => closest(a) - closest(b) || b.people.length - a.people.length || a.name.localeCompare(b.name, "es");
+// Los cementerios con más personas primero; a igual cantidad, por nombre.
+const byPeople = (a: GuidePlace, b: GuidePlace) => b.people.length - a.people.length || a.name.localeCompare(b.name, "es");
 const sumPeople = (ps: GuidePlace[]) => ps.reduce((n, p) => n + p.people.length, 0);
 
 /** El nombre del cementerio sin ", Comuna" al final (la comuna ya va debajo). */
@@ -159,16 +157,16 @@ export default function CemeteryGuide({
   const order = regions.map((r) => r.code);
   const total = sumPeople(places);
 
-  // Regiones con cementerios (primero las que tienen familia más cercana) y cuántos cementerios hay en cada una.
+  // Regiones con cementerios (las que tienen más personas primero) y cuántos cementerios hay en cada una.
   const regionCounts = useMemo(() => {
-    const m = new Map<string, { places: number; people: number; near: number }>();
+    const m = new Map<string, { places: number; people: number }>();
     for (const p of places) {
       if (!p.regionCode || !p.point) continue;
-      const c = m.get(p.regionCode) ?? { places: 0, people: 0, near: 99 };
-      m.set(p.regionCode, { places: c.places + 1, people: c.people + p.people.length, near: Math.min(c.near, closest(p)) });
+      const c = m.get(p.regionCode) ?? { places: 0, people: 0 };
+      m.set(p.regionCode, { places: c.places + 1, people: c.people + p.people.length });
     }
     return [...m.entries()]
-      .sort((a, b) => a[1].near - b[1].near || b[1].people - a[1].people || order.indexOf(a[0]) - order.indexOf(b[0]))
+      .sort((a, b) => b[1].people - a[1].people || order.indexOf(a[0]) - order.indexOf(b[0]))
       .map(([code, c]) => [code, c.places] as [string, number]);
   }, [places]); // eslint-disable-line react-hooks/exhaustive-deps
   const pendingCount = places.filter((p) => !p.point).length;
@@ -188,7 +186,7 @@ export default function CemeteryGuide({
       .filter((p): p is GuidePlace => p !== null);
   }, [places, region, q]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Por región (primero la de la familia más cercana) y, dentro, los cementerios con la familia más cercana primero.
+  // Por región (las de más personas primero) y, dentro, los cementerios con más personas primero.
   const sections = useMemo(() => {
     const byRegion = new Map<string, GuidePlace[]>();
     const pending: GuidePlace[] = [];
@@ -198,7 +196,7 @@ export default function CemeteryGuide({
     }
     const list = [...byRegion.entries()]
       .map(([code, ps]) => ({ code, title: regionName(code), places: ps.sort(byPeople) }))
-      .sort((a, b) => Math.min(...a.places.map(closest)) - Math.min(...b.places.map(closest)) || sumPeople(b.places) - sumPeople(a.places) || order.indexOf(a.code) - order.indexOf(b.code));
+      .sort((a, b) => sumPeople(b.places) - sumPeople(a.places) || order.indexOf(a.code) - order.indexOf(b.code));
     if (pending.length) list.push({ code: "pending", title: "Por ubicar", places: pending.sort(byPeople) });
     return list;
   }, [filtered]); // eslint-disable-line react-hooks/exhaustive-deps
