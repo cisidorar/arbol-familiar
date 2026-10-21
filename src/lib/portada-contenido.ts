@@ -1,0 +1,44 @@
+// Lo que dice la portada pública para la familia. Se edita aquí, a mano.
+// Regla: solo antepasados fallecidos hace mucho; nada de personas vivas ni de datos de contacto.
+
+export const PORTADA = {
+  /** Fecha de la última vez que se tocó esta lista (texto libre). */
+  actualizado: "21 de octubre de 2026",
+  firma: "Cata",
+
+  /** "Lo último que encontramos": cada entrada es una historia corta. */
+  hallazgos: [
+    {
+      cuando: "Octubre 2026",
+      titulo: "Pabla Araya, la madre de Juan",
+      texto:
+        "En el matrimonio de 1849 con Isidoro Balcázar, a Pabla (nacida hacia 1829) solo se le nombra a su madre, Anastacia. Su hijo Juan Balcázar Araya nació en Maipo en 1868. Seguimos buscando de dónde venía.",
+    },
+    {
+      cuando: "Octubre 2026",
+      titulo: "Los padrinos de Manuel Zamora",
+      texto:
+        "Manuel Zamora Galdames nació en San Esteban en 1888. Sus padrinos fueron David Saavedra y Margarita Zamora, parientes de su papá: ese detalle ayudó a confirmar que estábamos siguiendo a la familia correcta.",
+    },
+    {
+      cuando: "Octubre 2026",
+      titulo: "Dominga Bravo, con tres nombres",
+      texto:
+        "En los registros de Maipo a Dominga Bravo la escribieron como “Domingo Bravo”, “Dominga Urabo” y “Dominga Brabo”. Así de difícil es a veces encontrar a nuestros antepasados.",
+    },
+    {
+      cuando: "Septiembre 2026",
+      titulo: "La zapatería de Celedonio Morales",
+      texto:
+        "En 1924 saquearon la zapatería de Celedonio Segundo Morales Aravena, un hecho que según el acta llegó hasta una sesión del Senado. Años después fue regidor.",
+    },
+  ],
+
+  /** "Preguntas abiertas": lo que todavía no sabemos y donde la familia puede ayudar. */
+  preguntas: [
+    "¿Alguien sabe algo de Anastacia Araya, la madre de Pabla? Creemos que murió en Buin en 1888, pero todavía no lo hemos podido confirmar.",
+    "¿De dónde venían Gregorio Balcázar y Dominga Bravo, los papás de Isidoro? Vivieron en Maipo, pero antes de eso no tenemos nada.",
+    "¿Quiénes fueron los papás de José Canelo, de Casablanca? Sabemos que se casó con Josefa Duarte, pero no encontramos su propio bautizo.",
+    "¿Tienes fotos de Rosa Elvira Canelo, de Manuel Zamora o de cualquiera de los abuelos? Una sola foto ya cambia mucho.",
+  ],
+};
