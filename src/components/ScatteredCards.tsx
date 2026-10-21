@@ -47,6 +47,33 @@ const CARDS: Card[] = [
   { kind: "Nacimiento", number: "0176", name: "Carlota de las Mercedes Quintero García", year: "1857", left: 58, top: 49, rot: -6, paper: PAPERS[2], origin: "right center" },
 ];
 
+type Content = Pick<Card, "kind" | "number" | "name" | "year" | "place">;
+
+// Las fichas de la pantalla de entrar: otras personas (todas fallecidas), con la misma disposición.
+const LOGIN_CONTENT: Content[] = [
+  { kind: "Nacimiento", number: "0412", name: "María Martínez Ruz", year: "1863", place: "Romeral" },
+  { kind: "Matrimonio", number: "0233", name: "Bruno Gonzalez Quinteros y Rosa Eade Bahamonde", year: "1912", place: "Paine" },
+  { kind: "Nacimiento", number: "0388", name: "Isaias del Carmen Gonzalez Quinteros", year: "1885" },
+  { kind: "Defunción", number: "0197", name: "Guadalupe del Carmen Gonzalez Quinteros", year: "1887" },
+  { kind: "Nacimiento", number: "0361", name: "José Manuel Concha", year: "1866" },
+  { kind: "Nacimiento", number: "0275", name: "Sara del Carmen Ruz Martínez", year: "1892", place: "Romeral, Curicó" },
+  { kind: "Nacimiento", number: "0420", name: "Rosa del Carmen Eade Bahamonde", year: "1866" },
+  { kind: "Matrimonio", number: "0309", name: "Vicente Concha Eade e Isabel Arros Concha", year: "1911" },
+  { kind: "Nacimiento", number: "0144", name: "Maria Jesus Ruz Martinez", year: "1895", place: "Romeral, Curicó" },
+  { kind: "Defunción", number: "0356", name: "Jenoveva del Carmen Gonzalez Quinteros", year: "1894" },
+  { kind: "Nacimiento", number: "0299", name: "Celedonio Segundo Morales Aravena", year: "1887" },
+  { kind: "Matrimonio", number: "0172", name: "Francisco Javier Gonzalez Quinteros y María Pineda Rodríguez", year: "1921", place: "Paine" },
+  { kind: "Nacimiento", number: "0341", name: "Vicente Concha Eade", year: "1888" },
+  { kind: "Defunción", number: "0418", name: "Pedro Balcazar Araya", year: "1908", place: "Buin" },
+  { kind: "Nacimiento", number: "0267", name: "Maria Virjinia Gonzalez Quinteros", year: "1890" },
+  { kind: "Matrimonio", number: "0385", name: "Luis Balcazar y Juana Barroso Ruz", year: "1936", place: "Culitrín" },
+  { kind: "Nacimiento", number: "0215", name: "Manuela del Carmen Gonzalez Quinteros", year: "1899" },
+  { kind: "Defunción", number: "0322", name: "Bruno del Carmen Gonzalez Quinteros", year: "1888" },
+  { kind: "Nacimiento", number: "0404", name: "Estervina Balcazar Gonzalez", year: "1906" },
+  { kind: "Nacimiento", number: "0159", name: "Maria Salomé Gonzalez Quinteros", year: "1898" },
+];
+export const LOGIN_CARDS: Card[] = CARDS.map((c, i) => ({ ...c, place: undefined, ...LOGIN_CONTENT[i] }));
+
 function Sheet({ card }: { card: Card }) {
   return (
     <div
@@ -76,13 +103,13 @@ function Sheet({ card }: { card: Card }) {
   );
 }
 
-export default function ScatteredCards({ className = "" }: { className?: string }) {
+export default function ScatteredCards({ className = "", cards = CARDS }: { className?: string; cards?: Card[] }) {
   return (
     <div
       aria-hidden="true"
       className={`relative [--s:1.4] [--w:9.75rem] sm:[--s:1.6] sm:[--w:12rem] ${className}`}
     >
-      {CARDS.map((c) => (
+      {cards.map((c) => (
         <Sheet key={c.number} card={c} />
       ))}
     </div>

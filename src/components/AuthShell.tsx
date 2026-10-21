@@ -1,10 +1,10 @@
 // Marco de las pantallas sin sesión (entrar, usar una invitación): a la izquierda
-// (arriba en el teléfono) la bienvenida sobre tinta con un montón de fichas de ejemplo que se abre al pasar el mouse; a
+// (arriba en el teléfono) la bienvenida sobre tinta con fichas de ejemplo tiradas en el suelo (al pasar el mouse se agrandan); a
 // la derecha, sobre blanco, el formulario, con "Volver al inicio" arriba. Nada de lo que se ve acá revela datos de la familia.
 
 import Link from "next/link";
 import SiteBrand, { BRAND_ROW } from "./SiteBrand";
-import StackedCards from "./StackedCards";
+import ScatteredCards, { LOGIN_CARDS } from "./ScatteredCards";
 
 export default function AuthShell({
   title,
@@ -36,8 +36,8 @@ export default function AuthShell({
         </div>
 
         {/* Fichas de ejemplo (de antepasados fallecidos): solo en pantallas anchas */}
-        <div className="mx-auto hidden w-full max-w-[30rem] flex-1 items-center lg:flex">
-          <StackedCards />
+        <div className="mx-auto hidden w-full max-w-[34rem] flex-1 items-center px-6 pb-10 lg:flex">
+          <ScatteredCards cards={LOGIN_CARDS} className="h-[26rem] w-full xl:h-[28rem]" />
         </div>
       </section>
 
