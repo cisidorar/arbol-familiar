@@ -34,7 +34,7 @@ export async function login(_prev: FormState, formData: FormData): Promise<FormS
 
 export async function logout(): Promise<void> {
   await destroySession();
-  redirect("/login");
+  redirect("/");
 }
 
 export async function acceptInvite(_prev: FormState, formData: FormData): Promise<FormState> {
