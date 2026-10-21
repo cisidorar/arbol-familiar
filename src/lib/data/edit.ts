@@ -380,6 +380,30 @@ async function setParticipants(
 }
 
 /**
+ * Una defunción o una sepultura quiere decir que la persona ya falleció: si estaba
+ * marcada como viva, pasa a fallecida automáticamente (queda anotado en el historial).
+ */
+async function markDeceasedIfNeeded(
+  client: PoolClient,
+  treeId: string,
+  personId: string | null,
+  eventType: string,
+  actor: Actor,
+): Promise<void> {
+  if (!personId || (eventType !== "DEAT" && eventType !== "BURI")) return;
+  const { rowCount } = await client.query(
+    `update persons set is_living = false, living_reason = 'deat_record'
+     where tree_id = $1 and id = $2 and is_living`,
+    [treeId, personId],
+  );
+  if (!rowCount) return;
+  await logChange(client, {
+    treeId, actor, personId, entity: "person", entityId: personId, action: "update",
+    before: { isLiving: true }, after: { isLiving: false },
+  });
+}
+
+/**
  * Crea un hecho (ya validado) dentro de una transacción. `replaces` es el
  * hecho de data/investigacion.json del que viene, si se está editando uno:
  * en el historial queda como una edición de ese hecho, no como uno nuevo.
@@ -406,6 +430,7 @@ export async function insertEvent(
   await setEventSource(client, treeId, eventId, v.source);
   await setParticipants(client, treeId, eventId, v.participants);
   await markEdited(client, personId, actor);
+  await markDeceasedIfNeeded(client, treeId, personId, v.type, actor);
   await logChange(client, {
     treeId, actor, personId, entity: "event", entityId: eventId, action: replaces ? "update" : "create",
     before: replaces, after: snapshotOf(v, ""),
@@ -498,6 +523,7 @@ async function applyEvent(
   await setEventSource(client, treeId, eventId, v.source);
   await setParticipants(client, treeId, eventId, v.participants);
   await markEditedForEvent(client, current, actor);
+  await markDeceasedIfNeeded(client, treeId, current.personId, v.type, actor);
   await logChange(client, {
     treeId, actor, personId: current.personId, entity: "event", entityId: eventId, action: "update",
     before: current.form, after,
