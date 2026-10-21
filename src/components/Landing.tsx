@@ -23,24 +23,19 @@ function Stat({ value, label }: { value: string; label: string }) {
 function SurnameCard({ s, i }: { s: PublicSurname; i: number }) {
   const rot = ["-rotate-1", "rotate-1", "-rotate-[0.5deg]", "rotate-[1.5deg]"][i % 4];
   return (
-    <Link
-      href="/login"
-      aria-label={`${s.surname}: ${s.people} personas. Entra para ver la rama`}
-      className={`group flex h-full flex-col rounded-md bg-[#f7f4ed] px-3.5 pb-3.5 pt-3.5 sm:px-5 sm:pb-4 sm:pt-4 text-ink shadow-[0_10px_24px_-14px_rgba(0,0,0,0.55)] ring-1 ring-black/5 transition duration-300 hover:-translate-y-1 hover:rotate-0 hover:shadow-[0_22px_36px_-16px_rgba(0,0,0,0.6)] ${rot}`}
+    <div
+      className={`flex h-full flex-col rounded-md bg-[#f7f4ed] px-3.5 pb-3.5 pt-3.5 text-ink shadow-[0_10px_24px_-14px_rgba(0,0,0,0.55)] ring-1 ring-black/5 sm:px-5 sm:pb-4 sm:pt-4 ${rot}`}
     >
       <div className="flex items-baseline justify-between gap-3">
         <p className="min-w-0 truncate font-maquina text-[1.2rem] leading-none sm:text-[1.625rem]">{s.surname}</p>
         <p className="shrink-0 font-maquina text-[1.2rem] leading-none text-terra sm:text-[1.625rem]">{s.people}</p>
       </div>
       <div className="mt-2 h-px bg-terra" aria-hidden="true" />
-      <p className="mt-2 flex-1 text-[0.9375rem] leading-snug text-gris sm:text-base">
+      <p className="mt-2 text-[0.9375rem] leading-snug text-gris sm:text-base">
         {s.people === 1 ? "persona" : "personas"} · desde {s.since}
         {s.place ? ` · ${s.place}` : ""}
       </p>
-      <p className="mt-3 hidden text-sm font-bold text-ink/70 sm:block transition group-hover:text-terra">
-        Ver la rama <span aria-hidden="true">→</span>
-      </p>
-    </Link>
+    </div>
   );
 }
 
@@ -134,17 +129,9 @@ export default function Landing({ stats, surnames = [] }: { stats: PublicStats |
         <div className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
           <h2 className="max-w-2xl font-maquina text-[1.75rem] leading-tight sm:text-4xl">¿Tienes algo de la familia?</h2>
           <p className="mt-3 max-w-xl text-lg text-white/80">
-            Fotos, actas, cartas o anécdotas de los abuelos: todo suma. Entra al archivo para verlo completo y dejar lo tuyo.
+            Fotos, actas, cartas o anécdotas de los abuelos: todo suma. Cuando entres al archivo podrás verlo completo y dejar lo tuyo.
           </p>
-          <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-3">
-            <Link
-              href="/login"
-              className={buttonClass("principal", "!border-paper !bg-paper !text-ink hover:!bg-white hover:!border-white")}
-            >
-              Entrar al archivo
-            </Link>
-            <p className="max-w-sm text-base text-white/70">¿Aún no tienes acceso? Pídeselo a quien te habló del archivo.</p>
-          </div>
+          <p className="mt-5 max-w-xl text-base text-white/70">¿Aún no tienes acceso? Pídeselo a quien te habló del archivo.</p>
         </div>
       </section>
 
