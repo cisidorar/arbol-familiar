@@ -100,7 +100,7 @@ export default function PendientesView({
             : visible.length === 1
               ? "1 documento por revisar."
               : `${visible.length} documentos por revisar.`}{" "}
-          Se marcan al <strong>editar</strong> la ficha: en el hecho, elige «Pendiente».
+          Primero los que más pueden responder. Se marcan al <strong>editar</strong> la ficha: en el hecho, elige «Pendiente».
         </p>
       </div>
 
@@ -135,6 +135,19 @@ export default function PendientesView({
                   key={t.eventId}
                   className={`flex flex-col rounded-3xl border-2 bg-white p-4 sm:p-5 ${isOpen ? "border-[#e08a00] shadow-[0_0_0_3px_rgba(224,138,0,0.18)]" : "border-line"}`}
                 >
+                  <p className="mb-2 flex items-center gap-2">
+                    <span
+                      className={`rounded-full px-2.5 py-0.5 text-sm font-bold uppercase tracking-wide ${
+                        t.priority.level === "alta"
+                          ? "bg-[#e08a00] text-white"
+                          : t.priority.level === "media"
+                            ? "bg-[#fff0cc] text-ink"
+                            : "bg-paper text-gris"
+                      }`}
+                    >
+                      Prioridad {t.priority.level}
+                    </span>
+                  </p>
                   <p className="text-[1.25rem] font-bold leading-tight">
                     {t.label}
                     {when && <span className="font-normal text-gris"> · {when}</span>}
@@ -149,6 +162,8 @@ export default function PendientesView({
                       </span>
                     ))}
                   </p>
+
+                  <p className="mt-2 text-base leading-snug text-gris">{t.priority.reason}</p>
 
                   {t.note && (
                     <p className="mt-3 whitespace-pre-line break-words rounded-xl border-l-4 border-[#e08a00] bg-[#fff6e0] px-3.5 py-2.5 text-base leading-snug text-gray-900">
