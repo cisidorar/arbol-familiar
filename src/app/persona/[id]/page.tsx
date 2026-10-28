@@ -45,7 +45,7 @@ function Group({ title, people, note }: { title: string; people: Person[]; note?
       <h3 className="zb-etiqueta">{title}</h3>
       <ul className="mt-2 grid gap-2 sm:grid-cols-2">
         {people.map((p) => (
-          <li key={p.id}>
+          <li key={p.id} className="min-w-0">
             <PersonLink p={p} note={note?.(p)} />
           </li>
         ))}

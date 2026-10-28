@@ -16,7 +16,7 @@ export default function PersonChipLink({ p, note }: { p: ChipPerson; note?: stri
   return (
     <Link
       href={`/persona/${p.id}`}
-      className="group flex min-h-16 items-center gap-3 rounded-2xl bg-[#f1efea] px-3.5 py-2.5 transition hover:bg-[#e8e5de]"
+      className="group flex min-h-16 min-w-0 items-center gap-3 rounded-2xl bg-[#f1efea] px-3.5 py-2.5 transition hover:bg-[#e8e5de]"
     >
       <span
         aria-hidden="true"

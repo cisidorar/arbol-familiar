@@ -658,7 +658,7 @@ export default function PersonPanel({
   const own = (k: string) => person?.timeline.find((t) => t.kind === k && !t.person);
   const born = own("BIRT")?.year ?? own("BAPM")?.year ?? null;
   const died = own("DEAT")?.year ?? null;
-  const ageText = !person ? null : person.isLiving ? (born ? `${new Date().getFullYear() - born} años` : null) : born && died ? `unos ${died - born} años` : null;
+  const ageText = !person ? null : person.isLiving ? (born ? `${new Date().getFullYear() - born} años` : null) : born && died && died > born ? `unos ${died - born} años` : null;
   const burial = own("BURI");
   const info = burial?.placeInfo ?? null;
   const site = info?.name || cleanPlace(burial?.place) || null;
