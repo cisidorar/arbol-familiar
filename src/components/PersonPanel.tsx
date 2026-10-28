@@ -802,9 +802,9 @@ export default function PersonPanel({
                   )}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <h2 className="font-slab text-2xl font-bold leading-tight text-ink sm:text-3xl">
-                    {person?.displayName ?? (loading ? "Cargando…" : "")}
-                  </h2>
+                  {(person?.displayName || loading) && (
+                    <h2 className="font-slab text-2xl font-bold leading-tight text-ink sm:text-3xl">{person?.displayName ?? "Cargando…"}</h2>
+                  )}
                   {relationship && (
                     <p className="mt-1.5 text-lg font-bold text-burdeos">
                       {relationship}

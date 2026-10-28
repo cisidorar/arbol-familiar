@@ -342,7 +342,7 @@ export default function CemeteryGuide({
           )}
         </div>
       ) : (
-        <button type="button" onClick={() => openPlace(p.key)} className={`${box} block`} aria-label={`Abrir ${siteName(p)}`}>
+        <button type="button" onClick={() => openPlace(p.key)} className={`${box} block`} tabIndex={-1} aria-hidden="true">
           {img}
         </button>
       );
@@ -677,7 +677,7 @@ export default function CemeteryGuide({
                   <>
                     <div className="mt-5 border-t-2 border-line pt-5">
                       <p className="zb-etiqueta">Descansa en</p>
-                      <button type="button" onClick={() => openPlace(p.key)} className="mt-1 flex items-start gap-2 text-left text-[1.375rem] font-bold text-teja underline decoration-2 underline-offset-4">
+                      <button type="button" onClick={() => openPlace(p.key)} className="mt-1 flex min-h-11 items-start gap-2 py-1 text-left text-[1.375rem] font-bold text-teja underline decoration-2 underline-offset-4">
                         <PinIcon className="mt-1.5 h-5 w-5 shrink-0" />
                         <span>{siteName(p)}</span>
                       </button>
@@ -720,7 +720,7 @@ export default function CemeteryGuide({
               </div>
               {others.length > 0 && (
                 <section aria-label="También descansan aquí">
-                  <h3 className="al-titulo al-regla !text-[1.5rem]">También descansan aquí</h3>
+                  <h2 className="al-titulo al-regla !text-[1.5rem]">También descansan aquí</h2>
                   <ul className="mt-4 space-y-3">{others.map((x) => personRowItem(x))}</ul>
                 </section>
               )}
@@ -816,8 +816,8 @@ export default function CemeteryGuide({
           </p>
           <p className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1 text-[1.125rem] font-bold">
             <span className="font-normal text-white/80">Ir a:</span>
-            <a href="#cem-personas" className="underline decoration-2 underline-offset-4 hover:text-trigo">Las personas</a>
-            <a href="#cem-lugares" className="underline decoration-2 underline-offset-4 hover:text-trigo">Los cementerios</a>
+            <a href="#cem-personas" className="inline-flex min-h-11 items-center underline decoration-2 underline-offset-4 hover:text-trigo">Las personas</a>
+            <a href="#cem-lugares" className="inline-flex min-h-11 items-center underline decoration-2 underline-offset-4 hover:text-trigo">Los cementerios</a>
           </p>
           <div className="mt-6 max-w-3xl">
             <label htmlFor="cem-q" className="block text-[1.25rem] font-bold">
