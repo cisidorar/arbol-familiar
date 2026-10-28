@@ -40,13 +40,19 @@ function siteName(p: GuidePlace) {
   return p.name.endsWith(tail) ? p.name.slice(0, -tail.length) : p.name;
 }
 
+/** ¿Se puede armar una ruta? Solo si es un cementerio de verdad y se sabe la comuna; si no, Google Maps buscaría cualquier cosa. */
+const canRoute = (p: GuidePlace) => !p.cremation && !p.incomplete && Boolean(p.locality);
+const routeQuery = (p: GuidePlace) => `${siteName(p)}, ${p.locality}, Chile`;
+
 function mapsUrl(p: GuidePlace) {
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${p.name}, ${p.locality ?? ""}, Chile`)}`;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(routeQuery(p))}`;
 }
 
 function directionsUrl(p: GuidePlace) {
-  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${p.name}, ${p.locality ?? ""}, Chile`)}`;
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(routeQuery(p))}`;
 }
+
+const NO_ROUTE = "Todavía no sabemos dónde queda este lugar";
 
 /** "Metropolitana de Santiago" → "Región Metropolitana"; "Valparaíso" → "Región de Valparaíso". */
 function regionLabel(name: string) {
@@ -173,12 +179,14 @@ export default function CemeteryGuide({
 
   const regionName = (code: string | null) => regions.find((r) => r.code === code)?.name ?? "";
   const order = regions.map((r) => r.code);
+  // Los cementerios de verdad: la cremación es un hecho de la persona, no un lugar.
+  const cemeteries = useMemo(() => places.filter((p) => !p.cremation), [places]);
   const total = sumPeople(places);
 
   // Regiones con cementerios (las que tienen más personas primero) y cuántos cementerios hay en cada una.
   const regionCounts = useMemo(() => {
     const m = new Map<string, { places: number; people: number }>();
-    for (const p of places) {
+    for (const p of cemeteries) {
       if (!p.regionCode || !p.point) continue;
       const c = m.get(p.regionCode) ?? { places: 0, people: 0 };
       m.set(p.regionCode, { places: c.places + 1, people: c.people + p.people.length });
@@ -186,8 +194,8 @@ export default function CemeteryGuide({
     return [...m.entries()]
       .sort((a, b) => b[1].people - a[1].people || order.indexOf(a[0]) - order.indexOf(b[0]))
       .map(([code, c]) => [code, c.places] as [string, number]);
-  }, [places]); // eslint-disable-line react-hooks/exhaustive-deps
-  const pendingCount = places.filter((p) => !p.point).length;
+  }, [cemeteries]); // eslint-disable-line react-hooks/exhaustive-deps
+  const pendingCount = cemeteries.filter((p) => !p.point).length;
 
 
   // Todas las personas, las más cercanas a quien mira primero.
@@ -203,15 +211,15 @@ export default function CemeteryGuide({
     [everyone, words], // eslint-disable-line react-hooks/exhaustive-deps
   );
   const placeHits = useMemo(
-    () => (words.length ? places.filter((p) => words.every((w) => placeText(p).includes(w))).sort(byPeople) : []),
-    [places, words], // eslint-disable-line react-hooks/exhaustive-deps
+    () => (words.length ? cemeteries.filter((p) => words.every((w) => placeText(p).includes(w))).sort(byPeople) : []),
+    [cemeteries, words], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   // Cementerios por región (las de más personas primero) y, dentro, los de más personas primero.
   const sections = useMemo(() => {
     const byRegion = new Map<string, GuidePlace[]>();
     const pending: GuidePlace[] = [];
-    for (const p of places) {
+    for (const p of cemeteries) {
       if (region === "pending" ? p.point : region ? p.regionCode !== region || !p.point : false) continue;
       if (!p.point || !p.regionCode) pending.push(p);
       else byRegion.set(p.regionCode, [...(byRegion.get(p.regionCode) ?? []), p]);
@@ -221,7 +229,7 @@ export default function CemeteryGuide({
       .sort((a, b) => sumPeople(b.places) - sumPeople(a.places) || order.indexOf(a.code) - order.indexOf(b.code));
     if (pending.length) list.push({ code: "pending", title: "Por ubicar", places: pending.sort(byPeople) });
     return list;
-  }, [places, region]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [cemeteries, region]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const currentPlace = placeParam ? places.find((p) => p.key === placeParam) ?? null : null;
   const personRow = personParam ? everyone.find((r) => r.b.personId === personParam) ?? null : null;
@@ -314,14 +322,30 @@ export default function CemeteryGuide({
         </button>
       );
     }
+    if (hero) {
+      if (!canEdit) return null;
+      return (
+        <label className={`${buttonClass("secundario")} cursor-pointer ${busy ? "pointer-events-none opacity-60" : ""} ${over ? "border-terra!" : ""}`} {...dropHandlers(p)}>
+          <ImageIcon className="h-6 w-6" /> {busy ? "Subiendo la foto…" : "Agregar una foto del cementerio"}
+          <input
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            disabled={busy}
+            onChange={(e) => {
+              uploadPhoto(p, e.target.files?.[0]);
+              e.target.value = "";
+            }}
+          />
+        </label>
+      );
+    }
     const empty = (
       <>
-        <ImageIcon className={hero ? "h-12 w-12" : "h-9 w-9"} />
+        <ImageIcon className="h-9 w-9" />
         {canEdit ? (
           <>
-            <span className={hero ? "text-[1.125rem] font-bold" : "text-base font-bold"}>
-              {busy ? "Subiendo la foto…" : hero ? `Arrastra aquí una foto de ${siteName(p)}` : "Foto del cementerio"}
-            </span>
+            <span className="text-base font-bold">{busy ? "Subiendo la foto…" : "Foto del cementerio"}</span>
             <span className="text-base">
               o <span className="underline underline-offset-4">elegir un archivo</span>
             </span>
@@ -336,7 +360,7 @@ export default function CemeteryGuide({
     }`;
     if (!canEdit) {
       return (
-        <button type="button" onClick={() => !hero && openPlace(p.key)} className={`${box} ${look}`} aria-label={hero ? undefined : `Abrir ${siteName(p)}`} tabIndex={hero ? -1 : 0}>
+        <button type="button" onClick={() => openPlace(p.key)} className={`${box} ${look}`} aria-label={`Abrir ${siteName(p)}`}>
           {empty}
         </button>
       );
@@ -355,6 +379,19 @@ export default function CemeteryGuide({
           }}
         />
       </label>
+    );
+  };
+
+  /** La foto grande en su marco de álbum; sin foto, solo el botón para agregarla (si se puede editar). */
+  const photoFrame = (p: GuidePlace, caption?: string) => {
+    if (!photoOf(p)) return photoSquare(p, true);
+    return (
+      <div className="foto -rotate-1 p-3 pb-5">
+        <span className="esq-a" aria-hidden="true" />
+        <span className="esq-b" aria-hidden="true" />
+        {photoSquare(p, true)}
+        {caption && <p className="mt-3 font-maquina text-[1.125rem] text-gris">{caption}</p>}
+      </div>
     );
   };
 
@@ -469,7 +506,9 @@ export default function CemeteryGuide({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="zb-etiqueta">Tumba</p>
-          <p className={`text-[1.25rem] ${spot ? "font-bold" : "text-gris"}`}>{spot || "Todavía no se anota dónde está"}</p>
+          <p className={`text-[1.25rem] ${spot ? "font-bold" : "text-gris"}`}>
+            {spot || (canEdit ? "Todavía no se anota dónde está" : "Aún no sabemos en qué parte del cementerio está. Pregunta a la familia.")}
+          </p>
         </div>
         {canEdit && b.eventId && (
           <button type="button" onClick={() => startSpot(b)} className={buttonClass("secundario", "shrink-0")} aria-label={`${spot ? "Cambiar" : "Anotar"} la tumba de ${b.name}`}>
@@ -490,23 +529,35 @@ export default function CemeteryGuide({
           <span className="min-w-0 flex-1">
             <span className="block font-slab text-[1.5rem] font-bold leading-tight">{b.name}</span>
             {b.relation && <span className="zb-apoyo mt-0.5 block">{capFirst(b.relation)}</span>}
-            <span className="mt-2 flex items-start gap-1.5 text-[1.125rem] font-bold text-teja">
-              <PinIcon className="mt-1 h-4 w-4 shrink-0" />
-              <span>
-                {siteName(p)}
-                {p.locality ? `, ${p.locality}` : ""}
+            {p.cremation ? (
+              <span className="mt-2 block text-[1.125rem] font-bold text-burdeos">Fue cremado/a</span>
+            ) : (
+              <span className="mt-2 flex items-start gap-1.5 text-[1.125rem] font-bold text-teja">
+                <PinIcon className="mt-1 h-4 w-4 shrink-0" />
+                <span>
+                  {siteName(p)}
+                  {p.locality ? `, ${p.locality}` : ""}
+                </span>
               </span>
-            </span>
-            <span className="zb-apoyo mt-1 block">
-              {yearsOf(b)} · Tumba: {spot || "sin ubicación anotada"}
-            </span>
+            )}
+            <span className="zb-apoyo mt-1 block">{yearsOf(b)}</span>
+            {!p.cremation && (
+              <span className="mt-1 block text-[1.125rem]">
+                <span className="font-bold">Tumba: </span>
+                {spot ? <span className="font-bold">{spot}</span> : <span className="text-gris">aún no sabemos en qué parte</span>}
+              </span>
+            )}
           </span>
         </button>
         <div className="mt-auto flex flex-wrap items-center gap-3 border-t-2 border-line p-4 print:hidden">
-          <a href={directionsUrl(p)} target="_blank" rel="noreferrer" className={buttonClass("secundario", "min-w-0 flex-1 !px-5")}>
-            Cómo llegar <span aria-hidden>↗</span>
-          </a>
-          <button type="button" onClick={() => openPerson(b.personId)} className={buttonClass("enlace")}>
+          {canRoute(p) ? (
+            <a href={directionsUrl(p)} target="_blank" rel="noreferrer" className={buttonClass("secundario", "min-w-0 flex-1 !px-5")} aria-label={`Cómo llegar a donde descansa ${b.name} (se abre en el mapa)`}>
+              Cómo llegar <span aria-hidden>↗</span>
+            </a>
+          ) : (
+            <p className="zb-apoyo min-w-0 flex-1">{p.cremation ? "Fue cremación: no hay tumba que visitar." : NO_ROUTE}</p>
+          )}
+          <button type="button" onClick={() => openPerson(b.personId)} className={buttonClass("enlace")} aria-label={`Ver más de ${b.name}`}>
             Ver más →
           </button>
         </div>
@@ -539,7 +590,6 @@ export default function CemeteryGuide({
   const photoTools = (p: GuidePlace) =>
     canEdit && (
       <div className="mt-3 print:hidden">
-        <p className="zb-apoyo">{photoOf(p) ? "Para cambiar la foto, arrastra otra sobre ella." : "Para agregar la foto, arrástrala sobre el cuadro."}</p>
         {photoOf(p) && (
           <div className="mt-3 flex flex-wrap gap-3">
             <label className={`${buttonClass("secundario")} cursor-pointer ${photoBusy === p.key ? "pointer-events-none opacity-60" : ""}`}>
@@ -563,7 +613,7 @@ export default function CemeteryGuide({
       </div>
     );
 
-  const whereLine = (p: GuidePlace) => [p.locality ?? "Comuna desconocida", regionLabel(regionName(p.regionCode))].filter(Boolean).join(" · ");
+  const whereLine = (p: GuidePlace) => [p.locality ?? "Aún no sabemos la comuna", regionLabel(regionName(p.regionCode))].filter(Boolean).join(" · ");
 
   /* ---------- Vistas ---------- */
 
@@ -592,21 +642,34 @@ export default function CemeteryGuide({
                     <dd className="text-[1.25rem] font-bold tabular-nums">{b.death ?? "Sin dato"}</dd>
                   </div>
                 </dl>
-                <div className="mt-5 border-t-2 border-line pt-5">
-                  <p className="zb-etiqueta">Descansa en</p>
-                  <button type="button" onClick={() => openPlace(p.key)} className="mt-1 flex items-start gap-2 text-left text-[1.375rem] font-bold text-teja underline decoration-2 underline-offset-4">
-                    <PinIcon className="mt-1.5 h-5 w-5 shrink-0" />
-                    <span>{siteName(p)}</span>
-                  </button>
-                  <p className="zb-texto mt-1 text-gris">{whereLine(p)}</p>
-                </div>
-                <div className="mt-5 border-t-2 border-line pt-5">{spotBlock(b)}</div>
+                {p.cremation ? (
+                  <div className="mt-5 border-t-2 border-line pt-5">
+                    <p className="zb-etiqueta">Despedida</p>
+                    <p className="mt-1 text-[1.375rem] font-bold text-burdeos">Fue cremado/a</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="mt-5 border-t-2 border-line pt-5">
+                      <p className="zb-etiqueta">Descansa en</p>
+                      <button type="button" onClick={() => openPlace(p.key)} className="mt-1 flex items-start gap-2 text-left text-[1.375rem] font-bold text-teja underline decoration-2 underline-offset-4">
+                        <PinIcon className="mt-1.5 h-5 w-5 shrink-0" />
+                        <span>{siteName(p)}</span>
+                      </button>
+                      <p className="zb-texto mt-1 text-gris">{whereLine(p)}</p>
+                    </div>
+                    <div className="mt-5 border-t-2 border-line pt-5">{spotBlock(b)}</div>
+                  </>
+                )}
               </article>
 
               <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                <a href={directionsUrl(p)} target="_blank" rel="noreferrer" className={buttonClass("principal", "!min-h-14 flex-1 !px-6 sm:flex-none")}>
-                  Cómo llegar al cementerio <span aria-hidden>↗</span>
-                </a>
+                {canRoute(p) ? (
+                  <a href={directionsUrl(p)} target="_blank" rel="noreferrer" className={buttonClass("principal", "!min-h-14 flex-1 !px-6 sm:flex-none")}>
+                    Cómo llegar al cementerio <span aria-hidden>↗</span>
+                  </a>
+                ) : !p.cremation ? (
+                  <Notice kind="info">{NO_ROUTE}. Si lo sabes, cuéntaselo a la familia.</Notice>
+                ) : null}
                 <button type="button" onClick={() => setSelectedId(b.personId)} className={buttonClass("secundario", "!min-h-14 flex-1 sm:flex-none")}>
                   Ver su ficha completa
                 </button>
@@ -621,13 +684,8 @@ export default function CemeteryGuide({
 
             <aside className="space-y-6">
               <div>
-                <div className="foto -rotate-1 p-3 pb-5">
-                  <span className="esq-a" aria-hidden="true" />
-                  <span className="esq-b" aria-hidden="true" />
-                  {photoSquare(p, true)}
-                  <p className="mt-3 font-maquina text-[1.125rem] text-gris">{siteName(p)}</p>
-                </div>
-                {photoTools(p)}
+                {!p.cremation && photoFrame(p, siteName(p))}
+                {!p.cremation && photoTools(p)}
                 {photoErr && (
                   <div className="mt-3">
                     <Notice kind="aviso">{photoErr}</Notice>
@@ -652,13 +710,38 @@ export default function CemeteryGuide({
     <div className={`${WRAP} py-8 lg:py-12 print:hidden`}>
       {backButton("Volver")}
       <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-start">
-        <div>
-          <div className="foto -rotate-1 p-3 pb-5">
-            <span className="esq-a" aria-hidden="true" />
-            <span className="esq-b" aria-hidden="true" />
-            {photoSquare(currentPlace, true)}
-            {currentPlace.incomplete && <p className="mt-3 text-[1.125rem] font-bold">Por confirmar: aún no estamos seguros de este lugar.</p>}
-          </div>
+        {/* Primero lo que se necesita: el nombre, dónde queda y cómo llegar. */}
+        <div className="lg:col-start-2 lg:row-start-1">
+          <p className="zb-texto text-gris">{whereLine(currentPlace)}</p>
+          <h2 className="mt-1 font-slab text-[2.25rem] font-bold leading-[1.1] sm:text-5xl">{siteName(currentPlace)}</h2>
+          <p className="zb-texto mt-3">
+            <strong>{plural(currentPlace.people.length, "persona", "personas")}</strong> de la familia {currentPlace.people.length === 1 ? "descansa" : "descansan"} aquí
+          </p>
+          {currentPlace.incomplete && (
+            <div className="mt-4">
+              <Notice kind="info">Este lugar no está confirmado. Si sabes cuál es, cuéntaselo a la familia.</Notice>
+            </div>
+          )}
+          {canRoute(currentPlace) ? (
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <a href={directionsUrl(currentPlace)} target="_blank" rel="noreferrer" className={buttonClass("principal", "!min-h-14 flex-1 !px-6 sm:flex-none")}>
+                Cómo llegar <span aria-hidden>↗</span>
+              </a>
+              <a href={mapsUrl(currentPlace)} target="_blank" rel="noreferrer" className={buttonClass("secundario", "!min-h-14 flex-1 sm:flex-none")}>
+                Ver en el mapa
+              </a>
+              <button type="button" onClick={() => copyAddress(currentPlace)} className={buttonClass("secundario", "!min-h-14 flex-1 sm:flex-none")} aria-live="polite">
+                {copied ? "Dirección copiada ✓" : "Copiar dirección"}
+              </button>
+            </div>
+          ) : (
+            <p className="zb-texto mt-5 text-gris">{NO_ROUTE}.</p>
+          )}
+        </div>
+
+        {/* La foto (o, sin foto, solo un botón discreto para agregarla): después de lo importante. */}
+        <div className="lg:col-start-1 lg:row-span-2 lg:row-start-1">
+          {photoFrame(currentPlace, siteName(currentPlace))}
           {photoTools(currentPlace)}
           {photoErr && (
             <div className="mt-3">
@@ -666,24 +749,9 @@ export default function CemeteryGuide({
             </div>
           )}
         </div>
-        <div>
-          <p className="zb-texto text-gris">{whereLine(currentPlace)}</p>
-          <h2 className="mt-1 font-slab text-[2.25rem] font-bold leading-[1.1] sm:text-5xl">{siteName(currentPlace)}</h2>
-          <p className="zb-texto mt-3">
-            <strong>{plural(currentPlace.people.length, "persona", "personas")}</strong> de la familia {currentPlace.people.length === 1 ? "descansa" : "descansan"} aquí
-          </p>
-          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-            <a href={directionsUrl(currentPlace)} target="_blank" rel="noreferrer" className={buttonClass("principal", "!min-h-14 flex-1 !px-6 sm:flex-none")}>
-              Cómo llegar <span aria-hidden>↗</span>
-            </a>
-            <a href={mapsUrl(currentPlace)} target="_blank" rel="noreferrer" className={buttonClass("secundario", "!min-h-14 flex-1 sm:flex-none")}>
-              Ver en el mapa
-            </a>
-            <button type="button" onClick={() => copyAddress(currentPlace)} className={buttonClass("secundario", "!min-h-14 flex-1 sm:flex-none")} aria-live="polite">
-              {copied ? "Dirección copiada ✓" : "Copiar dirección"}
-            </button>
-          </div>
-          <h3 className="al-titulo al-regla mt-8 !text-[1.5rem]">Aquí descansan</h3>
+
+        <div className="lg:col-start-2 lg:row-start-2">
+          <h3 className="al-titulo al-regla !text-[1.5rem]">Aquí descansan</h3>
           <ul className="mt-4 space-y-3">{currentPlace.people.map((b) => personRowItem(b))}</ul>
         </div>
       </div>
@@ -703,7 +771,7 @@ export default function CemeteryGuide({
             </button>
           </div>
           <p className="mt-4 max-w-3xl text-[1.1875rem] leading-relaxed text-white/90 sm:text-[1.375rem]">
-            {plural(total, "persona", "personas")} de la familia en {plural(places.length, "cementerio", "cementerios")}. Busca a quien quieras y te decimos dónde descansa y cómo llegar.
+            {plural(total, "persona", "personas")} de la familia en {plural(cemeteries.length, "cementerio", "cementerios")}. Busca a quien quieras y te decimos dónde descansa y cómo llegar.
           </p>
           <div className="mt-6 max-w-3xl">
             <label htmlFor="cem-q" className="block text-[1.25rem] font-bold">
@@ -764,7 +832,7 @@ export default function CemeteryGuide({
                             <span className="min-w-0 flex-1">
                               <span className="block text-[1.25rem] font-bold leading-snug">{siteName(p)}</span>
                               <span className="zb-apoyo block">
-                                {p.locality ?? "Comuna desconocida"} · {plural(p.people.length, "persona", "personas")}
+                                {p.locality ?? "Aún no sabemos la comuna"} · {plural(p.people.length, "persona", "personas")}
                               </span>
                             </span>
                             <span aria-hidden>→</span>
@@ -795,7 +863,7 @@ export default function CemeteryGuide({
               <h2 className="al-titulo al-regla">Los cementerios</h2>
               <div className="mt-5 flex flex-wrap gap-3" role="group" aria-label="Región">
                 <button type="button" className={chip(region === null)} aria-pressed={region === null} onClick={() => pickRegion(null)}>
-                  Todas <span className="font-normal">({places.length})</span>
+                  Todas <span className="font-normal">({cemeteries.length})</span>
                 </button>
                 {regionCounts.map(([code, n]) => (
                   <button key={code} type="button" className={chip(region === code)} aria-pressed={region === code} onClick={() => pickRegion(region === code ? null : code)}>
@@ -826,7 +894,7 @@ export default function CemeteryGuide({
                             <span className="min-w-0">
                               <span className="block font-slab text-[1.375rem] font-bold leading-tight">{siteName(p)}</span>
                               <span className="zb-apoyo mt-0.5 block">
-                                {p.locality ?? "Comuna desconocida"} · {plural(p.people.length, "persona", "personas")}
+                                {p.locality ?? "Aún no sabemos la comuna"} · {plural(p.people.length, "persona", "personas")}
                               </span>
                             </span>
                             <span aria-hidden className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-teja text-xl text-white">→</span>
@@ -856,7 +924,7 @@ export default function CemeteryGuide({
             {s.places.map((p) => (
               <div key={p.key} className="mb-3 break-inside-avoid">
                 <h3 className="text-base font-semibold">
-                  {siteName(p)} <span className="text-sm font-normal">· {p.locality ?? "comuna desconocida"} · {plural(p.people.length, "persona", "personas")}</span>
+                  {siteName(p)} <span className="text-sm font-normal">· {p.locality ?? "aún no sabemos la comuna"} · {plural(p.people.length, "persona", "personas")}</span>
                 </h3>
                 <ul className="ml-4 list-disc text-sm">
                   {p.people.map((b) => (
@@ -870,6 +938,19 @@ export default function CemeteryGuide({
             ))}
           </section>
         ))}
+        {places.some((p) => p.cremation) && (
+          <section className="mb-6">
+            <h2 className="mb-2 border-b border-[#ccc] pb-1 text-lg font-semibold">Cremados</h2>
+            <ul className="ml-4 list-disc text-sm">
+              {places.filter((p) => p.cremation).flatMap((p) => p.people).map((b) => (
+                <li key={b.personId}>
+                  {b.name}
+                  {b.relation ? `, ${b.relation}` : ""} ({b.birth ?? "?"} – {b.death ?? "?"})
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
       </div>
 
       <PersonPanel

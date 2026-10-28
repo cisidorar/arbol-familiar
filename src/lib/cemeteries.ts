@@ -48,6 +48,8 @@ export type CemeteryGroup = {
   regionCode: string | null;
   /** Hay un lugar anotado pero no se sabe qué cementerio es, o no dice la comuna. */
   incomplete: boolean;
+  /** Fue cremación: no es un lugar, así que no va en la lista de cementerios ni lleva "Cómo llegar". */
+  cremation?: boolean;
   people: Burial[];
 };
 
@@ -79,6 +81,7 @@ export function groupBurials(rows: BurialRow[]): CemeteryGroup[] {
         comunaCode: info?.comunaCode ?? r.comunaCode ?? null,
         regionCode: info?.regionCode ?? r.regionCode ?? null,
         incomplete: !known || info.kind === "ambiguous",
+        cremation: info?.kind === "not-a-place",
         people: [],
       };
       groups.set(key, g);

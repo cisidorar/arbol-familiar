@@ -236,3 +236,5 @@ Ficha con avatar circular blanco con silueta (niño/niña con forma propia), nom
 - **Don't** usar Special Elite para párrafos.
 - **Don't** añadir sombras a botones, campos o listas.
 - **Don't** reducir texto bajo 16 px fuera del árbol.
+
+**Cementerios ("Dónde descansan"):** "Cómo llegar" solo aparece cuando se sabe la comuna y el lugar es un cementerio de verdad; si no, el texto dice "Todavía no sabemos dónde queda este lugar". La cremación no es un cementerio: sale de la lista y de los conteos, la persona dice "Fue cremado/a" y la hoja impresa la agrupa en "Cremados". En el detalle de un cementerio van primero el nombre, la comuna y "Cómo llegar"; la foto viene después y, si no hay, solo queda un botón "Agregar una foto del cementerio" para quienes pueden editar. La tumba tiene su propia línea en 18 px y negrita ("Tumba: Sector Quillay C20"); si falta, "aún no sabemos en qué parte".
