@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-28T00:00:00.000Z",
+  "title": "Design System: Archivo Zamora Balcázar",
+  "extensions": {
+    "colorMeta": {
+      "tinta-de-maquina": { "role": "neutral", "displayName": "Tinta de máquina", "canonical": "#1a1816", "tonalRamp": ["#0c0b0a", "#1a1816", "#33302b", "#4a4740", "#6e6a62", "#98948b", "#d6d2ca", "#f4f1ea"] },
+      "papel-de-ficha": { "role": "neutral", "displayName": "Papel de ficha", "canonical": "#f4f1ea", "tonalRamp": ["#4a4740", "#8f8a80", "#b8b4aa", "#d6d2ca", "#e4e0d7", "#f4f1ea", "#faf8f4", "#ffffff"] },
+      "sello-terracota": { "role": "primary", "displayName": "Sello de lacre", "canonical": "#c4572e", "tonalRamp": ["#4a1f10", "#74301a", "#9a4224", "#c4572e", "#d27a58", "#e09f85", "#eec4b5", "#f8e5de"] },
+      "azul-hombre": { "role": "semantic", "displayName": "Azul hombre", "canonical": "#2f66b8", "tonalRamp": ["#12284a", "#1c3d70", "#2f66b8", "#5486cc", "#7ba3d9", "#a3c0e6", "#dce7f6", "#eef3fb"] },
+      "rosa-mujer": { "role": "semantic", "displayName": "Rosa mujer", "canonical": "#b03a62", "tonalRamp": ["#46162a", "#70243f", "#b03a62", "#c4617f", "#d588a0", "#e5b0c1", "#f6dde7", "#fbeff4"] }
+    },
+    "typographyMeta": {
+      "titulo": { "displayName": "Título", "purpose": "Voz del archivo en cada pantalla." },
+      "cuerpo": { "displayName": "Cuerpo", "purpose": "Texto de lectura a 18 px." }
+    },
+    "shadows": [
+      { "name": "tarjeta-arbol", "value": "0 1px 2px rgba(30,42,68,0.06), 0 6px 14px rgba(30,42,68,0.1)", "purpose": "Tarjetas del árbol." },
+      { "name": "ficha-suelta", "value": "0 10px 24px -14px rgba(0,0,0,0.55)", "purpose": "Fichas de apellido en la portada." }
+    ],
+    "motion": [
+      { "name": "transicion-estandar", "value": "0.2s ease-in-out", "purpose": "Hover de tarjetas del árbol y botones." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Botón principal",
+      "kind": "button",
+      "refersTo": "button-principal",
+      "description": "Acción principal; uno por pantalla.",
+      "html": "<button class=\"ds-btn-principal\">Guardar cambios</button>",
+      "css": ".ds-btn-principal{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:8px 28px;border-radius:9999px;border:2px solid #1a1816;background:#1a1816;color:#fff;font-size:1.125rem;font-weight:700;transition:background .2s,border-color .2s}.ds-btn-principal:hover{background:#4a4740;border-color:#4a4740}.ds-btn-principal:focus-visible{outline:3px solid #2f66b8;outline-offset:2px}"
+    },
+    {
+      "name": "Botón secundario",
+      "kind": "button",
+      "refersTo": "button-secundario",
+      "description": "Acción alternativa con borde.",
+      "html": "<button class=\"ds-btn-secundario\">Cancelar</button>",
+      "css": ".ds-btn-secundario{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:8px 24px;border-radius:9999px;border:2px solid #1a1816;background:#fff;color:#1a1816;font-size:1.125rem;font-weight:700}.ds-btn-secundario:hover{background:#f4f1ea}.ds-btn-secundario:focus-visible{outline:3px solid #2f66b8;outline-offset:2px}"
+    },
+    {
+      "name": "Campo de texto",
+      "kind": "input",
+      "refersTo": "campo",
+      "description": "Etiqueta visible y borde grueso.",
+      "html": "<div class=\"ds-field\"><label for=\"n\">Nombre</label><input id=\"n\" placeholder=\"Ej.: María\"></div>",
+      "css": ".ds-field{display:flex;flex-direction:column;gap:6px}.ds-field label{font-size:1.125rem;font-weight:700}.ds-field input{min-height:48px;padding:8px 14px;border:2px solid #8f8a80;border-radius:8px;background:#fff;font-size:1.125rem;color:#1a1816}.ds-field input:focus{border-color:#2f66b8;outline:none}"
+    },
+    {
+      "name": "Tarjeta de persona",
+      "kind": "card",
+      "refersTo": "tarjeta-persona",
+      "description": "Toda la tarjeta se toca.",
+      "html": "<a class=\"ds-person\"><span class=\"ds-ini\">M</span><span class=\"ds-txt\"><b>María Zamora</b><small>Su abuela · 1910 – 1990</small></span><span class=\"ds-go\">Ver ficha →</span></a>",
+      "css": ".ds-person{display:flex;align-items:center;gap:16px;min-height:72px;padding:12px 16px;border:2px solid #d6d2ca;border-radius:16px;background:#fff;color:#1a1816}.ds-person:hover{border-color:#1a1816}.ds-ini{display:flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:12px;background:#f6dde7;color:#b03a62;font-size:1.375rem;font-weight:700}.ds-txt{flex:1;display:flex;flex-direction:column}.ds-txt b{font-size:1.25rem}.ds-txt small{font-size:1rem;color:#4a4740}.ds-go{font-weight:700;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:4px}"
+    },
+    {
+      "name": "Aviso",
+      "kind": "custom",
+      "refersTo": "aviso",
+      "description": "Mensaje con ícono y palabra.",
+      "html": "<div class=\"ds-notice\"><span>✓</span><p>Listo, se guardó.</p></div>",
+      "css": ".ds-notice{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-radius:12px;background:#e5f1ea;font-size:1.0625rem}.ds-notice span{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:9999px;background:#1f6b43;color:#fff;font-weight:700}.ds-notice p{margin:0}"
+    },
+    {
+      "name": "Selector segmentado",
+      "kind": "chip",
+      "refersTo": "selector",
+      "description": "Ambas / Paterna / Materna.",
+      "html": "<div class=\"ds-seg\"><button class=\"on\">Ambas</button><button>Paterna</button><button>Materna</button></div>",
+      "css": ".ds-seg{display:inline-flex;padding:4px;border:2px solid #d6d2ca;border-radius:9999px;background:#fff}.ds-seg button{min-height:44px;padding:0 20px;border:0;border-radius:9999px;background:none;font-size:1.0625rem;font-weight:700;color:#1a1816}.ds-seg button.on{background:#1a1816;color:#fff}"
+    }
+  ],
+  "narrative": {
+    "northStar": "El archivo del abuelo",
+    "overview": "Un cajón de documentos familiares: fichas mecanografiadas, papel crema, tinta de cinta y un sello de lacre terracota. La calidez viene del material, no de adornos. Todo lo que se lee y se toca está pensado para quien no es experto: letra grande, botones amplios, un solo camino principal por pantalla, mensajes en tono de conversación.",
+    "keyCharacteristics": [
+      "Un botón negro principal por pantalla.",
+      "Mínimo 48 px de alto en lo táctil, texto de 18 px (nunca menos de 16 px).",
+      "Íconos siempre acompañados de su palabra.",
+      "Plano y redondeado: píldoras y tarjetas de borde grueso."
+    ],
+    "rules": [
+      { "name": "The One Seal Rule", "body": "El terracota es el único acento; no se suman otros.", "section": "colors" },
+      { "name": "The Never Color Alone Rule", "body": "Ningún estado ni sexo se comunica solo con color.", "section": "colors" },
+      { "name": "The Typewriter Voice Rule", "body": "Special Elite solo en logo, títulos y cifras destacadas; nunca en texto de lectura.", "section": "typography" },
+      { "name": "The Flat Interface Rule", "body": "Botones, campos y listas no llevan sombra.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do usar un solo botón negro principal por pantalla.",
+      "Do mantener 48 px mínimo en todo lo tocable y texto de 18 px (16 px como piso).",
+      "Do acompañar cada ícono con su palabra y cada color de estado con texto.",
+      "Do escribir mensajes de conversación en español de Chile."
+    ],
+    "donts": [
+      "Don't introducir un segundo color de acento.",
+      "Don't usar Special Elite para párrafos.",
+      "Don't añadir sombras a botones, campos o listas.",
+      "Don't reducir texto bajo 16 px fuera del árbol."
+    ]
+  }
+}
