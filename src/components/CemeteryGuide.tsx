@@ -54,6 +54,31 @@ function directionsUrl(p: GuidePlace) {
 
 const NO_ROUTE = "Todavía no sabemos dónde queda este lugar";
 
+/** "Pariente (7 pasos en el árbol)" no le dice nada a nadie: "Pariente lejano". */
+const niceKin = (rel: string | null | undefined) => (rel ?? "").replace(/^Pariente \(\d+ pasos? en el árbol\)/i, "Pariente lejano");
+/** "Fue cremado" / "Fue cremada" según se sabe. */
+const cremadoText = (sex: string | null | undefined) => (sex === "F" ? "Fue cremada" : sex === "M" ? "Fue cremado" : "Fue cremado/a");
+
+/** Distancia entre dos palabras (cada cambio, cada letra de más o de menos y cada par de letras al revés cuenta 1). */
+function editDistance(a: string, b: string) {
+  const d: number[][] = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+    }
+  }
+  return d[a.length][b.length];
+}
+/** ¿Está la palabra en el texto, aunque venga con una errata? (palabras de 4 letras o más: 1 error; de 7 o más: 2) */
+function hasWord(text: string, w: string) {
+  if (text.includes(w)) return true;
+  if (w.length < 4) return false;
+  const max = w.length >= 7 ? 2 : 1;
+  return text.split(/[^a-z0-9ñ]+/).some((t) => t.length >= 3 && Math.abs(t.length - w.length) <= max && editDistance(t, w) <= max);
+}
+
 /** "Metropolitana de Santiago" → "Región Metropolitana"; "Valparaíso" → "Región de Valparaíso". */
 function regionLabel(name: string) {
   if (!name) return "";
@@ -207,11 +232,11 @@ export default function CemeteryGuide({
   const placeText = (p: GuidePlace) => norm(`${p.name} ${p.locality ?? ""} ${regionName(p.regionCode)}`);
   // Búsqueda: personas (por nombre, parentesco, cementerio o comuna) y cementerios.
   const hits = useMemo(
-    () => (words.length ? everyone.filter(({ b, p }) => words.every((w) => norm(`${b.name} ${b.relation ?? ""} ${placeText(p)}`).includes(w))) : []),
+    () => (words.length ? everyone.filter(({ b, p }) => words.every((w) => hasWord(norm(`${b.name} ${b.relation ?? ""} ${placeText(p)}${p.cremation ? " cremado cremada cremacion" : ""}`), w))) : []),
     [everyone, words], // eslint-disable-line react-hooks/exhaustive-deps
   );
   const placeHits = useMemo(
-    () => (words.length ? cemeteries.filter((p) => words.every((w) => placeText(p).includes(w))).sort(byPeople) : []),
+    () => (words.length ? cemeteries.filter((p) => words.every((w) => hasWord(placeText(p), w))).sort(byPeople) : []),
     [cemeteries, words], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
@@ -225,7 +250,7 @@ export default function CemeteryGuide({
       else byRegion.set(p.regionCode, [...(byRegion.get(p.regionCode) ?? []), p]);
     }
     const list = [...byRegion.entries()]
-      .map(([code, ps]) => ({ code, title: regionName(code), places: ps.sort(byPeople) }))
+      .map(([code, ps]) => ({ code, title: regionName(code), places: ps.sort((a, b) => Number(Boolean(b.photo)) - Number(Boolean(a.photo)) || byPeople(a, b)) }))
       .sort((a, b) => sumPeople(b.places) - sumPeople(a.places) || order.indexOf(a.code) - order.indexOf(b.code));
     if (pending.length) list.push({ code: "pending", title: "Lugares por confirmar", places: pending.sort(byPeople) });
     return list;
@@ -323,7 +348,7 @@ export default function CemeteryGuide({
       );
     }
     if (hero) {
-      if (!canEdit) return null;
+      if (!canEdit || p.incomplete) return null;
       return (
         <label className={`${buttonClass("secundario")} cursor-pointer ${busy ? "pointer-events-none opacity-60" : ""} ${over ? "border-terra!" : ""}`} {...dropHandlers(p)}>
           <ImageIcon className="h-6 w-6" /> {busy ? "Subiendo la foto…" : "Agregar una foto del cementerio"}
@@ -528,9 +553,9 @@ export default function CemeteryGuide({
           <Initial name={b.name} sex={b.sex} size={56} />
           <span className="min-w-0 flex-1">
             <span className="block font-slab text-[1.5rem] font-bold leading-tight">{b.name}</span>
-            {b.relation && <span className="zb-apoyo mt-0.5 block">{capFirst(b.relation)}</span>}
+            {b.relation && <span className="zb-apoyo mt-0.5 block">{capFirst(niceKin(b.relation))}</span>}
             {p.cremation ? (
-              <span className="mt-2 block text-[1.125rem] font-bold text-burdeos">Fue cremado/a</span>
+              <span className="mt-2 block text-[1.125rem] font-bold text-burdeos">{cremadoText(b.sex)}</span>
             ) : (
               <span className="mt-2 flex items-start gap-1.5 text-[1.125rem] font-bold text-teja">
                 <PinIcon className="mt-1 h-4 w-4 shrink-0" />
@@ -555,7 +580,7 @@ export default function CemeteryGuide({
               Cómo llegar <span aria-hidden>↗</span>
             </a>
           ) : (
-            <p className="zb-apoyo min-w-0 flex-1">{p.cremation ? "Fue cremación: no hay tumba que visitar." : NO_ROUTE}</p>
+            <p className="zb-apoyo min-w-0 flex-1">{p.cremation ? "No hay tumba que visitar." : NO_ROUTE}</p>
           )}
           <button type="button" onClick={() => openPerson(b.personId)} className={buttonClass("enlace")} tabIndex={-1} aria-hidden="true">
             Ver más →
@@ -578,7 +603,7 @@ export default function CemeteryGuide({
         <span className="min-w-0 flex-1">
           <span className="block text-[1.25rem] font-bold leading-snug">{b.name}</span>
           <span className="zb-apoyo block">
-            {[b.relation ? capFirst(b.relation.split(", ")[0]) : null, yearsOf(b), spotOf(b) ? `Tumba: ${spotOf(b)}` : null].filter(Boolean).join(" · ")}
+            {[b.relation ? capFirst(niceKin(b.relation).split(", ")[0]) : null, yearsOf(b), spotOf(b) ? `Tumba: ${spotOf(b)}` : null].filter(Boolean).join(" · ")}
           </span>
         </span>
         <span aria-hidden className="shrink-0 text-xl">→</span>
@@ -623,7 +648,7 @@ export default function CemeteryGuide({
       {backButton("Volver")}
       {(() => {
         const { b, p } = personRow;
-        const [kin, ...rest] = (b.relation ?? "").split(", ");
+        const [kin, ...rest] = niceKin(b.relation).split(", ");
         const others = p.people.filter((x) => x.personId !== b.personId);
         return (
           <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
@@ -645,7 +670,8 @@ export default function CemeteryGuide({
                 {p.cremation ? (
                   <div className="mt-5 border-t-2 border-line pt-5">
                     <p className="zb-etiqueta">Despedida</p>
-                    <p className="mt-1 text-[1.375rem] font-bold text-burdeos">Fue cremado/a</p>
+                    <p className="mt-1 text-[1.375rem] font-bold text-burdeos">{cremadoText(b.sex)}</p>
+                    <p className="zb-texto mt-2 text-gris">No hay tumba que visitar. Pregunta a la familia dónde están sus cenizas.</p>
                   </div>
                 ) : (
                   <>
@@ -709,19 +735,15 @@ export default function CemeteryGuide({
   const placeView = currentPlace && (
     <div className={`${WRAP} py-8 lg:py-12 print:hidden`}>
       {backButton("Volver")}
-      <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-start">
+      {/* Con foto: dos columnas (la foto a un lado). Sin foto: una sola columna, sin hueco. */}
+      <div className={`mt-6 grid gap-8 lg:items-start ${photoOf(currentPlace) ? "lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]" : "max-w-3xl"}`}>
         {/* Primero lo que se necesita: el nombre, dónde queda y cómo llegar. */}
-        <div className="lg:col-start-2 lg:row-start-1">
+        <div className={photoOf(currentPlace) ? "lg:col-start-2 lg:row-start-1" : ""}>
           <p className="zb-texto text-gris">{whereLine(currentPlace)}</p>
           <h1 className="mt-1 font-slab text-[2.25rem] font-bold leading-[1.1] sm:text-5xl">{siteName(currentPlace)}</h1>
           <p className="zb-texto mt-3">
             <strong>{plural(currentPlace.people.length, "persona", "personas")}</strong> de la familia {currentPlace.people.length === 1 ? "descansa" : "descansan"} aquí
           </p>
-          {currentPlace.incomplete && (
-            <div className="mt-4">
-              <Notice kind="info">Este lugar no está confirmado. Si sabes cuál es, cuéntaselo a la familia.</Notice>
-            </div>
-          )}
           {canRoute(currentPlace) ? (
             <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <a href={directionsUrl(currentPlace)} target="_blank" rel="noreferrer" className={buttonClass("principal", "!min-h-14 flex-1 !px-6 sm:flex-none")}>
@@ -735,25 +757,44 @@ export default function CemeteryGuide({
               </button>
             </div>
           ) : (
-            <p className="zb-texto mt-5 text-gris">{NO_ROUTE}.</p>
-          )}
-        </div>
-
-        {/* La foto (o, sin foto, solo un botón discreto para agregarla): después de lo importante. */}
-        <div className="lg:col-start-1 lg:row-span-2 lg:row-start-1">
-          {photoFrame(currentPlace, siteName(currentPlace))}
-          {photoTools(currentPlace)}
-          {photoErr && (
-            <div className="mt-3">
-              <Notice kind="aviso">{photoErr}</Notice>
+            <div className="mt-4">
+              {/* Un solo mensaje, con lo que se puede hacer. */}
+              <Notice kind="info">
+                {NO_ROUTE}, así que todavía no podemos armar la ruta.{" "}
+                {canEdit ? "Si lo sabes, anota la comuna editando la ficha de una de las personas que descansan aquí." : "Si sabes cuál es, cuéntaselo a la familia."}
+              </Notice>
             </div>
           )}
         </div>
 
-        <div className="lg:col-start-2 lg:row-start-2">
-          <h3 className="al-titulo al-regla !text-[1.5rem]">Aquí descansan</h3>
+        {/* La foto: solo si hay; si no, el botón discreto va al final (y solo para quien edita y el lugar es seguro). */}
+        {photoOf(currentPlace) && (
+          <div className="lg:col-start-1 lg:row-span-2 lg:row-start-1">
+            {photoFrame(currentPlace, siteName(currentPlace))}
+            {photoTools(currentPlace)}
+            {photoErr && (
+              <div className="mt-3">
+                <Notice kind="aviso">{photoErr}</Notice>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className={photoOf(currentPlace) ? "lg:col-start-2 lg:row-start-2" : ""}>
+          <h2 className="al-titulo al-regla !text-[1.5rem]">Aquí descansan</h2>
           <ul className="mt-4 space-y-3">{currentPlace.people.map((b) => personRowItem(b))}</ul>
         </div>
+
+        {!photoOf(currentPlace) && (canEdit && !currentPlace.incomplete || photoErr) && (
+          <div className="print:hidden">
+            {photoFrame(currentPlace)}
+            {photoErr && (
+              <div className="mt-3">
+                <Notice kind="aviso">{photoErr}</Notice>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -766,7 +807,7 @@ export default function CemeteryGuide({
         <div className={`${WRAP} pb-10 pt-8 lg:pb-12 lg:pt-12`}>
           <div className="flex flex-wrap items-start justify-between gap-4">
             <h1 className="font-slab text-[2.5rem] font-bold leading-[1.05] sm:text-6xl">Dónde descansan</h1>
-            <button type="button" onClick={() => window.print()} className="inline-flex min-h-12 items-center rounded-full border-2 border-white px-5 text-[1.125rem] font-bold text-white hover:bg-white/15">
+            <button type="button" onClick={() => window.print()} className="hidden min-h-12 items-center rounded-full border-2 border-white sm:inline-flex px-5 text-[1.125rem] font-bold text-white hover:bg-white/15">
               Imprimir lista
             </button>
           </div>
@@ -794,7 +835,7 @@ export default function CemeteryGuide({
                 autoComplete="off"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Un nombre, un apellido o un cementerio"
+                placeholder="Nombre o cementerio"
                 className="min-h-14 w-full rounded-2xl border-2 border-transparent bg-white py-2 pl-14 pr-14 text-[1.25rem] text-ink outline-none placeholder:text-gris/70 focus:border-trigo [&::-webkit-search-cancel-button]:hidden"
               />
               {q && (
@@ -825,9 +866,8 @@ export default function CemeteryGuide({
               </div>
             ) : (
               <>
-                {hits.length > 0 && <ul className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">{hits.map(({ b, p }) => personCard(b, p))}</ul>}
                 {placeHits.length > 0 && (
-                  <div className="mt-10">
+                  <div className="mt-6">
                     <h3 className="al-titulo !text-[1.5rem]">Cementerios que coinciden</h3>
                     <ul className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                       {placeHits.map((p) => (
@@ -847,6 +887,7 @@ export default function CemeteryGuide({
                     </ul>
                   </div>
                 )}
+                {hits.length > 0 && <ul className="mt-10 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">{hits.map(({ b, p }) => personCard(b, p))}</ul>}
               </>
             )}
           </section>
@@ -916,6 +957,13 @@ export default function CemeteryGuide({
             </section>
           </>
         )}
+        {!searching && (
+          <div className="sm:hidden print:hidden">
+            <button type="button" onClick={() => window.print()} className={buttonClass("secundario")}>
+              Imprimir lista
+            </button>
+          </div>
+        )}
       </div>
     </>
   );
@@ -938,7 +986,7 @@ export default function CemeteryGuide({
                   {p.people.map((b) => (
                     <li key={b.personId}>
                       {b.name}
-                      {b.relation ? `, ${b.relation}` : ""} ({b.birth ?? "?"} – {b.death ?? "?"}){spotOf(b) ? ` — ${spotOf(b)}` : ""}
+                      {b.relation ? `, ${niceKin(b.relation)}` : ""} ({b.birth ?? "?"} – {b.death ?? "?"}){spotOf(b) ? ` — ${spotOf(b)}` : ""}
                     </li>
                   ))}
                 </ul>
