@@ -758,7 +758,7 @@ export default function CemeteryGuide({
               {/* Un solo mensaje, con lo que se puede hacer. */}
               <Notice kind="info">
                 {NO_ROUTE}, por eso no podemos armar la ruta.{" "}
-                {canEdit ? "Si lo sabes, anótala." : "Si sabes cuál es, cuéntaselo a la familia."}
+                {canEdit ? "Si sabes en qué comuna queda, anótala." : "Si sabes cuál es, cuéntaselo a la familia."}
               </Notice>
               {canEdit && currentPlace.people[0] && (
                 <button type="button" onClick={() => setSelectedId(currentPlace.people[0].personId)} className={buttonClass("secundario", "mt-3")}>
