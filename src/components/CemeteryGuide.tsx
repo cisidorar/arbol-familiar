@@ -322,7 +322,7 @@ export default function CemeteryGuide({
     const ph = photoOf(p);
     const busy = photoBusy === p.key;
     const over = dragKey === p.key;
-    const box = `relative w-full overflow-hidden ${hero ? "aspect-[3/2]" : "aspect-square rounded-3xl shadow-[0_8px_24px_-12px_rgba(26,24,22,0.35)]"}`;
+    const box = `relative w-full overflow-hidden ${hero ? "aspect-[3/2]" : "aspect-[4/3] rounded-3xl shadow-[0_8px_24px_-12px_rgba(26,24,22,0.35)] sm:aspect-square"}`;
     if (ph) {
       const img = (
         // eslint-disable-next-line @next/next/no-img-element
@@ -762,7 +762,7 @@ export default function CemeteryGuide({
               </Notice>
               {canEdit && currentPlace.people[0] && (
                 <button type="button" onClick={() => setSelectedId(currentPlace.people[0].personId)} className={buttonClass("secundario", "mt-3")}>
-                  Anotar la comuna
+                  Anotar la comuna (abre la ficha de {currentPlace.people[0].name.split(" ")[0]})
                 </button>
               )}
             </div>
@@ -900,9 +900,9 @@ export default function CemeteryGuide({
           </section>
         ) : (
           <>
-            <section id="cem-personas" aria-label={rootId ? "Los más cercanos a ti" : "Personas"} className="scroll-mt-6">
+            <section id="cem-personas" aria-label={rootId ? "Tu familia más cercana" : "Personas"} className="scroll-mt-6">
               <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                <h2 className="al-titulo al-regla">{rootId ? "Los más cercanos a ti" : "Personas"}</h2>
+                <h2 className="al-titulo al-regla">{rootId ? "Tu familia más cercana" : "Personas"}</h2>
               </div>
               <ul className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">{shown.map(({ b, p }) => personCard(b, p))}</ul>
               {everyone.length > near.length && (
@@ -953,7 +953,7 @@ export default function CemeteryGuide({
                               </span>
                               {!photoOf(p) && p.incomplete && <span className="mt-2 inline-block rounded-full bg-adobe-2 px-3 py-0.5 text-base font-bold">Por confirmar</span>}
                             </span>
-                            <span aria-hidden className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-teja text-xl text-white">→</span>
+                            <span aria-hidden className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-burdeos text-xl text-white">→</span>
                           </button>
                         </li>
                       ))}
@@ -1008,7 +1008,7 @@ export default function CemeteryGuide({
               {places.filter((p) => p.cremation).flatMap((p) => p.people).map((b) => (
                 <li key={b.personId}>
                   {b.name}
-                  {b.relation ? `, ${b.relation}` : ""} ({b.birth ?? "?"} – {b.death ?? "?"})
+                  {b.relation ? `, ${niceKin(b.relation)}` : ""} ({b.birth ?? "?"} – {b.death ?? "?"})
                 </li>
               ))}
             </ul>
