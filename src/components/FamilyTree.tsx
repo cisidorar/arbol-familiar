@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import "family-chart/styles/family-chart.css";
 import {
   collapseSiblings,
@@ -34,6 +34,11 @@ type ChartDatum = {
   rels: { parents: string[]; children: string[]; spouses: string[] };
 };
 
+export interface TreeControls {
+  zoomBy: (factor: number) => void;
+  fit: () => void;
+}
+
 interface Props {
   data: ChartDatum[];
   mainId: string | null;
@@ -45,6 +50,8 @@ interface Props {
   version: number;
   /** Sube para volver el árbol a su vista de partida: ramas cerradas y encuadre completo. */
   resetKey?: number;
+  /** Recibe los controles para acercar, alejar y ver todo el árbol (botones de quien lo usa). */
+  controlsRef?: MutableRefObject<TreeControls | null>;
   onSelectPerson: (id: string) => void;
   /** Pide centrar el árbol en otra persona. El tronco lo guarda quien usa
    *  este componente (para poder ofrecer "volver"), acá solo se avisa. */
@@ -225,15 +232,24 @@ function computeStraightTargets(paths: SVGPathElement[]): (string | null)[] {
 }
 
 // Medidas del árbol, en px. Una tarjeta mide CARD_WIDTH de ancho.
-const CARD_WIDTH = 230;
+const CARD_WIDTH = 250;
 /** De una tarjeta a la de al lado (hermanos): deja 70 entre ellas. */
-const CARD_PITCH = 300;
+const CARD_PITCH = 320;
 /** De una tarjeta a la de su pareja: deja 14 entre ellas. */
-const COUPLE_PITCH = 244;
+const COUPLE_PITCH = 264;
 /** Aire extra del lado de afuera de cada rama de ancestros. */
 const FAMILY_GAP = 30;
 /** De una generación a la siguiente. */
-const ROW_PITCH = 176;
+const ROW_PITCH = 184;
+
+/** Palabra corta que se ve junto a la flecha (la que va arriba o abajo de la tarjeta). */
+function miniTreeLabel(action: ExpandAction): string {
+  if (action.kind === "up" || action.kind === "spouse-up") return "Padres";
+  if (action.kind === "down" || action.kind === "kids") return "Hijos";
+  if (action.kind === "siblings") return "Hermanos";
+  if (action.kind === "partners") return "Pareja";
+  return "";
+}
 
 /** Texto del ícono de "más familia": dice qué va a pasar al hacer clic. */
 function miniTreeHint(action: ExpandAction, name: string): string {
@@ -260,7 +276,7 @@ function setYearLabels(data: ChartDatum[]) {
   for (const d of data as any[]) {
     const y = d.data.birth_year;
     const dy = d.data.death_year;
-    d.data.birth_year_label = y ? (dy ? `${y}–${dy}` : `n. ${y}`) : d.data.is_living ? "" : "†";
+    d.data.birth_year_label = y ? (dy ? `${y}–${dy}` : `nació ${y}`) : d.data.is_living ? "" : "falleció";
   }
 }
 
@@ -272,6 +288,9 @@ function setYearLabels(data: ChartDatum[]) {
 let f3Lib: any = null; // la librería, cargada la primera vez que se dibuja el árbol
 const PHONE_MAX_WIDTH = 640;
 const PHONE_MIN_SCALE = 0.8;
+// Debajo de esta escala las tarjetas dejan de leerse: no se reencuadra el árbol entero, solo se avisa.
+const READABLE_FIT_SCALE = 0.7;
+const NOTICE_MS = 15000;
 function readableOnPhone(chart: any, container: HTMLElement | null, transitionTime: number) {
   if (!container || container.clientWidth >= PHONE_MAX_WIDTH) return;
   const svg = chart.svg as any;
@@ -291,7 +310,37 @@ function readableOnPhone(chart: any, container: HTMLElement | null, transitionTi
   });
 }
 
-export default function FamilyTree({ data, mainId, line = null, version, resetKey = 0, onSelectPerson, onRecenter, onAddRelative }: Props) {
+/**
+ * "Ver todo" sin pasarse: si el árbol entero cabe a una escala que se lee, se encuadra completo; si no,
+ * se deja a esa escala mínima centrado en el tronco (con el dedo o el ratón se ve el resto).
+ * Devuelve false cuando no cupo todo.
+ */
+function fitReadable(chart: any, container: HTMLElement | null, transitionTime: number): boolean {
+  const svg = chart?.svg as any;
+  const tree = chart?.store?.getTree?.();
+  const main = tree?.data?.[0];
+  if (!svg || !tree || !main || !f3Lib) {
+    chart?.updateTree?.({ tree_position: "fit" });
+    return true;
+  }
+  const rect = svg.getBoundingClientRect();
+  const fitK = Math.min(rect.width / tree.dim.width, rect.height / tree.dim.height, 1);
+  const minScale = container && container.clientWidth < PHONE_MAX_WIDTH ? PHONE_MIN_SCALE : READABLE_FIT_SCALE;
+  if (fitK >= minScale) {
+    chart.updateTree({ tree_position: "fit" });
+    return true;
+  }
+  f3Lib.handlers.cardToMiddle({
+    datum: { x: main.x, y: main.y },
+    svg,
+    svg_dim: { width: rect.width, height: rect.height },
+    scale: minScale,
+    transition_time: transitionTime,
+  });
+  return false;
+}
+
+export default function FamilyTree({ data, mainId, line = null, version, resetKey = 0, controlsRef, onSelectPerson, onRecenter, onAddRelative }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<any>(null);
   const lineRef = useRef<string[] | null>(line);
@@ -302,6 +351,10 @@ export default function FamilyTree({ data, mainId, line = null, version, resetKe
   onRecenterRef.current = onRecenter;
   const onAddRelativeRef = useRef(onAddRelative);
   onAddRelativeRef.current = onAddRelative;
+  // Abrir una rama puede dejar fuera de la vista a la persona central: se reencuadra o se avisa.
+  const [notice, setNotice] = useState<null | "offscreen" | "big">(null);
+  const viewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const noticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // El "tronco" es la persona que fijamos como centro del árbol (mainId).
   // Para cada tronco recordamos qué ramas se abrieron a mano, así al volver
@@ -322,6 +375,39 @@ export default function FamilyTree({ data, mainId, line = null, version, resetKe
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
+  }, []);
+
+  const showNotice = (kind: "offscreen" | "big") => {
+    setNotice(kind);
+    if (noticeTimerRef.current) clearTimeout(noticeTimerRef.current);
+    noticeTimerRef.current = setTimeout(() => setNotice(null), NOTICE_MS);
+  };
+  // "Ver todo": el árbol entero si se lee; si no, a la escala mínima legible y con un aviso.
+  const fitView = () => {
+    const chart = chartRef.current;
+    if (!chart) return;
+    if (fitReadable(chart, containerRef.current, 400)) setNotice(null);
+    else showNotice("big");
+  };
+
+  // Teclado: Enter o Espacio sobre una tarjeta o uno de sus controles hace lo mismo que tocarlos.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      const target = e.target as HTMLElement | null;
+      if (!target?.matches?.(".card, .card-add, .mini-tree, .card-collapse")) return;
+      e.preventDefault();
+      if (target.matches(".card")) (target.querySelector<HTMLElement>(".card-inner") ?? target).click();
+      else target.click();
+    };
+    el.addEventListener("keydown", onKey);
+    return () => {
+      el.removeEventListener("keydown", onKey);
+      if (viewTimerRef.current) clearTimeout(viewTimerRef.current);
+      if (noticeTimerRef.current) clearTimeout(noticeTimerRef.current);
+    };
   }, []);
 
   useEffect(() => {
@@ -441,7 +527,34 @@ export default function FamilyTree({ data, mainId, line = null, version, resetKe
       // tarjetas se corren, así que se desplaza la vista lo mismo en sentido
       // contrario. En un árbol grande, perder de vista la tarjeta recién
       // tocada obliga a buscarla de nuevo.
+      // Tras abrir una rama, ¿sigue a la vista la persona central? Si no, y el
+      // árbol entero cabe en un tamaño legible, se encuadra todo; si no cabe,
+      // un aviso con "Ver todo" evita que parezca que su gente desapareció.
+      const checkMainInView = () => {
+        const box = containerRef.current?.getBoundingClientRect();
+        const main = containerRef.current?.querySelector<HTMLElement>(".card-main");
+        const tree = chart.store.getTree() as any;
+        if (!box || !main || !tree) return;
+        const r = main.getBoundingClientRect();
+        const HEADER = box.width < PHONE_MAX_WIDTH ? 132 : 90; // la cabecera (en el teléfono, de dos filas) y su alero de tejas flotan sobre el árbol
+        const inView = r.left >= box.left && r.right <= box.right && r.top >= box.top + HEADER && r.bottom <= box.bottom;
+        if (inView) return;
+        const svg = chart.svg.getBoundingClientRect();
+        const fitK = Math.min(svg.width / tree.dim.width, svg.height / tree.dim.height, 1);
+        if (fitK >= READABLE_FIT_SCALE) {
+          chart.updateTree({ tree_position: "fit" });
+          return;
+        }
+        showNotice("offscreen");
+      };
       const updateKeepingInPlace = (d: any) => {
+        keepInPlace(d);
+        setNotice(null);
+        if (viewTimerRef.current) clearTimeout(viewTimerRef.current);
+        // Cuando termina la transición de la vista.
+        viewTimerRef.current = setTimeout(checkMainInView, (chart.store.state as any).transition_time + 60);
+      };
+      const keepInPlace = (d: any) => {
         const before = { x: d.x, y: d.y };
         chart.updateTree({ tree_position: "inherit" });
         const tree = chart.store.getTree() as any;
@@ -471,7 +584,7 @@ export default function FamilyTree({ data, mainId, line = null, version, resetKe
 
       const card = chart
         .setCardHtml()
-        .setCardDisplay([["first_name", "last_name"], ["birth_year_label"]])
+        .setCardDisplay([["first_name", "last_name"], ["birth_year_label"], ["cemetery_label"]])
         .setOnCardClick((e: Event, d: any) => {
           // El ícono de "más familia" vive dentro de la tarjeta, así que su
           // clic llega acá también. Lo distinguimos: el ícono solo navega,
@@ -554,10 +667,19 @@ export default function FamilyTree({ data, mainId, line = null, version, resetKe
 
           // El "+" para agregarle un familiar (solo si quien entró puede editar).
           const cardEl = this.querySelector(".card");
+          // Con teclado: la tarjeta y cada uno de sus controles reciben el foco (Enter o Espacio los activa).
+          if (cardEl) {
+            cardEl.setAttribute("tabindex", "0");
+            cardEl.setAttribute("role", "group");
+            const sexWord = d.data.data.gender === "F" ? "Mujer" : "Hombre";
+            const isCenter = d.data.id === chart.store.getMainId();
+            cardEl.setAttribute("aria-label", `${d.data.data.label}, ${sexWord}${isCenter ? ", centro del árbol" : ""}. Pulsa Enter para abrir su ficha.`);
+          }
           if (cardEl && onAddRelativeRef.current && !cardEl.querySelector(".card-add")) {
             const add = document.createElement("div");
             add.className = "card-add";
             add.setAttribute("role", "button");
+            add.setAttribute("tabindex", "0");
             add.setAttribute("aria-haspopup", "menu");
             add.setAttribute("aria-label", `Agregar un familiar de ${d.data.data.label}`);
             add.setAttribute("title", "Agregar hijo, hermano, padre o madre, o pareja");
@@ -576,6 +698,7 @@ export default function FamilyTree({ data, mainId, line = null, version, resetKe
                 collapse = document.createElement("div");
                 collapse.className = "card-collapse";
                 collapse.setAttribute("role", "button");
+                collapse.setAttribute("tabindex", "0");
                 cardEl.appendChild(collapse);
               }
               collapse.setAttribute("data-side", siblingsSide(d, shown));
@@ -594,14 +717,24 @@ export default function FamilyTree({ data, mainId, line = null, version, resetKe
           mini.setAttribute("data-dir", expandDirection(action, d) ?? "recenter");
           mini.setAttribute("title", hint);
           mini.setAttribute("role", "button");
+          mini.setAttribute("tabindex", "0");
           mini.setAttribute("aria-label", hint);
+          // La palabra a la vista (en táctil no hay tooltip): "Padres" o "Hijos" junto a la flecha.
+          let word = mini.querySelector<HTMLElement>(".mini-label");
+          if (!word) {
+            word = document.createElement("span");
+            word.className = "mini-label";
+            word.setAttribute("aria-hidden", "true");
+            mini.appendChild(word);
+          }
+          word.textContent = miniTreeLabel(action);
         });
 
       setYearLabels(data);
 
       // Sin fotos por ahora (fase 0 pendiente: los enlaces de MyHeritage están
       // vencidos). "rect" muestra solo texto, sin ícono de imagen rota.
-      card.setStyle("rect").setCardDim({ w: CARD_WIDTH, h: 98, height_auto: false });
+      card.setStyle("rect").setCardDim({ w: CARD_WIDTH, h: 104, height_auto: false });
 
       // Ícono pequeño en las tarjetas que tienen más familia de la que se
       // ve: la señal visual de que se puede abrir haciendo clic ahí.
@@ -638,8 +771,8 @@ export default function FamilyTree({ data, mainId, line = null, version, resetKe
     chartRef.current.updateMainId?.(mainId);
     // Con la línea hasta quien mira, el árbol queda largo hacia abajo: se
     // encuadra entero para que se vea todo el camino.
-    chartRef.current.updateTree({ tree_position: lineRef.current ? "fit" : "main_to_middle" });
-    if (lineRef.current) readableOnPhone(chartRef.current, containerRef.current, 400);
+    if (lineRef.current) fitView();
+    else chartRef.current.updateTree({ tree_position: "main_to_middle" });
   }, [mainId]);
 
   // "Archivo Zamora Balcázar" (el título): se cierran todas las ramas que se abrieron a mano
@@ -657,8 +790,7 @@ export default function FamilyTree({ data, mainId, line = null, version, resetKe
       lastMainIdRef.current = mainId;
       chart.updateMainId?.(mainId);
     }
-    chart.updateTree({ tree_position: "fit" });
-    readableOnPhone(chart, containerRef.current, 400);
+    fitView();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetKey]);
 
@@ -671,5 +803,60 @@ export default function FamilyTree({ data, mainId, line = null, version, resetKe
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [version]);
 
-  return <div ref={containerRef} className="f3 relative h-full w-full overflow-hidden pt-20" />;
+  // Acercar y alejar alrededor del centro de la pantalla (para quien no puede pellizcar), y volver a ver todo.
+  useEffect(() => {
+    if (!controlsRef) return;
+    controlsRef.current = {
+      zoomBy: (factor) => {
+        const chart = chartRef.current;
+        const view = (chart?.svg?.parentNode as any)?.__zoom as { k: number; x: number; y: number } | undefined;
+        if (!chart || !f3Lib || !view) return;
+        const rect = chart.svg.getBoundingClientRect();
+        const cx = rect.width / 2;
+        const cy = rect.height / 2;
+        const k = Math.min(2.5, Math.max(0.15, view.k * factor));
+        const x = cx - ((cx - view.x) / view.k) * k;
+        const y = cy - ((cy - view.y) / view.k) * k;
+        f3Lib.handlers.cardToMiddle({
+          datum: { x: 0, y: 0 },
+          svg: chart.svg,
+          svg_dim: { width: 2 * x, height: 2 * y },
+          scale: k,
+          transition_time: 250,
+        });
+      },
+      fit: fitView,
+    };
+    return () => {
+      controlsRef.current = null;
+    };
+  }, [controlsRef]);
+
+  return (
+    <>
+      <div ref={containerRef} className="f3 relative h-full w-full overflow-hidden pt-20" />
+      {/* Fuera del contenedor: la librería vacía el contenedor al redibujar. */}
+      <div role="status" aria-live="polite">
+        {notice && (
+          <div className="absolute bottom-[calc(5.5rem+env(safe-area-inset-bottom))] left-36 right-4 z-10 flex items-center gap-3 rounded-2xl border-2 border-ink bg-adobe px-4 py-3 text-base text-ink sm:bottom-4 sm:left-auto sm:max-w-sm">
+            <span>
+              {notice === "big"
+                ? "El árbol completo es muy grande para leerlo aquí. Arrastra para ver el resto."
+                : "Parte del árbol quedó fuera de la vista."}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                if (notice === "offscreen") fitView();
+                else setNotice(null);
+              }}
+              className="min-h-12 shrink-0 rounded-full border-2 border-ink bg-white px-4 text-[1.125rem] font-bold text-ink hover:bg-adobe-2 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ink"
+            >
+              {notice === "offscreen" ? "Ver todo" : "Entendido"}
+            </button>
+          </div>
+        )}
+      </div>
+    </>
+  );
 }

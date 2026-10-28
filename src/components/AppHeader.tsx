@@ -50,7 +50,7 @@ export default function AppHeader({
   return (
     <>
     <header
-      className={`zb ${floating ? "absolute left-0 top-0 z-20 w-full" : "relative z-20"} border-b border-white/10 bg-ink text-white shadow-md print:hidden`}
+      className={`zb ${floating ? "absolute left-0 top-0 z-20 w-full" : "relative z-20"} on-dark bg-burdeos text-white print:hidden`}
     >
       <div className="flex w-full flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 sm:px-6 lg:gap-x-4">
         {/* Logo + nombre: un solo bloque, al tocarlo se vuelve al árbol. */}
@@ -85,7 +85,7 @@ export default function AppHeader({
                 aria-current={on ? "page" : undefined}
                 className={
                   on
-                    ? "flex min-h-12 shrink-0 items-center rounded-full bg-white px-3 text-base font-bold text-ink sm:px-4 sm:text-[1.125rem]"
+                    ? "flex min-h-12 shrink-0 items-center rounded-full bg-adobe px-3 text-base font-bold text-ink sm:px-4 sm:text-[1.125rem]"
                     : "flex min-h-12 shrink-0 items-center rounded-full px-3 text-base text-white/90 hover:bg-white/15 hover:text-white sm:px-4 sm:text-[1.125rem]"
                 }
               >
@@ -106,6 +106,7 @@ export default function AppHeader({
           <UserMenu user={user} />
         </div>
       </div>
+      <div className="alero-tejas pointer-events-none absolute inset-x-0 top-full [--tj:var(--color-burdeos)]" aria-hidden="true" />
     </header>
     <MobileTabBar current={current} isAdmin={user.role === "admin"} pad={!floating} />
     </>

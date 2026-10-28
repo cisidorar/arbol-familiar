@@ -1,12 +1,18 @@
 ---
 name: Archivo Zamora Balcázar
-description: Archivo genealógico familiar, privado, legible para todas las edades, con aire de ficha mecanografiada.
+description: Archivo genealógico familiar, privado, legible para todas las edades, con aire de álbum del valle del Maipo hacia 1900 (teja, parra, adobe).
 colors:
   tinta-de-maquina: "#1a1816"
   papel-de-ficha: "#f4f1ea"
   gris-de-grafito: "#4a4740"
   filo-de-papel: "#d6d2ca"
-  sello-terracota: "#c4572e"
+  sello-terracota: "#a8432a"
+  teja: "#a8432a"
+  trigo: "#d9a441"
+  parra: "#3f5b34"
+  burdeos: "#6e1f2e"
+  adobe: "#f4e9d3"
+  adobe-2: "#e9d8b6"
   azul-hombre: "#2f66b8"
   rosa-mujer: "#b03a62"
   rojo-aviso: "#b3261e"
@@ -57,14 +63,14 @@ spacing:
   lg: "24px"
 components:
   button-principal:
-    backgroundColor: "{colors.tinta-de-maquina}"
+    backgroundColor: "{colors.teja}"
     textColor: "{colors.papel-nuevo}"
     typography: "{typography.cuerpo}"
     rounded: "{rounded.pill}"
     height: "48px"
     padding: "8px 28px"
   button-principal-hover:
-    backgroundColor: "{colors.gris-de-grafito}"
+    backgroundColor: "{colors.burdeos}"
   button-secundario:
     backgroundColor: "{colors.papel-nuevo}"
     textColor: "{colors.tinta-de-maquina}"
@@ -88,6 +94,38 @@ components:
 
 # Design System: Archivo Zamora Balcázar
 
+## Identidad: "Álbum de la parra" (valle del Maipo, hacia 1900)
+
+Toda la app (inicio, fichas, cementerios, mapa, pendientes, administración, portada y entrada) comparte esta identidad. El dibujo del árbol conserva sus colores de sexo (azul/rosa) y su propia tarjeta. Se lee como un álbum de familia del valle del Maipo (Buin, Paine, Chada): alero de tejas, paredes de adobe, parras, fotos con esquineros, sellos. Cercana, no de museo.
+
+**Paleta (contrastes medidos, WCAG AA):**
+- **Adobe** #f4e9d3: fondo (con motas burdeos al 6 %). Tinta sobre adobe 14,3:1.
+- **Tinta** #1e1a17: texto.
+- **Teja** #a8432a: color de acción. Botón principal, "Árbol". Adobe sobre teja 5,0:1.
+- **Trigo** #d9a441: cinta del buscador, fechas de cumpleaños, cinta adhesiva. Tinta sobre trigo 7,7:1; nunca texto adobe sobre trigo.
+- **Parra** #3f5b34: nacimientos, "De dónde vienen", puntos de lugar conocido. Adobe sobre parra 6,3:1.
+- **Burdeos** #6e1f2e: fallecimientos, "Dónde descansan", tarjeta "Te tocó", esquineros. Adobe sobre burdeos 9,2:1.
+
+**Reglas:**
+- La teja es el único color de acción: un botón grande de teja por pantalla ("Ir al árbol"). Trigo, parra y burdeos solo categorizan y siempre con palabra o ícono (nunca solo color).
+- Títulos de sección en **Zilla Slab** 700 (`.al-titulo`, `font-slab`); Special Elite solo en pies de foto, años y números de sello; Atkinson Hyperlegible en todo texto de lectura. Nunca slab ni máquina en párrafos.
+- Escala extra en `/inicio`: 1.375rem (botón principal), 1.5rem (título de nota), 1.625rem (título de sello), 1.75rem (nombre en la foto); etiquetas de 1rem, no 0.875rem.
+- Texto de 18 px (16 px de piso), botones de 48 px mínimo (el principal, 56 px). Foco: anillo de tinta de 3 px (blanco sobre fondos oscuros, clase `on-dark`).
+- Decoración (parra SVG, tejas, esquineros, cinta) siempre `aria-hidden` y fuera del texto de lectura.
+- Giros leves (±1°) solo en fotos, notas y fichas de fecha; con `prefers-reduced-motion` la ruleta no anima.
+- Sombra permitida solo en la foto de "Te tocó" y la nota pegada; botones, campos y listas siguen planos.
+- Componentes: `.alero` / `.alero-tejas` (franja de tejas), `.foto` (+ `.esq-a`, `.esq-b`), `.sello` (tarjeta con filete punteado), `.cinta`, `.album` (fondo).
+
+**Aplicación en toda la app:**
+- **Cabecera y barra del celular:** burdeos con texto blanco, pestaña activa adobe y borde de tejas colgando (no en el árbol flotante). Logo: fondo adobe con barra teja.
+- **Botones (`ui.tsx`):** principal teja (hover burdeos), secundario blanco con borde de tinta (hover adobe-2), enlace subrayado con hover teja. Campos con borde de tinta al enfocar. Avisos de información en adobe-2 con ícono burdeos.
+- **Portadas por sección:** "Dónde descansan" y la portada pública/entrada en burdeos; la franja "¿Tienes algo de la familia?" en parra. Fondos de página: adobe con motas.
+- **Ficha de persona:** inicial en foto con esquineros (color según sexo, siempre con el parentesco dicho con palabras); hechos con año en sello redondo burdeos.
+- **Mapa de orígenes:** la escala de comunas va de trigo claro a burdeos (1, 2, 3, 4 o más antepasados) y el lugar por confirmar con rayas teja; la cantidad siempre está escrita en el marcador y en la lista. Los nombres de las comunas con datos van siempre visibles.
+- **Árbol:** fondo de álbum (adobe con motas) y alero de tejas bajo la cabecera, como en el resto de la app. Tarjeta de papel blanco con borde adobe, barra de acento por sexo y avatar tintado; nombre en Atkinson y fecha en Special Elite con las palabras de Inicio ("nació 1935", "falleció"). Si se sabe dónde está sepultado, una tercera línea con alfiler y el nombre corto del cementerio ("Parque de Auco"; el nombre completo va en la ficha); con ella el nombre se limita a 2 líneas. En el teléfono la cabecera es de dos filas: Volver y el zoom bajan a 132 px. Tarjetas de 250×104 px con nombre de 16 px y fecha de 14 px; los controles de la tarjeta (flechas 28 px, "+" y comprimir 24 px) tienen área táctil de 44 a 48 px. Tarjetas y controles se alcanzan con Tab (Enter o Espacio los activan) con anillo de tinta de 3 px. Botones de zoom con ícono SVG de tinta (`text-ink` explícito en la raíz: sin él heredan el texto claro del modo oscuro del sistema). Colores de la leyenda: hombre #3f7fcb, mujer #c44f72 (los de la tarjeta, no los azul/rosa de la guía). Las flechas de arriba y abajo son pastillas con su palabra ("Padres", "Hijos", "Hermanos", "Pareja"); las laterales siguen siendo círculos. El área táctil de los controles llega a 56 px a escala 1 para no bajar de 44 px en el teléfono (escala 0,8). La persona del centro lleva borde burdeos de 3 px y la pestaña "Centro". El sexo se lee también por la forma: la silueta de mujer lleva el pelo hasta los hombros y la tarjeta dice "Hombre" o "Mujer" a quien usa lector de pantalla (la leyenda muestra ambas siluetas). "Ver todo" nunca baja de 0,7 de escala (0,8 en el teléfono): si el árbol entero no cabe así, se centra en el tronco y avisa. Si abrir una rama deja fuera de la vista a la persona central, el árbol se encuadra entero cuando cabe a escala legible (≥0,7); si no, aparece el aviso "Parte del árbol quedó fuera de la vista" con "Ver todo". Botones flotantes de 48 px: Volver, Ayuda y Zoom (+, −, ver todo). La marca de "documento por revisar" es teja.
+- **Color `terra`** quedó igual a la teja (#a8432a) para que los enlaces antiguos cumplan AA.
+- Esto reemplaza "El archivo del abuelo", "un solo acento terracota" y "botón negro principal". Special Elite queda para el logo, números, años y pies de foto.
+
 ## Overview
 
 **Creative North Star: "El archivo del abuelo"**
@@ -97,7 +135,7 @@ Un cajón de documentos familiares: fichas mecanografiadas, papel crema, tinta d
 La densidad es baja y la jerarquía es obvia. La máquina de escribir se reserva para la voz del archivo (logo, títulos); el resto es Atkinson Hyperlegible, diseñada para distinguir letras parecidas. La accesibilidad no es una capa añadida: es la guía de estilo ("Un archivo que toda la familia pueda usar").
 
 **Key Characteristics:**
-- Un botón negro principal por pantalla.
+- Un botón principal de teja por pantalla.
 - Mínimo 48 px de alto en lo táctil, texto de 18 px (nunca menos de 16 px).
 - Íconos siempre acompañados de su palabra.
 - Sexo en el árbol por color de acento (azul/rosa), nunca solo por color: también barra y silueta.
@@ -124,12 +162,12 @@ Tinta cálida sobre papel envejecido, con un único acento terracota. Azul y ros
 - **Rojo de aviso** (#b3261e) y **Verde listo** (#1f6b43): errores y confirmaciones, siempre con ícono y palabra.
 
 ### Named Rules
-**The One Seal Rule.** El terracota es el único acento; no se suman otros.
+**The One Action Color Rule.** La teja es el único color de acción; trigo, parra y burdeos solo categorizan o enmarcan, siempre con palabra o ícono.
 **The Never Color Alone Rule.** Ningún estado ni sexo se comunica solo con color.
 
 ## Typography
 
-**Display Font:** Special Elite (con Courier New, monospace)
+**Display Font:** Zilla Slab (títulos) y Special Elite (logo, números, años, pies de foto)
 **Body Font:** Atkinson Hyperlegible (con system-ui)
 
 **Character:** Máquina de escribir para la voz del archivo, y una sans pensada para baja visión para todo lo demás.
@@ -145,7 +183,7 @@ Tinta cálida sobre papel envejecido, con un único acento terracota. Azul y ros
 El tamaño se escala con el control "A A A": todo en rem.
 
 ### Named Rules
-**The Typewriter Voice Rule.** Special Elite solo en logo, títulos y cifras destacadas; nunca en texto de lectura.
+**The Typewriter Voice Rule.** Special Elite solo en logo, años, números y pies de foto; los títulos van en Zilla Slab; nunca ninguna de las dos en texto de lectura.
 
 ## Layout
 
@@ -165,8 +203,8 @@ Forma redondeada y generosa: píldoras (9999px) para botones y filtros, 16 px pa
 ## Components
 
 ### Buttons
-- **Principal:** píldora negra, texto blanco 18 px bold, 48 px de alto; hover a grafito. Uno por pantalla.
-- **Secundario:** píldora blanca con borde negro de 2 px; hover a papel.
+- **Principal:** píldora teja, texto blanco 18 px bold, 48 px de alto; hover a burdeos. Uno por pantalla.
+- **Secundario:** píldora blanca con borde negro de 2 px; hover a adobe-2.
 - **Enlace:** subrayado de 2 px; hover terracota.
 - **Foco:** anillo azul de 3 px con separación de 2 px.
 
@@ -180,21 +218,21 @@ Toda la tarjeta es tocable: inicial en cuadrado redondeado (azul/rosa/papel), no
 Caja suave con ícono circular y palabra: información, listo, atención.
 
 ### Selector segmentado
-Píldora con borde, opciones de 44 px; la activa en negro.
+Píldora con borde, opciones de 44 px; la activa en burdeos.
 
 ### Tarjeta del árbol (signature)
-Ficha con avatar circular blanco con silueta (niño/niña con forma propia), nombre en negrita 14 px, fecha en 11,5 px, fondo tintado por sexo y barra de acento izquierda; el tronco lleva un anillo del color de su acento. Líneas de conexión grises (#a3b0c2) con codo recto.
+Ficha con avatar circular blanco con silueta (niño/niña con forma propia), nombre en negrita 16 px, fecha en 14 px, fondo tintado por sexo y barra de acento izquierda; el tronco lleva un anillo del color de su acento. Líneas de conexión grises (#a3b0c2) con codo recto.
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** usar un solo botón negro principal por pantalla.
+- **Do** usar un solo botón de teja principal por pantalla.
 - **Do** mantener 48 px mínimo en todo lo tocable y texto de 18 px (16 px como piso).
 - **Do** acompañar cada ícono con su palabra y cada color de estado con texto.
 - **Do** escribir mensajes de conversación en español de Chile.
 
 ### Don't:
-- **Don't** introducir un segundo color de acento.
+- **Don't** usar trigo, parra o burdeos como color de acción.
 - **Don't** usar Special Elite para párrafos.
 - **Don't** añadir sombras a botones, campos o listas.
 - **Don't** reducir texto bajo 16 px fuera del árbol.

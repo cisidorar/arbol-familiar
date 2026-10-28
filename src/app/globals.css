@@ -14,11 +14,19 @@
   --color-paper: #f4f1ea;
   --color-gris: #4a4740;
   --color-line: #d6d2ca;
-  --color-terra: #c4572e;
+  --color-terra: #a8432a;
   --color-hombre: #2f66b8;
   --color-mujer: #b03a62;
   --color-aviso: #b3261e;
   --color-listo: #1f6b43;
+  /* Valle del Maipo hacia 1900 (inicio): teja, trigo, parra, burdeos sobre adobe. */
+  --color-teja: #a8432a;
+  --color-trigo: #d9a441;
+  --color-parra: #3f5b34;
+  --color-burdeos: #6e1f2e;
+  --color-adobe: #f4e9d3;
+  --color-adobe-2: #e9d8b6;
+  --font-slab: var(--font-zilla), "Rockwell", Georgia, serif;
   --font-body: var(--font-atkinson), "Atkinson Hyperlegible", system-ui, sans-serif;
   --font-maquina: var(--font-special-elite), "Courier New", Courier, monospace;
 }
@@ -53,16 +61,16 @@ div.f3 {
   /* color = acento (barra izquierda + silueta), border = contorno fino,
      bg = relleno de la tarjeta */
   --male-color: #3f7fcb;
-  --male-border: #a3c4ea;
-  --male-bg: #dfeaf8;
+  --male-border: #d9c9a3;
+  --male-bg: #ffffff;
   --female-color: #c44f72;
-  --female-border: #ecb3c3;
-  --female-bg: #fbe6ec;
+  --female-border: #d9c9a3;
+  --female-bg: #ffffff;
   --genderless-color: #8a97a8;
-  --genderless-border: #cbd3dd;
-  --genderless-bg: #f1f4f8;
-  --text-color: #111111;
-  --text-muted: #4a5468;
+  --genderless-border: #d9c9a3;
+  --genderless-bg: #ffffff;
+  --text-color: #1a1816;
+  --text-muted: #4a4740;
 }
 
 /* Tarjeta: avatar a la izquierda, nombre y fecha a la derecha, en grilla
@@ -71,6 +79,7 @@ div.f3 div.card-rect {
   --accent: var(--genderless-color);
   --edge: var(--genderless-border);
   --fill: var(--genderless-bg);
+  --tint: #eef0f3;
   --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a97a8'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8'/%3E%3C/svg%3E");
 
   position: relative;
@@ -86,8 +95,8 @@ div.f3 div.card-rect {
   border-left: 6px solid var(--accent);
   border-radius: 10px;
   box-shadow:
-    0 1px 2px rgba(30, 42, 68, 0.06),
-    0 6px 14px rgba(30, 42, 68, 0.1);
+    0 1px 2px rgba(30, 26, 23, 0.06),
+    0 6px 14px rgba(30, 26, 23, 0.1);
   transition: box-shadow 0.2s ease-in-out, transform 0.2s ease-in-out;
 }
 
@@ -101,6 +110,7 @@ div.f3 div.card-male .card-inner.card-rect {
   --accent: var(--male-color);
   --edge: var(--male-border);
   --fill: var(--male-bg);
+  --tint: #dfeaf8;
   --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233f7fcb'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8'/%3E%3C/svg%3E");
   background: var(--fill);
 }
@@ -109,7 +119,9 @@ div.f3 div.card-female .card-inner.card-rect {
   --accent: var(--female-color);
   --edge: var(--female-border);
   --fill: var(--female-bg);
-  --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23c44f72'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8'/%3E%3C/svg%3E");
+  --tint: #fbe6ec;
+  /* Pelo largo hasta los hombros: la silueta de mujer se distingue de la de hombre sin depender del color. */
+  --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23c44f72'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M7.4 8h9.2v7.4c0 .6-.4 1-1 1H8.4c-.6 0-1-.4-1-1z'/%3E%3Cpath d='M4 21c0-4.4 3.6-6.6 8-6.6s8 2.200 8 6.600z'/%3E%3C/svg%3E");
   background: var(--fill);
 }
 
@@ -133,15 +145,15 @@ div.f3 div.card-female.card-child .card-inner.card-rect {
 div.f3 div.card-rect::before {
   content: "";
   grid-column: 1;
-  grid-row: 1 / span 2;
+  grid-row: 1 / span 3;
   align-self: center;
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: #ffffff var(--icon) center / 24px 24px no-repeat;
+  background: var(--tint) var(--icon) center / 24px 24px no-repeat;
   box-shadow:
-    0 0 0 1px rgba(30, 42, 68, 0.05),
-    0 1px 3px rgba(30, 42, 68, 0.14);
+    0 0 0 1px rgba(30, 26, 23, 0.05),
+    0 1px 3px rgba(30, 26, 23, 0.14);
 }
 
 /* Nombre */
@@ -149,8 +161,8 @@ div.f3 div.card-rect > div:nth-of-type(1) {
   grid-column: 2;
   grid-row: 1;
   align-self: end;
-  font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-  font-size: 14px;
+  font-family: var(--font-body);
+  font-size: 16px;
   font-weight: 700;
   line-height: 1.25;
   overflow-wrap: anywhere;
@@ -162,13 +174,44 @@ div.f3 div.card-rect > div:nth-of-type(1) {
   overflow: hidden;
 }
 
-/* Fecha (o † si falleció sin fecha conocida) */
+/* Con cementerio en la tarjeta, el nombre se limita a 2 líneas para que todo quepa en los 104 px. */
+div.f3 div.card-rect:has(> div:nth-of-type(3):not(:empty)) > div:nth-of-type(1) {
+  -webkit-line-clamp: 2;
+}
+
+/* Cementerio donde está sepultado (solo si se sabe): una línea con un alfiler de lugar. */
+div.f3 div.card-rect > div:nth-of-type(3) {
+  grid-column: 2;
+  grid-row: 3;
+  align-self: start;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.3;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+div.f3 div.card-rect > div:nth-of-type(3):not(:empty)::before {
+  content: "";
+  flex: none;
+  width: 14px;
+  height: 14px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234a4740' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z'/%3E%3Ccircle cx='12' cy='9.5' r='2.5'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+/* Fecha (o "falleció" si no se conoce el año) */
 div.f3 div.card-rect > div:nth-of-type(2) {
   grid-column: 2;
   grid-row: 2;
   align-self: start;
   margin-top: 2px;
-  font-size: 11.5px;
+  font-family: var(--font-maquina);
+  font-size: 14px;
   line-height: 1.3;
   color: var(--text-muted);
 }
@@ -177,8 +220,8 @@ div.f3 div.card-rect > div:nth-of-type(2) {
    halo negro (pensado para fondo oscuro) por una sombra suave. */
 div.f3 div.card:hover .card-inner {
   box-shadow:
-    0 2px 4px rgba(30, 42, 68, 0.08),
-    0 10px 20px rgba(30, 42, 68, 0.14);
+    0 2px 4px rgba(30, 26, 23, 0.08),
+    0 10px 20px rgba(30, 26, 23, 0.14);
 }
 
 /* Tronco del árbol: anillo del color de acento de la propia tarjeta. */
@@ -186,8 +229,25 @@ div.f3 div.card-main .card-inner,
 div.f3 div.card-main:hover .card-inner {
   outline: none;
   box-shadow:
-    0 0 0 3px color-mix(in srgb, var(--accent) 38%, transparent),
-    0 6px 16px rgba(30, 42, 68, 0.16);
+    0 0 0 3px var(--color-burdeos),
+    0 6px 16px rgba(30, 26, 23, 0.16);
+}
+/* Marca de la persona del centro del árbol: una pestañita burdeos sobre la tarjeta. */
+div.f3 div.card-main::after {
+  content: "Centro";
+  position: absolute;
+  top: -12px;
+  left: 14px;
+  z-index: 3;
+  padding: 1px 10px;
+  border-radius: 9999px;
+  background: var(--color-burdeos);
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+  pointer-events: none;
 }
 
 /* Líneas de conexión: la librería las dibuja blancas (pensadas para fondo
@@ -196,14 +256,14 @@ div.f3 div.card-main:hover .card-inner {
    "round" ese codo se ve como un vértice filoso, casi como si fueran dos
    líneas distintas que se cruzan en vez de una sola doblando. */
 div.f3 path.link {
-  stroke: #a3b0c2 !important;
+  stroke: #a89f8c !important;
   stroke-width: 2px;
   stroke-linejoin: round;
   stroke-linecap: round;
 }
 
 div.f3 path.link.f3-path-to-main {
-  stroke: #5b6b85 !important;
+  stroke: #6e1f2e !important;
   stroke-width: 3px;
 }
 
@@ -232,37 +292,37 @@ div.f3 div.mini-tree[data-dir="recenter"] svg {
 
 div.f3 div.mini-tree rect.card-male,
 div.f3 div.mini-tree rect.card-female {
-  fill: #b4bcc8 !important;
+  fill: #b3a68c !important;
   transition: fill 0.15s ease-in-out;
 }
 
 div.f3 div.mini-tree line {
-  stroke: #b4bcc8;
+  stroke: #b3a68c;
   stroke-width: 1.5px;
   transition: stroke 0.15s ease-in-out;
 }
 
 div.f3 div.mini-tree:hover rect.card-male,
 div.f3 div.mini-tree:hover rect.card-female {
-  fill: #5b6b85 !important;
+  fill: #6e1f2e !important;
 }
 
 div.f3 div.mini-tree:hover line {
-  stroke: #5b6b85;
+  stroke: #6e1f2e;
 }
 
 div.f3 div.mini-tree:is([data-dir="up"], [data-dir="down"], [data-dir="left"], [data-dir="right"]) {
-  --arrow: #5b6b85;
+  --arrow: #4a4740;
   box-sizing: border-box;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   right: auto;
   display: grid;
   place-items: center;
-  border: 1.5px solid #b4bcc8;
+  border: 1.5px solid #8f8472;
   border-radius: 9999px;
-  background: #ffffff;
-  box-shadow: 0 1px 2px rgb(15 23 42 / 0.08);
+  background: var(--color-adobe);
+  box-shadow: 0 1px 2px rgb(30 26 23 / 0.12);
   transition:
     background-color 0.15s ease-in-out,
     border-color 0.15s ease-in-out;
@@ -270,6 +330,29 @@ div.f3 div.mini-tree:is([data-dir="up"], [data-dir="down"], [data-dir="left"], [
 
 div.f3 div.mini-tree:is([data-dir="up"], [data-dir="down"], [data-dir="left"], [data-dir="right"]) svg {
   display: none;
+}
+
+/* Arriba y abajo hay lugar para la palabra ("Padres", "Hijos"): una pastilla en vez de un círculo mudo. */
+div.f3 div.mini-tree:is([data-dir="up"], [data-dir="down"]) {
+  width: auto;
+  min-width: 28px;
+  height: 30px;
+  gap: 6px;
+  grid-auto-flow: column;
+  padding: 0 12px 0 10px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+div.f3 div.mini-tree .mini-label {
+  display: none;
+}
+div.f3 div.mini-tree:is([data-dir="up"], [data-dir="down"]) .mini-label {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--arrow);
 }
 
 /* La flecha: dos bordes de un cuadradito girado. */
@@ -284,13 +367,41 @@ div.f3 div.mini-tree:is([data-dir="up"], [data-dir="down"], [data-dir="left"], [
 
 div.f3 div.mini-tree:is([data-dir="up"], [data-dir="down"], [data-dir="left"], [data-dir="right"]):hover {
   --arrow: #ffffff;
-  background: #5b6b85;
-  border-color: #5b6b85;
+  background: #6e1f2e;
+  border-color: #6e1f2e;
+}
+
+/* Área táctil de 44 a 48 px alrededor de los controles de la tarjeta (el dibujo se queda chico para no estorbar). */
+div.f3 div.mini-tree:is([data-dir="up"], [data-dir="down"], [data-dir="left"], [data-dir="right"])::after,
+div.f3 div.card-add::after,
+div.f3 div.card-collapse::after {
+  content: "";
+  position: absolute;
+  inset: -14px; /* en el teléfono el árbol va a 0,8: así sigue pasando de 44 px */
+}
+
+/* Foco con teclado: la tarjeta y sus controles se ven enfocados (anillo de tinta de 3 px, como en el resto de la app). */
+div.f3 div.card:focus-visible,
+div.f3 div.mini-tree:focus-visible,
+div.f3 div.card-add:focus-visible,
+div.f3 div.card-collapse:focus-visible {
+  outline: 3px solid var(--color-ink);
+  outline-offset: 3px;
+}
+div.f3 div.card:focus-visible {
+  border-radius: 12px;
+}
+div.f3 div.mini-tree:focus-visible,
+div.f3 div.card-add:focus-visible,
+div.f3 div.card-collapse:focus-visible {
+  /* Un halo claro por fuera para que se lea también sobre las tarjetas de color. */
+  box-shadow: 0 0 0 6px var(--color-adobe);
+  z-index: 4;
 }
 
 div.f3 div.mini-tree[data-dir="up"] {
-  top: -32px;
-  left: calc(50% - 13px);
+  top: -36px;
+  left: 50%;
 }
 div.f3 div.mini-tree[data-dir="up"]::before {
   transform: translateY(2px) rotate(45deg);
@@ -298,23 +409,23 @@ div.f3 div.mini-tree[data-dir="up"]::before {
 
 div.f3 div.mini-tree[data-dir="down"] {
   top: auto;
-  bottom: -32px;
-  left: calc(50% - 13px);
+  bottom: -36px;
+  left: 50%;
 }
 div.f3 div.mini-tree[data-dir="down"]::before {
   transform: translateY(-2px) rotate(225deg);
 }
 
 div.f3 div.mini-tree[data-dir="left"] {
-  top: calc(50% - 13px);
-  left: -32px;
+  top: calc(50% - 14px);
+  left: -34px;
 }
 div.f3 div.mini-tree[data-dir="left"]::before {
   transform: translateX(2px) rotate(-45deg);
 }
 
 div.f3 div.mini-tree[data-dir="right"] {
-  top: calc(50% - 13px);
+  top: calc(50% - 14px);
   left: calc(100% + 6px);
 }
 div.f3 div.mini-tree[data-dir="right"]::before {
@@ -327,41 +438,42 @@ div.f3 div.mini-tree[data-dir="right"]::before {
    sin depender de la letra. */
 div.f3 div.card-add {
   position: absolute;
-  top: 5px;
-  right: 5px;
+  top: 4px;
+  right: 4px;
   z-index: 2;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   border-radius: 9999px;
   background:
-    linear-gradient(#5b6b85, #5b6b85) center / 10px 2px no-repeat,
-    linear-gradient(#5b6b85, #5b6b85) center / 2px 10px no-repeat,
-    rgb(255 255 255 / 0.75);
-  box-shadow: 0 0 0 1px rgb(91 107 133 / 0.25);
+    linear-gradient(#4a4740, #4a4740) center / 12px 2px no-repeat,
+    linear-gradient(#4a4740, #4a4740) center / 2px 12px no-repeat,
+    var(--color-adobe);
+  box-shadow: 0 0 0 1px rgb(74 71 64 / 0.4);
   cursor: pointer;
-  opacity: 0.55;
+  opacity: 0.75;
   transition:
     opacity 0.15s ease-in-out,
     box-shadow 0.15s ease-in-out;
 }
 
-div.f3 div.card:hover div.card-add {
+div.f3 div.card:hover div.card-add,
+div.f3 div.card:focus-within div.card-add {
   opacity: 1;
 }
 
 div.f3 div.card-add:hover {
   background:
-    linear-gradient(#ffffff, #ffffff) center / 10px 2px no-repeat,
-    linear-gradient(#ffffff, #ffffff) center / 2px 10px no-repeat,
-    #5b6b85;
-  box-shadow: 0 0 0 1px #5b6b85;
+    linear-gradient(#ffffff, #ffffff) center / 12px 2px no-repeat,
+    linear-gradient(#ffffff, #ffffff) center / 2px 12px no-repeat,
+    #6e1f2e;
+  box-shadow: 0 0 0 1px #6e1f2e;
 }
 
 /* Marca «hay un documento por revisar»: borde ámbar y una insignia (un documento con lupa)
    en la esquina de arriba a la izquierda, por fuera de la tarjeta para no tapar el nombre.
    Se prende y apaga en la ficha de la persona. */
 div.f3 div.card.card-review .card-inner {
-  outline: 3px solid #e08a00;
+  outline: 3px solid var(--color-teja);
   outline-offset: 1px;
 }
 
@@ -376,8 +488,8 @@ div.f3 div.card-review-flag {
   background:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 3h8l4 4v6'/%3E%3Cpath d='M6 3v18h6'/%3E%3Ccircle cx='16' cy='17' r='3'/%3E%3Cpath d='M18.2 19.2 21 22'/%3E%3C/svg%3E")
       center / 16px 16px no-repeat,
-    #e08a00;
-  box-shadow: 0 0 0 2px #fff;
+    var(--color-teja);
+  box-shadow: 0 0 0 2px var(--color-adobe);
   pointer-events: none;
 }
 
@@ -386,13 +498,13 @@ div.f3 div.card-review-flag {
    tarjeta (hacia donde se pliegan). */
 div.f3 div.card-collapse {
   position: absolute;
-  top: calc(50% - 11px);
+  top: calc(50% - 12px);
   z-index: 3;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border-radius: 9999px;
-  background: #5b6b85;
-  box-shadow: 0 0 0 1px #5b6b85;
+  background: #4a4740;
+  box-shadow: 0 0 0 1px #4a4740;
   cursor: pointer;
   opacity: 0.9;
   transition: opacity 0.15s ease-in-out, background 0.15s ease-in-out;
@@ -443,12 +555,12 @@ div.f3 div.card-collapse:hover {
 /* Al navegar con teclado se ve un borde azul. */
 .zb :focus-visible,
 .zb:focus-visible {
-  outline: 3px solid var(--color-hombre);
-  outline-offset: 2px;
+  outline: 3px solid var(--color-ink);
+  outline-offset: 3px;
 }
 
-.zb-titulo { font-family: var(--font-maquina); font-size: clamp(2rem, 6vw, 2.75rem); line-height: 1.12; font-weight: 400; }
-.zb-seccion { font-family: var(--font-maquina); font-size: clamp(1.6rem, 4.5vw, 2rem); line-height: 1.2; font-weight: 400; }
+.zb-titulo { font-family: var(--font-slab); font-size: clamp(2rem, 6vw, 2.75rem); line-height: 1.12; font-weight: 700; }
+.zb-seccion { font-family: var(--font-slab); font-size: clamp(1.6rem, 4.5vw, 2rem); line-height: 1.2; font-weight: 700; }
 .zb-nombre { font-size: 1.25rem; line-height: 1.3; font-weight: 700; }
 .zb-texto { font-size: 1.125rem; line-height: 1.55; }
 .zb-apoyo { font-size: 1rem; line-height: 1.5; color: var(--color-gris); }
@@ -459,26 +571,94 @@ div.f3 div.card-collapse:hover {
 /* Teléfono: espacio abajo para la barra de secciones (MobileTabBar), salvo en el árbol. */
 @media (max-width: 639.98px) {
   body:has(.zb-tabbar[data-pad]) {
-    padding-bottom: calc(4.25rem + env(safe-area-inset-bottom));
+    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
   }
 }
 
 /* Inicio: la tarjeta "Te tocó" (sorteo de antepasado). */
 @keyframes azb-shake {
-  0%, 100% { transform: rotate(-3deg) translate(0, 0); }
-  20% { transform: rotate(-6deg) translate(-4px, 2px); }
-  40% { transform: rotate(0deg) translate(5px, -3px); }
-  60% { transform: rotate(-5deg) translate(-3px, -2px); }
-  80% { transform: rotate(-1deg) translate(4px, 3px); }
+  0%, 100% { transform: translateY(-8px) rotate(-5deg) scale(1.04); }
+  25% { transform: translateY(-12px) rotate(1deg) scale(1.05); }
+  50% { transform: translateY(-6px) rotate(-7deg) scale(1.04); }
+  75% { transform: translateY(-11px) rotate(0deg) scale(1.05); }
 }
 @keyframes azb-drop {
-  0% { transform: translateY(-70px) rotate(14deg) scale(0.88); opacity: 0; }
-  55% { transform: translateY(8px) rotate(-6deg) scale(1.02); opacity: 1; }
-  78% { transform: translateY(-3px) rotate(-2deg) scale(1); }
+  0% { transform: translateY(-80px) rotate(12deg) scale(0.9); opacity: 0; }
+  50% { transform: translateY(10px) rotate(-5deg) scale(1.02); opacity: 1; }
+  70% { transform: translateY(-4px) rotate(-2deg) scale(1); }
   100% { transform: translateY(0) rotate(-3deg) scale(1); opacity: 1; }
 }
+/* La foto se "revela": de sepia borrosa a nítida, como una foto que se revela. */
+@keyframes azb-revela {
+  0% { filter: sepia(1) blur(7px) brightness(1.5); }
+  60% { filter: sepia(0.6) blur(1.5px) brightness(1.1); }
+  100% { filter: none; }
+}
+/* El nombre sube como en un tambor de sorteo. */
+@keyframes azb-reel {
+  0% { transform: translateY(70%); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+@keyframes azb-fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.azb-revela { animation: azb-revela 0.9s ease-out both; }
+.azb-reel { animation: azb-reel 0.11s ease-out both; }
+.azb-fade { animation: azb-fade 0.5s 0.35s ease-out both; }
 .azb-shake { animation: azb-shake 0.32s linear infinite; }
 .azb-drop { animation: azb-drop 0.75s cubic-bezier(0.2, 0.8, 0.3, 1) both; }
 @media (prefers-reduced-motion: reduce) {
-  .azb-shake, .azb-drop { animation: none; transform: rotate(-3deg); }
+  .azb-shake, .azb-drop, .azb-revela, .azb-reel, .azb-fade { animation: none; }
+  .azb-shake, .azb-drop { transform: rotate(-3deg); }
 }
+
+/* Inicio "Álbum de la parra": adobe con motas, alero de tejas, fotos con esquineros y sellos. */
+.album {
+  background-color: var(--color-adobe);
+  background-image: radial-gradient(rgba(110, 31, 46, 0.06) 1px, transparent 1.5px);
+  background-size: 14px 14px;
+}
+.zb .on-dark :focus-visible, .zb.on-dark :focus-visible { outline-color: #fff; }
+.album .zb-etiqueta { font-size: 1rem; }
+/* Regla de título: filete burdeos con punto de trigo, como en una etiqueta de botella. */
+.al-regla::after {
+  content: ""; display: block; width: 4.5rem; height: 6px; margin-top: 0.6rem;
+  background: radial-gradient(circle, var(--color-trigo) 0 3px, transparent 3.5px) right center / 12px 6px no-repeat,
+    linear-gradient(var(--color-burdeos), var(--color-burdeos)) left center / calc(100% - 16px) 2px no-repeat;
+}
+/* Tapa de álbum: puntada dentro del borde. */
+.tapa { position: relative; }
+.tapa::after {
+  content: ""; position: absolute; inset: 0.6rem; border: 2px dashed currentColor; opacity: 0.4; border-radius: 1.2rem; pointer-events: none;
+}
+/* Sello redondo de la cabecera (decorativo). */
+.sello-redondo { color: var(--color-burdeos); }
+@media (prefers-reduced-motion: no-preference) {
+  .al-mueve { transition: transform 200ms ease-out, background-color 200ms ease-out, color 200ms ease-out; }
+  .al-mueve:active { transform: scale(0.98); }
+}
+.al-titulo { font-family: var(--font-slab); font-weight: 700; font-size: clamp(1.6rem, 4.5vw, 2rem); line-height: 1.2; }
+
+/* Alero: franja de teja con borde de tejas colgando. */
+.alero { height: 1.25rem; background: var(--color-teja); }
+.alero-tejas {
+  height: 1.1rem;
+  background: radial-gradient(circle at 50% 0, var(--tj, var(--color-teja)) 0 1rem, transparent 1.05rem) 0 0 / 2.2rem 1.1rem repeat-x;
+}
+
+/* Foto de álbum: papel blanco con esquineros burdeos. */
+.foto { position: relative; background: #fff; box-shadow: 0 6px 18px rgba(30, 26, 23, 0.35); }
+.foto::before, .foto::after, .foto > .esq-a, .foto > .esq-b {
+  content: ""; position: absolute; width: 1.6rem; height: 1.6rem; background: var(--color-burdeos); pointer-events: none;
+}
+.foto::before { top: 0; left: 0; clip-path: polygon(0 0, 100% 0, 0 100%); }
+.foto::after { top: 0; right: 0; clip-path: polygon(0 0, 100% 0, 100% 100%); }
+.foto > .esq-a { bottom: 0; left: 0; clip-path: polygon(0 0, 0 100%, 100% 100%); }
+.foto > .esq-b { bottom: 0; right: 0; clip-path: polygon(100% 0, 100% 100%, 0 100%); }
+
+/* Sello postal: borde dentado hecho con un filete punteado por dentro. */
+.sello { position: relative; border-radius: 6px; }
+.sello::after {
+  content: ""; position: absolute; inset: 0.6rem; border: 2px dashed currentColor; opacity: 0.55; border-radius: 3px; pointer-events: none;
+}
+
+/* Cinta adhesiva de la nota pegada. */
+.cinta { position: absolute; top: -0.75rem; left: 50%; width: 6rem; height: 1.5rem; background: var(--color-trigo); opacity: 0.85; transform: translateX(-50%) rotate(2deg); }

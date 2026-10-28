@@ -1,5 +1,6 @@
 import { viewerCanReview } from "./review";
 import { COMUNAS } from "../geo/places";
+import { canonicalCemetery } from "../geo/cemeteries";
 import { REGION_NAMES } from "../geo/regions-light";
 import { getPool } from "../db/pool";
 import { approxAgeAtDeath, dateForEditing, diedAsChild, researchFactForm } from "../edit";
@@ -41,7 +42,10 @@ export async function getFamilyChartData(treeId: string) {
             n.given_names, n.surname_pat, n.surname_mat, n.display_name,
             (select date_from from events e where e.person_id = p.id and e.event_type = 'BIRT' order by e.date_from nulls last, e.id limit 1) as birth_from,
             (select date_from from events e where e.person_id = p.id and e.event_type = 'DEAT' order by e.date_from nulls last, e.id limit 1) as death_from,
-            (select description from events e where e.person_id = p.id and e.event_type = 'DEAT' order by e.date_from nulls last, e.id limit 1) as death_text
+            (select description from events e where e.person_id = p.id and e.event_type = 'DEAT' order by e.date_from nulls last, e.id limit 1) as death_text,
+            (select pl.raw_text from events e join places pl on pl.id = e.place_id
+              where e.person_id = p.id and e.event_type = 'BURI' and btrim(pl.raw_text) <> ''
+              order by e.date_from nulls last, e.id limit 1) as burial_place
      from persons p
      left join person_names n on n.person_id = p.id and n.is_primary
      where p.tree_id = $1`,
@@ -113,6 +117,17 @@ export async function getFamilyChartData(treeId: string) {
   }));
 }
 
+/** El cementerio para la tarjeta; vacío si no se sabe cuál es (o si fue cremación). */
+function cemeteryLabel(raw: string | null | undefined): string {
+  const info = raw ? canonicalCemetery(raw, true) : null;
+  if (!info || info.kind === "unknown" || info.kind === "not-a-place") return "";
+  // Cabe una línea de ~20 letras: sin la comuna ni "Cementerio" si lo que queda sigue diciendo cuál es
+  // ("Parque del Recuerdo", pero "Cementerio General" se queda entero). La ficha lo muestra completo.
+  const site = info.display.split(",")[0].trim();
+  const short = site.replace(/^cementerio\s+/i, "");
+  return short.split(/\s+/).length >= 2 ? short : site;
+}
+
 /** Lo que muestra la tarjeta de una persona en el árbol. */
 function cardData(p: {
   sex: string | null;
@@ -125,6 +140,7 @@ function cardData(p: {
   birth_from: string | Date | null;
   death_from: string | Date | null;
   death_text: string | null;
+  burial_place?: string | null;
 }, showReview = false) {
   const birthYear = yearOf(p.birth_from);
   const deathYear = yearOf(p.death_from);
@@ -143,6 +159,8 @@ function cardData(p: {
       return birthYear == null && deathYear != null && age != null ? deathYear - age : null;
     })(),
     death_year: deathYear,
+    // Dónde está sepultado (el nombre del cementerio, sin la comuna repetida ni "Chile"): la tarjeta lo muestra.
+    cemetery_label: cemeteryLabel(p.burial_place),
     is_living: p.is_living,
     // Hay un documento por revisar (marca que se prende en la ficha): se señala en la tarjeta.
     needs_review: showReview && Boolean(p.needs_review),
@@ -163,7 +181,10 @@ export async function getPersonCard(treeId: string, personId: string) {
             n.given_names, n.surname_pat, n.surname_mat, n.display_name,
             (select date_from from events e where e.person_id = p.id and e.event_type = 'BIRT' order by e.date_from nulls last, e.id limit 1) as birth_from,
             (select date_from from events e where e.person_id = p.id and e.event_type = 'DEAT' order by e.date_from nulls last, e.id limit 1) as death_from,
-            (select description from events e where e.person_id = p.id and e.event_type = 'DEAT' order by e.date_from nulls last, e.id limit 1) as death_text
+            (select description from events e where e.person_id = p.id and e.event_type = 'DEAT' order by e.date_from nulls last, e.id limit 1) as death_text,
+            (select pl.raw_text from events e join places pl on pl.id = e.place_id
+              where e.person_id = p.id and e.event_type = 'BURI' and btrim(pl.raw_text) <> ''
+              order by e.date_from nulls last, e.id limit 1) as burial_place
      from persons p
      left join person_names n on n.person_id = p.id and n.is_primary
      where p.tree_id = $1 and p.id = $2`,
