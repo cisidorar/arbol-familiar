@@ -98,9 +98,9 @@ function Menu({
       aria-label={`Agregar un familiar de ${of.data.label ?? "esta persona"}`}
       onKeyDown={onKeyDown}
       style={{ left: pos.left, top: pos.top, width: MENU_WIDTH }}
-      className="fixed z-40 overflow-hidden rounded-xl border-2 border-ink bg-white py-1 text-base text-ink shadow-xl"
+      className="fixed z-40 overflow-hidden rounded-xl border-2 border-ink bg-adobe py-1 text-base text-ink shadow-xl"
     >
-      <p className="truncate border-b-2 border-adobe-2 px-3.5 pb-2 pt-1.5 text-base text-gris">
+      <p className="border-b-2 border-ink/20 px-3.5 pb-2 pt-1.5 font-slab text-base text-ink">
         Agregar a la familia de <span className="font-bold text-ink">{of.data.label}</span>
       </p>
       {options.map((option) => (
@@ -110,7 +110,7 @@ function Menu({
           role="menuitem"
           disabled={Boolean(option.blocked)}
           onClick={() => onPick(option.relation)}
-          className="block min-h-12 w-full px-3.5 py-2.5 text-left outline-none hover:bg-adobe-2 focus-visible:bg-adobe-2 focus-visible:outline-3 focus-visible:-outline-offset-3 focus-visible:outline-ink disabled:cursor-not-allowed disabled:hover:bg-white"
+          className="block min-h-12 w-full px-3.5 py-2.5 text-left outline-none hover:bg-adobe-2 focus-visible:bg-adobe-2 focus-visible:outline-3 focus-visible:-outline-offset-3 focus-visible:outline-ink disabled:cursor-not-allowed disabled:hover:bg-adobe"
         >
           <span className={option.blocked ? "text-gris" : undefined}>{option.label}</span>
           {option.blocked && <span className="block text-base text-gris">{option.blocked}</span>}
@@ -362,7 +362,7 @@ function Form({
                 className={inputClass}
               >
                 <option value="1">Viva / vivo</option>
-                <option value="0">Fallecida/o</option>
+                <option value="0">{form.sex === "F" ? "Fallecida" : form.sex === "M" ? "Fallecido" : "Fallecida/o"}</option>
               </select>
             </div>
           </div>

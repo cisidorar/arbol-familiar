@@ -8,6 +8,7 @@ import type { CurrentUser } from "./UserMenu";
 import AddRelative, { type AddTarget } from "./AddRelative";
 import FamilyTree, { type TreeControls } from "./FamilyTree";
 import PersonPanel from "./PersonPanel";
+import { buttonClass } from "./ui";
 
 // Botones de zoom: tinta sobre adobe, con el anillo de foco hacia adentro (el grupo recorta lo que sobresale).
 const ZOOM_BUTTON =
@@ -25,6 +26,8 @@ const ZOOM_ICON = {
 
 export default function TreeApp({ data, user, homeId, selfId }: { data: any[]; user: CurrentUser; homeId?: string | null; selfId?: string | null }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Si la persona del centro del árbol no está a la vista, "Volver a mí" pasa a ser el botón principal.
+  const [centerHidden, setCenterHidden] = useState(false);
   // Sube cada vez que se edita una persona: le avisa al árbol que redibuje sus tarjetas.
   const [version, setVersion] = useState(0);
 
@@ -40,6 +43,8 @@ export default function TreeApp({ data, user, homeId, selfId }: { data: any[]; u
 
   // El "+" de una tarjeta: a quién se le está agregando un familiar.
   const [adding, setAdding] = useState<AddTarget | null>(null);
+  // El control que abrió el menú del "+": el foco vuelve ahí al cerrarlo.
+  const addTriggerRef = useRef<HTMLElement | null>(null);
   // En el teléfono la leyenda va plegada (un botón "?") para no tapar el árbol.
   const [legendOpen, setLegendOpen] = useState(false);
   const controls = useRef<TreeControls | null>(null);
@@ -124,6 +129,13 @@ export default function TreeApp({ data, user, homeId, selfId }: { data: any[]; u
   return (
     // text-ink: sin esto los botones heredan el texto claro del modo oscuro del sistema y, sobre el adobe, no se ven.
     <div className="h-screen w-screen overflow-hidden album text-ink">
+      {/* Para quien recorre con teclado: lo primero que aparece al pulsar Tab; salta la cabecera y las decenas de tarjetas. */}
+      <a
+        href="#despues-del-arbol"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-40 focus:rounded-full focus:border-2 focus:border-ink focus:bg-white focus:px-5 focus:py-3 focus:text-[1.125rem] focus:font-bold focus:text-ink focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ink"
+      >
+        Saltar al árbol
+      </a>
       <AppHeader
         current="arbol"
         user={user}
@@ -137,14 +149,7 @@ export default function TreeApp({ data, user, homeId, selfId }: { data: any[]; u
         }}
       />
 
-      {/* Para quien recorre con teclado: saltar las decenas de tarjetas y llegar a los controles. */}
-      <a
-        href="#despues-del-arbol"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-[104px] focus:z-30 focus:rounded-full focus:border-2 focus:border-ink focus:bg-white focus:px-5 focus:py-3 focus:text-[1.125rem] focus:font-bold focus:text-ink focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ink"
-      >
-        Saltar el árbol
-      </a>
-      <main aria-label="Árbol genealógico" className="h-full w-full">
+      <main aria-label="Árbol genealógico" className="h-full w-full pb-[calc(8.5rem+env(safe-area-inset-bottom))] sm:pb-0">
         <FamilyTree
           data={data}
           mainId={mainId}
@@ -154,10 +159,14 @@ export default function TreeApp({ data, user, homeId, selfId }: { data: any[]; u
           controlsRef={controls}
           onSelectPerson={(id) => setSelectedId(id)}
           selectedId={selectedId}
+          onCenterVisibility={(visible) => setCenterHidden(!visible)}
           onRecenter={recenter}
           onAddRelative={
             canEdit(user.role)
-              ? (id, rect) => setAdding({ personId: id, rect: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom } })
+              ? (id, rect) => {
+                  addTriggerRef.current = document.activeElement as HTMLElement | null;
+                  setAdding({ personId: id, rect: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom } });
+                }
               : undefined
           }
         />
@@ -174,48 +183,74 @@ export default function TreeApp({ data, user, homeId, selfId }: { data: any[]; u
         </button>
       )}
 
-      {/* Acercar, alejar y ver todo: para quien no puede pellizcar la pantalla. */}
-      <div className="absolute right-4 top-[132px] z-10 flex flex-col sm:top-[104px] overflow-hidden rounded-2xl border-2 border-ink bg-adobe" role="group" aria-label="Zoom del árbol">
-        <button type="button" onClick={() => controls.current?.zoomBy(1.3)} aria-label="Acercar el árbol" className={ZOOM_BUTTON}>
-          <svg {...ZOOM_ICON}>
-            <path d="M12 5v14M5 12h14" />
-          </svg>
-        </button>
-        <button type="button" onClick={() => controls.current?.zoomBy(1 / 1.3)} aria-label="Alejar el árbol" className={`${ZOOM_BUTTON} border-t-2 border-ink`}>
-          <svg {...ZOOM_ICON}>
-            <path d="M5 12h14" />
-          </svg>
-        </button>
-        <button type="button" onClick={() => controls.current?.fit()} aria-label="Ver todo el árbol" className={`${ZOOM_BUTTON} border-t-2 border-ink`}>
-          <svg {...ZOOM_ICON}>
-            <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
-          </svg>
-        </button>
+      {/* Controles del árbol en la pantalla grande: arriba a la derecha. En el teléfono van en la barra de abajo. */}
+      <div className="absolute right-4 top-[104px] z-10 hidden flex-col items-end gap-3 sm:flex">
+        {/* Acercar, alejar y ver todo: para quien no puede pellizcar la pantalla. */}
+        <div className="flex flex-col overflow-hidden rounded-2xl border-2 border-ink bg-adobe" role="group" aria-label="Zoom del árbol">
+          <button type="button" onClick={() => controls.current?.zoomBy(1.3)} aria-label="Acercar el árbol" className={ZOOM_BUTTON}>
+            <svg {...ZOOM_ICON}>
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          </button>
+          <button type="button" onClick={() => controls.current?.zoomBy(1 / 1.3)} aria-label="Alejar el árbol" className={`${ZOOM_BUTTON} border-t-2 border-ink`}>
+            <svg {...ZOOM_ICON}>
+              <path d="M5 12h14" />
+            </svg>
+          </button>
+          <button type="button" onClick={() => controls.current?.fit()} aria-label="Ver todo el árbol" className={`${ZOOM_BUTTON} border-t-2 border-ink`}>
+            <svg {...ZOOM_ICON}>
+              <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Volver a la persona de quien mira: si el árbol está centrado en otro, lo recentra; si no, la trae a la vista. */}
+        {viewerId && (
+          <button
+            type="button"
+            onClick={() => (viewerId === mainId ? controls.current?.centerOnMain() : recenter(viewerId))}
+            className={buttonClass(centerHidden ? "principal" : "secundario")}
+          >
+            Volver a mí
+          </button>
+        )}
       </div>
 
-      {/* Volver a la persona de quien mira: si el árbol está centrado en otro, lo recentra; si no, la trae a la vista. */}
-      {viewerId && (
+      {/* Teléfono: una barra propia sobre la de secciones (ayuda, volver a mí, zoom), para no tapar el árbol. */}
+      <div className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-10 flex items-center gap-2 border-t-2 border-ink bg-adobe px-4 py-2 sm:hidden">
         <button
           type="button"
-          onClick={() => (viewerId === mainId ? controls.current?.centerOnMain() : recenter(viewerId))}
-          className="absolute right-4 top-[290px] z-10 flex min-h-12 items-center rounded-full border-2 border-ink bg-adobe px-5 text-[1.125rem] font-bold text-ink hover:bg-adobe-2 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ink sm:top-[262px]"
+          onClick={() => setLegendOpen((o) => !o)}
+          aria-expanded={legendOpen}
+          aria-label={legendOpen ? "Ocultar la ayuda" : "Mostrar la ayuda del árbol"}
+          className="flex min-h-12 items-center gap-2 whitespace-nowrap rounded-full border-2 border-ink bg-adobe px-3 text-[1.125rem] font-bold text-ink focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ink"
         >
-          Volver a mí
+          {legendOpen ? "× Cerrar" : "? Ayuda"}
         </button>
-      )}
-
-      {/* Ayuda: qué significan los colores y qué hace cada toque. */}
-      <button
-        type="button"
-        onClick={() => setLegendOpen((o) => !o)}
-        aria-expanded={legendOpen}
-        aria-label={legendOpen ? "Ocultar la ayuda" : "Mostrar la ayuda del árbol"}
-        className="absolute bottom-[calc(5.5rem+env(safe-area-inset-bottom))] left-4 z-10 flex min-h-12 items-center gap-2 rounded-full border-2 border-ink bg-adobe px-5 text-[1.125rem] font-bold text-ink sm:hidden"
-      >
-        {legendOpen ? "× Cerrar" : "? Ayuda"}
-      </button>
+        {viewerId && (
+          <button
+            type="button"
+            onClick={() => (viewerId === mainId ? controls.current?.centerOnMain() : recenter(viewerId))}
+            className={buttonClass(centerHidden ? "principal" : "secundario", "whitespace-nowrap px-3")}
+          >
+            Volver a mí
+          </button>
+        )}
+        <div className="ml-auto flex overflow-hidden rounded-2xl border-2 border-ink" role="group" aria-label="Zoom del árbol">
+          <button type="button" onClick={() => controls.current?.zoomBy(1 / 1.3)} aria-label="Alejar el árbol" className={ZOOM_BUTTON}>
+            <svg {...ZOOM_ICON}>
+              <path d="M5 12h14" />
+            </svg>
+          </button>
+          <button type="button" onClick={() => controls.current?.zoomBy(1.3)} aria-label="Acercar el árbol" className={`${ZOOM_BUTTON} border-l-2 border-ink`}>
+            <svg {...ZOOM_ICON}>
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          </button>
+        </div>
+      </div>
       <div
-        className={`pointer-events-none absolute bottom-[calc(10rem+env(safe-area-inset-bottom))] left-4 z-10 max-w-[calc(100%-2rem)] flex-col gap-2 rounded-2xl border-2 border-ink bg-adobe px-4 py-3 text-base text-ink sm:bottom-4 sm:flex ${legendOpen ? "flex" : "hidden"}`}
+        className={`pointer-events-none absolute bottom-[calc(9.5rem+env(safe-area-inset-bottom))] left-4 z-10 max-w-[calc(100%-2rem)] flex-col gap-2 rounded-2xl border-2 border-ink bg-adobe px-4 py-3 text-base text-ink sm:bottom-4 sm:max-w-none sm:flex ${legendOpen ? "flex" : "hidden"}`}
       >
         <div className="font-slab text-[1.125rem] font-bold">Cómo leer el árbol</div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
@@ -259,7 +294,11 @@ export default function TreeApp({ data, user, homeId, selfId }: { data: any[]; u
           key={adding.personId}
           target={adding}
           data={data}
-          onClose={() => setAdding(null)}
+          onClose={() => {
+            setAdding(null);
+            const trigger = addTriggerRef.current;
+            setTimeout(() => trigger?.isConnected && trigger.focus?.({ preventScroll: true }), 0);
+          }}
           onAdded={relativeAdded}
         />
       )}
@@ -269,7 +308,15 @@ export default function TreeApp({ data, user, homeId, selfId }: { data: any[]; u
         mainId={mainId}
         homeId={homeId}
         data={data}
-        onClose={() => setSelectedId(null)}
+        onClose={() => {
+          const id = selectedId;
+          setSelectedId(null);
+          // La librería redibuja las tarjetas: se busca la de esta persona (data-id) y se le devuelve el foco.
+          setTimeout(() => {
+            const card = id ? document.querySelector<HTMLElement>(`.f3 .card[data-id="${id}"]`) : null;
+            card?.focus({ preventScroll: true });
+          }, 120);
+        }}
         onPersonChanged={personChanged}
         onPersonDeleted={personDeleted}
         onTreeData={treeData}

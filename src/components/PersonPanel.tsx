@@ -228,7 +228,7 @@ function TimelineItem({
           </div>
         )}
         {e.yearEnd != null && <div className="mt-1 font-maquina text-base leading-tight text-gris">–{e.yearEnd}</div>}
-        {e.age != null && <div className="mt-1 text-base text-gris">Edad ~{e.age}</div>}
+        {e.age != null && <div className="mt-1 text-base text-gris">Edad: unos {e.age}</div>}
       </div>
       {/* Riel de la línea de vida: un punto por hecho, unidos por una línea. */}
       <div className="relative w-5 shrink-0" aria-hidden="true">
@@ -371,6 +371,8 @@ export default function PersonPanel({
   const [justSaved, setJustSaved] = useState(false);
   const [tab, setTab] = useState<Tab>("vida");
   const [withFamily, setWithFamily] = useState(true);
+  // "Más": las acciones menos usadas, para que la línea de vida quede a la vista.
+  const [moreOpen, setMoreOpen] = useState(false);
   const formRef = useRef<FichaFormHandle>(null);
   /** Guarda la fecha tentativa de un hijo/a; devuelve el error, o null si salió bien. */
   const saveChildDate = async (childId: string, date: string): Promise<string | null> => {
@@ -450,6 +452,7 @@ export default function PersonPanel({
     setEditing(null);
     setJustSaved(false);
     setTab("vida");
+    setMoreOpen(false);
     if (!personId) {
       setPerson(null);
       return;
@@ -582,11 +585,18 @@ export default function PersonPanel({
   );
 
   const open = Boolean(personId);
-  // Escape también cierra la ficha (menos al editar).
+  // Escape: cierra primero "Más"; si se está editando, pregunta antes de descartar (requestClose); si no, cierra la ficha.
+  const moreOpenRef = useRef(false);
+  moreOpenRef.current = moreOpen;
   useEffect(() => {
-    if (!open || editing) return;
+    if (!open) return;
     const onKey = (ev: KeyboardEvent) => {
-      if (ev.key === "Escape") onClose();
+      if (ev.key !== "Escape" || ev.defaultPrevented) return;
+      // Un diálogo o menú encima de la ficha (agregar familiar, confirmaciones) maneja su propio Escape.
+      if ((ev.target as HTMLElement | null)?.closest?.("[role='dialog'], [role='menu'], [role='alertdialog']")) return;
+      if (editing) formRef.current?.requestClose();
+      else if (moreOpenRef.current) setMoreOpen(false);
+      else onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -595,6 +605,17 @@ export default function PersonPanel({
   // Clic fuera de la ficha: se cierra. Sin velo encima, para poder mover y acercar el mapa con la ficha abierta:
   // solo cuenta un clic (no un arrastre) sobre una zona vacía, no sobre tarjetas, botones ni enlaces.
   const asideRef = useRef<HTMLElement>(null);
+  // El foco entra a la ficha al abrirla. Al cerrarla vuelve a la tarjeta: eso lo hace quien tiene el árbol (TreeApp),
+  // porque la librería redibuja las tarjetas y la que tenía el foco ya no existe.
+  const wasOpenRef = useRef(false);
+  useEffect(() => {
+    if (personId && !wasOpenRef.current) {
+      wasOpenRef.current = true;
+      const timer = setTimeout(() => asideRef.current?.focus({ preventScroll: true }), 60);
+      return () => clearTimeout(timer);
+    }
+    if (!personId) wasOpenRef.current = false;
+  }, [personId]);
   useEffect(() => {
     if (!open || editing) return;
     let down: { x: number; y: number } | null = null;
@@ -630,7 +651,7 @@ export default function PersonPanel({
   const own = (k: string) => person?.timeline.find((t) => t.kind === k && !t.person);
   const born = own("BIRT")?.year ?? own("BAPM")?.year ?? null;
   const died = own("DEAT")?.year ?? null;
-  const ageText = !person ? null : person.isLiving ? (born ? `${new Date().getFullYear() - born} años` : null) : born && died ? `~${died - born} años` : null;
+  const ageText = !person ? null : person.isLiving ? (born ? `${new Date().getFullYear() - born} años` : null) : born && died ? `unos ${died - born} años` : null;
   const burial = own("BURI");
   const info = burial?.placeInfo ?? null;
   const site = info?.name || cleanPlace(burial?.place) || null;
@@ -720,7 +741,9 @@ export default function PersonPanel({
     {/* Clic fuera de la ficha: se cierra (menos al editar, para no perder lo escrito). */}
     <aside
       ref={asideRef}
-      className={`album fixed right-0 top-0 z-30 flex h-full w-full flex-col border-l-2 border-ink shadow-xl transition-transform duration-300 ease-out sm:max-w-[34rem] lg:max-w-[40rem] ${
+      tabIndex={-1}
+      aria-label={person ? `Ficha de ${person.displayName}` : "Ficha de la persona"}
+      className={`album outline-none fixed right-0 top-0 z-30 flex h-full w-full flex-col border-l-2 border-ink shadow-xl transition-transform duration-300 ease-out sm:top-[72px] sm:h-[calc(100%-72px)] ${editing ? "sm:z-[26]" : "sm:z-[15]"} sm:max-w-[34rem] lg:max-w-[40rem] ${
         open ? "translate-x-0" : "pointer-events-none translate-x-full"
       }`}
     >
@@ -761,7 +784,7 @@ export default function PersonPanel({
         <>
           <div className="flex-1 overflow-y-auto">
             {/* Encabezado */}
-            <div className="px-5 pb-1 pt-6 sm:px-7">
+            <div className="px-5 pb-1 pt-4 sm:px-7 sm:pt-6">
               <div className="flex items-start gap-4 sm:gap-5">
                 <span
                   className="grid h-14 w-14 shrink-0 place-items-center rounded-full text-2xl font-semibold sm:h-16 sm:w-16"
@@ -811,7 +834,7 @@ export default function PersonPanel({
             </div>
 
             {person && (
-              <div className="space-y-4 px-5 pb-5 pt-5 sm:px-7">
+              <div className="space-y-3 px-5 pb-4 pt-3 sm:space-y-4 sm:pb-5 sm:pt-5 sm:px-7">
                 {/* Sepultura */}
                 {!person.isLiving &&
                   (site ? (
@@ -866,38 +889,50 @@ export default function PersonPanel({
                         {childIds.length > 0 && <p className="mt-1 text-base text-gris">{childIds.length === 1 ? "1 hijo/a" : `${childIds.length} hijos`}</p>}
                       </div>,
                     );
-                  if (cells.length % 2 === 1) cells.push(<div key="pad" />);
+                  // Con un solo dato, una sola columna; con más, de a dos (y se rellena el hueco si queda uno suelto).
+                  const single = cells.length === 1;
+                  if (!single && cells.length % 2 === 1) cells.push(<div key="pad" />);
                   return (
-                    <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border-2 border-adobe-2 bg-adobe-2">
+                    <div className={`grid ${single ? "grid-cols-1" : "grid-cols-2"} gap-px overflow-hidden rounded-2xl border-2 border-adobe-2 bg-adobe-2`}>
                       {cells.map((c, i) => (
-                        <div key={i} className="bg-white p-4 sm:p-5">{c}</div>
+                        <div key={i} className="bg-white p-3 sm:p-5">{c}</div>
                       ))}
                     </div>
                   );
                 })()}
 
-                {/* Acciones */}
-                <div className="flex flex-wrap gap-2.5">
-                  {canEdit && (
-                    <button onClick={() => setEditing({ startWithNew: false })} className={buttonClass("principal")}>
-                      Editar
+                {/* Acciones: las principales a la vista; el resto, bajo "Más". */}
+                <div>
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    {canEdit && (
+                      <button onClick={() => setEditing({ startWithNew: false })} className={buttonClass("principal")}>
+                        Editar
+                      </button>
+                    )}
+                    {person.id !== mainId && (
+                      <button onClick={() => onNavigate(person.id)} className={btnOutline} aria-label="Centrar el árbol en esta persona">
+                        <span className="sm:hidden">Centrar</span>
+                        <span className="hidden sm:inline">Centrar el árbol</span>
+                      </button>
+                    )}
+                    <button type="button" aria-expanded={moreOpen} onClick={() => setMoreOpen((o) => !o)} className={btnOutline}>
+                      Más <span aria-hidden="true">{moreOpen ? "▴" : "▾"}</span>
                     </button>
-                  )}
-                  {canEdit && (
-                    <button onClick={() => setEditing({ startWithNew: true })} className={btnOutline}>
-                      <span aria-hidden="true" className="leading-none">+</span> Agregar un hecho
-                    </button>
-                  )}
-                  <a href={`/persona/${person.id}`} className={btnOutline}>
-                    Página de la ficha
-                  </a>
-                  <a href={`/mapa?persona=${person.id}`} className={btnOutline}>
-                    Mapa de antepasados
-                  </a>
-                  {person.id !== mainId && (
-                    <button onClick={() => onNavigate(person.id)} className={btnOutline}>
-                      Centrar el árbol
-                    </button>
+                  </div>
+                  {moreOpen && (
+                    <div className="mt-2.5 flex flex-wrap gap-2.5">
+                      {canEdit && (
+                        <button onClick={() => setEditing({ startWithNew: true })} className={btnOutline}>
+                          <span aria-hidden="true" className="leading-none">+</span> Agregar un hecho
+                        </button>
+                      )}
+                      <a href={`/persona/${person.id}`} className={btnOutline}>
+                        Página de la ficha
+                      </a>
+                      <a href={`/mapa?persona=${person.id}`} className={btnOutline}>
+                        Mapa de antepasados
+                      </a>
+                    </div>
                   )}
                 </div>
               </div>

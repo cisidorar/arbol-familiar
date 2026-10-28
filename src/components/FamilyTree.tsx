@@ -55,6 +55,8 @@ interface Props {
   /** Recibe los controles para acercar, alejar y ver todo el árbol (botones de quien lo usa). */
   controlsRef?: MutableRefObject<TreeControls | null>;
   onSelectPerson: (id: string) => void;
+  /** Avisa si la persona del centro del árbol está a la vista (para destacar "Volver a mí"). */
+  onCenterVisibility?: (visible: boolean) => void;
   /** La persona cuya ficha está abierta: su tarjeta se marca y no queda tapada por el panel. */
   selectedId?: string | null;
   /** Pide centrar el árbol en otra persona. El tronco lo guarda quien usa
@@ -302,7 +304,7 @@ let f3Lib: any = null; // la librería, cargada la primera vez que se dibuja el 
 const PHONE_MAX_WIDTH = 640;
 const PHONE_MIN_SCALE = 0.8;
 // Debajo de esta escala las tarjetas dejan de leerse: no se reencuadra el árbol entero, solo se avisa.
-const READABLE_FIT_SCALE = 0.7;
+const READABLE_FIT_SCALE = 0.8;
 const NOTICE_MS = 15000;
 function readableOnPhone(chart: any, container: HTMLElement | null, transitionTime: number) {
   if (!container || container.clientWidth >= PHONE_MAX_WIDTH) return;
@@ -322,9 +324,9 @@ function readableOnPhone(chart: any, container: HTMLElement | null, transitionTi
 const PILL_ROOM = 40;
 // Lo que tapan la cabecera con su alero (en el teléfono es de dos filas) y la barra de abajo.
 const TOP_INSET = { phone: 132 + PILL_ROOM, desktop: 90 + PILL_ROOM };
-const BOTTOM_INSET = { phone: 100, desktop: 16 };
-// La columna de zoom y "Volver a mí" ocupa el borde derecho (48 px + 16 de margen + aire).
-const RIGHT_INSET = 72;
+const BOTTOM_INSET = { phone: 8, desktop: 16 };
+// En escritorio la columna de zoom y "Volver a mí" ocupa el borde derecho (48 px + 16 de margen + aire); en el teléfono van en una barra de abajo.
+const RIGHT_INSET = { phone: 8, desktop: 72 };
 
 /**
  * Centra la vista en `datum` a la escala dada. En el teléfono centra en la franja que se ve (entre la
@@ -351,7 +353,7 @@ function centerView(chart: any, container: HTMLElement | null, datum: { x: numbe
   f3Lib.handlers.cardToMiddle({
     datum: { x: datum.x, y },
     svg,
-    svg_dim: { width: rect.width - RIGHT_INSET, height: bandTop + bandBottom },
+    svg_dim: { width: rect.width - RIGHT_INSET[device], height: bandTop + bandBottom },
     scale,
     transition_time: transitionTime,
   });
@@ -381,13 +383,15 @@ function fitReadable(chart: any, container: HTMLElement | null, transitionTime: 
   return false;
 }
 
-export default function FamilyTree({ data, mainId, line = null, version, resetKey = 0, controlsRef, onSelectPerson, selectedId = null, onRecenter, onAddRelative }: Props) {
+export default function FamilyTree({ data, mainId, line = null, version, resetKey = 0, controlsRef, onSelectPerson, selectedId = null, onCenterVisibility, onRecenter, onAddRelative }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<any>(null);
   const lineRef = useRef<string[] | null>(line);
   lineRef.current = line;
   const onSelectRef = useRef(onSelectPerson);
   onSelectRef.current = onSelectPerson;
+  const onCenterVisibilityRef = useRef(onCenterVisibility);
+  onCenterVisibilityRef.current = onCenterVisibility;
   const selectedRef = useRef(selectedId);
   selectedRef.current = selectedId;
   const onRecenterRef = useRef(onRecenter);
@@ -432,6 +436,7 @@ export default function FamilyTree({ data, mainId, line = null, version, resetKe
     if (!chart) return;
     if (fitReadable(chart, containerRef.current, 400)) setNotice(null);
     else showNotice("big");
+    onCenterVisibilityRef.current?.(true);
   };
 
   // Teclado: Enter o Espacio sobre una tarjeta o uno de sus controles hace lo mismo que tocarlos.
@@ -582,11 +587,13 @@ export default function FamilyTree({ data, mainId, line = null, version, resetKe
         const r = main.getBoundingClientRect();
         const HEADER = box.width < PHONE_MAX_WIDTH ? 132 : 90; // la cabecera (en el teléfono, de dos filas) y su alero de tejas flotan sobre el árbol
         const inView = r.left >= box.left && r.right <= box.right && r.top >= box.top + HEADER && r.bottom <= box.bottom;
+        onCenterVisibilityRef.current?.(inView);
         if (inView) return;
         const svg = chart.svg.getBoundingClientRect();
         const fitK = Math.min(svg.width / tree.dim.width, svg.height / tree.dim.height, 1);
         if (fitK >= READABLE_FIT_SCALE) {
           chart.updateTree({ tree_position: "fit" });
+          onCenterVisibilityRef.current?.(true);
           return;
         }
         showNotice("offscreen");
@@ -716,6 +723,11 @@ export default function FamilyTree({ data, mainId, line = null, version, resetKe
             // de un cónyuge, otra pareja, los hijos de un hermano). Solo el
             // ícono cambia el tronco; abrir una ficha nunca mueve el árbol.
             onRecenterRef.current(d.data.id);
+          }
+          // La pastilla que se tocó puede desaparecer: el foco vuelve a la tarjeta, no al cuerpo de la página.
+          if (action.kind !== "none" && action.kind !== "recenter") {
+            const cardEl = (e.target as Element | null)?.closest?.(".card") as HTMLElement | null;
+            setTimeout(() => cardEl?.isConnected && cardEl.focus({ preventScroll: true }), 0);
           }
         })
         .setOnCardUpdate(function (this: HTMLElement, d: any) {
@@ -939,6 +951,7 @@ export default function FamilyTree({ data, mainId, line = null, version, resetKe
         const phone = Boolean(containerRef.current && containerRef.current.clientWidth < PHONE_MAX_WIDTH);
         centerView(chart, containerRef.current, main, phone ? PHONE_MIN_SCALE : 1, 400, true);
         setNotice(null);
+        onCenterVisibilityRef.current?.(true);
       },
     };
     return () => {
@@ -956,7 +969,7 @@ export default function FamilyTree({ data, mainId, line = null, version, resetKe
       {/* Fuera del contenedor: la librería vacía el contenedor al redibujar. */}
       <div role="status" aria-live="polite">
         {notice && (
-          <div className="absolute bottom-[calc(5.5rem+env(safe-area-inset-bottom))] left-36 right-4 z-10 flex items-center gap-3 rounded-2xl border-2 border-ink bg-adobe px-4 py-3 text-base text-ink sm:bottom-4 sm:left-auto sm:max-w-sm">
+          <div className="absolute left-4 right-4 top-[140px] z-10 flex flex-col gap-3 rounded-2xl border-2 border-ink bg-adobe px-4 py-3 text-base text-ink sm:bottom-4 sm:left-auto sm:right-4 sm:top-auto sm:max-w-sm sm:flex-row sm:items-center">
             <span>
               {notice === "big"
                 ? "Hay más familia a los lados. Arrastra para verla, o toca «Volver a mí»."

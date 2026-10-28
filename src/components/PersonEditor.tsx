@@ -1289,7 +1289,7 @@ export function FichaForm({
                 className={inputClass}
               >
                 <option value="1">Viva / vivo</option>
-                <option value="0">Fallecida/o</option>
+                <option value="0">{personForm.sex === "F" ? "Fallecida" : personForm.sex === "M" ? "Fallecido" : "Fallecida/o"}</option>
               </select>
             </div>
           </div>
@@ -1380,7 +1380,7 @@ export function FichaForm({
               )}
             </p>
             <div className="flex flex-wrap gap-3">
-              <button type="submit" disabled={saving} className={buttonClass("principal", "flex-1 whitespace-nowrap px-5 sm:flex-none sm:px-7")}>
+              <button type="submit" disabled={saving || !dirty} className={buttonClass("principal", "flex-1 whitespace-nowrap px-5 sm:flex-none sm:px-7")}>
                 {saving ? "Guardando…" : "Guardar cambios"}
               </button>
               <button type="button" onClick={requestClose} disabled={saving} className={buttonClass("secundario", "px-5 sm:px-6")}>
