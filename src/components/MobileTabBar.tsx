@@ -49,8 +49,8 @@ const TABS: Tab[] = [
   {
     key: "cementerios",
     href: "/cementerios",
-    label: "Tumbas",
-    full: "Cementerios",
+    label: "Descansan",
+    full: "Dónde descansan",
     icon: icon(
       <>
         <path d="M7 21V9a5 5 0 0 1 10 0v12" />

@@ -252,7 +252,7 @@ export default function CemeteryGuide({
     const list = [...byRegion.entries()]
       .map(([code, ps]) => ({ code, title: regionName(code), places: ps.sort((a, b) => Number(Boolean(b.photo)) - Number(Boolean(a.photo)) || byPeople(a, b)) }))
       .sort((a, b) => sumPeople(b.places) - sumPeople(a.places) || order.indexOf(a.code) - order.indexOf(b.code));
-    if (pending.length) list.push({ code: "pending", title: "Lugares por confirmar", places: pending.sort(byPeople) });
+    if (pending.length) list.push({ code: "pending", title: "Lugares sin comuna todavía", places: pending.sort(byPeople) });
     return list;
   }, [cemeteries, region]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -534,6 +534,7 @@ export default function CemeteryGuide({
           <p className={`text-[1.25rem] ${spot ? "font-bold" : "text-gris"}`}>
             {spot || (canEdit ? "Todavía no se anota dónde está" : "Aún no sabemos en qué parte del cementerio está. Pregunta a la familia.")}
           </p>
+          {spot && <p className="zb-apoyo mt-1">En el cementerio, pregunta en la oficina por «{spot}»: te dicen cómo llegar.</p>}
         </div>
         {canEdit && b.eventId && (
           <button type="button" onClick={() => startSpot(b)} className={buttonClass("secundario", "shrink-0")} aria-label={`${spot ? "Cambiar" : "Anotar"} la tumba de ${b.name}`}>
@@ -566,10 +567,10 @@ export default function CemeteryGuide({
               </span>
             )}
             <span className="zb-apoyo mt-1 block">{yearsOf(b)}</span>
-            {!p.cremation && (
+            {!p.cremation && spot && (
               <span className="mt-1 block text-[1.125rem]">
                 <span className="font-bold">Tumba: </span>
-                {spot ? <span className="font-bold">{spot}</span> : <span className="text-gris">aún no sabemos en qué parte</span>}
+                <span className="font-bold">{spot}</span>
               </span>
             )}
           </span>
@@ -660,16 +661,16 @@ export default function CemeteryGuide({
                 <dl className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-line">
                   <div className="bg-adobe-2 px-4 py-3">
                     <dt className="zb-apoyo">Nació</dt>
-                    <dd className="text-[1.25rem] font-bold tabular-nums">{b.birth ?? "Sin dato"}</dd>
+                    <dd className="text-[1.25rem] font-bold tabular-nums">{b.birth ?? "No sabemos cuándo"}</dd>
                   </div>
                   <div className="bg-adobe-2 px-4 py-3">
                     <dt className="zb-apoyo">Murió</dt>
-                    <dd className="text-[1.25rem] font-bold tabular-nums">{b.death ?? "Sin dato"}</dd>
+                    <dd className="text-[1.25rem] font-bold tabular-nums">{b.death ?? "No sabemos cuándo"}</dd>
                   </div>
                 </dl>
                 {p.cremation ? (
                   <div className="mt-5 border-t-2 border-line pt-5">
-                    <p className="zb-etiqueta">Despedida</p>
+                    <p className="zb-etiqueta">Cremación</p>
                     <p className="mt-1 text-[1.375rem] font-bold text-burdeos">{cremadoText(b.sex)}</p>
                     <p className="zb-texto mt-2 text-gris">No hay tumba que visitar. Pregunta a la familia dónde están sus cenizas.</p>
                   </div>
@@ -736,9 +737,9 @@ export default function CemeteryGuide({
     <div className={`${WRAP} py-8 lg:py-12 print:hidden`}>
       {backButton("Volver")}
       {/* Con foto: dos columnas (la foto a un lado). Sin foto: una sola columna, sin hueco. */}
-      <div className={`mt-6 grid gap-8 lg:items-start ${photoOf(currentPlace) ? "lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]" : "max-w-3xl"}`}>
+      <div className={`mt-6 grid gap-8 lg:items-start ${photoOf(currentPlace) ? "lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]" : "lg:grid-cols-2"}`}>
         {/* Primero lo que se necesita: el nombre, dónde queda y cómo llegar. */}
-        <div className={photoOf(currentPlace) ? "lg:col-start-2 lg:row-start-1" : ""}>
+        <div className={photoOf(currentPlace) ? "lg:col-start-2 lg:row-start-1" : "lg:col-start-1 lg:row-start-1"}>
           <p className="zb-texto text-gris">{whereLine(currentPlace)}</p>
           <h1 className="mt-1 font-slab text-[2.25rem] font-bold leading-[1.1] sm:text-5xl">{siteName(currentPlace)}</h1>
           <p className="zb-texto mt-3">
@@ -760,8 +761,8 @@ export default function CemeteryGuide({
             <div className="mt-4">
               {/* Un solo mensaje, con lo que se puede hacer. */}
               <Notice kind="info">
-                {NO_ROUTE}, así que todavía no podemos armar la ruta.{" "}
-                {canEdit ? "Si lo sabes, anota la comuna editando la ficha de una de las personas que descansan aquí." : "Si sabes cuál es, cuéntaselo a la familia."}
+                {NO_ROUTE}, por eso no podemos armar la ruta.{" "}
+                {canEdit ? "Si lo sabes, anota la comuna en la ficha de cualquiera de ellos." : "Si sabes cuál es, cuéntaselo a la familia."}
               </Notice>
             </div>
           )}
@@ -780,7 +781,7 @@ export default function CemeteryGuide({
           </div>
         )}
 
-        <div className={photoOf(currentPlace) ? "lg:col-start-2 lg:row-start-2" : ""}>
+        <div className={photoOf(currentPlace) ? "lg:col-start-2 lg:row-start-2" : "lg:col-start-2 lg:row-start-1 lg:row-span-2"}>
           <h2 className="al-titulo al-regla !text-[1.5rem]">Aquí descansan</h2>
           <ul className="mt-4 space-y-3">{currentPlace.people.map((b) => personRowItem(b))}</ul>
         </div>
@@ -804,7 +805,7 @@ export default function CemeteryGuide({
   const listView = (
     <>
       <header className="on-dark relative bg-burdeos text-white print:hidden">
-        <div className={`${WRAP} pb-10 pt-8 lg:pb-12 lg:pt-12`}>
+        <div className={`${WRAP} pb-8 pt-6 sm:pb-10 sm:pt-8 lg:pb-12 lg:pt-12`}>
           <div className="flex flex-wrap items-start justify-between gap-4">
             <h1 className="font-slab text-[2.5rem] font-bold leading-[1.05] sm:text-6xl">Dónde descansan</h1>
             <button type="button" onClick={() => window.print()} className="hidden min-h-12 items-center rounded-full border-2 border-white sm:inline-flex px-5 text-[1.125rem] font-bold text-white hover:bg-white/15">
@@ -812,12 +813,12 @@ export default function CemeteryGuide({
             </button>
           </div>
           <p className="mt-4 max-w-3xl text-[1.1875rem] leading-relaxed text-white/90 sm:text-[1.375rem]">
-            {plural(total, "persona", "personas")} de la familia en {plural(cemeteries.length, "cementerio", "cementerios")}. Busca a quien quieras y te decimos dónde descansa y cómo llegar.
+            {plural(total, "persona", "personas")} de la familia en {plural(cemeteries.length, "cementerio", "cementerios")}.<span className="hidden sm:inline"> Busca a quien quieras y te decimos dónde descansa y cómo llegar.</span>
           </p>
           <p className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1 text-[1.125rem] font-bold">
             <span className="font-normal text-white/80">Ir a:</span>
-            <a href="#cem-personas" className="inline-flex min-h-11 items-center underline decoration-2 underline-offset-4 hover:text-trigo">Las personas</a>
-            <a href="#cem-lugares" className="inline-flex min-h-11 items-center underline decoration-2 underline-offset-4 hover:text-trigo">Los cementerios</a>
+            <a href="#cem-personas" className="inline-flex min-h-12 items-center underline decoration-2 underline-offset-4 hover:text-trigo">Las personas</a>
+            <a href="#cem-lugares" className="inline-flex min-h-12 items-center underline decoration-2 underline-offset-4 hover:text-trigo">Los cementerios</a>
           </p>
           <div className="mt-6 max-w-3xl">
             <label htmlFor="cem-q" className="block text-[1.25rem] font-bold">
@@ -855,20 +856,20 @@ export default function CemeteryGuide({
         {searching ? (
           <section aria-label="Resultados">
             <h2 className="al-titulo al-regla" aria-live="polite">
-              {hits.length || placeHits.length ? `${plural(hits.length, "persona", "personas")} para «${q.trim()}»` : "No encontramos a nadie"}
+              {hits.length || placeHits.length ? `Resultados para «${q.trim()}»` : "No encontramos a nadie"}
             </h2>
             {hits.length === 0 && placeHits.length === 0 ? (
               <div className="mt-6 max-w-xl rounded-3xl border-2 border-dashed border-ink/40 bg-white p-6">
                 <p className="zb-texto">No hay nadie con «{q.trim()}». Prueba con solo el apellido o con menos letras.</p>
                 <button type="button" onClick={() => setQ("")} className={buttonClass("secundario", "mt-4")}>
-                  Ver a todos
+                  Borrar y ver la lista
                 </button>
               </div>
             ) : (
               <>
                 {placeHits.length > 0 && (
                   <div className="mt-6">
-                    <h3 className="al-titulo !text-[1.5rem]">Cementerios que coinciden</h3>
+                    <h3 className="al-titulo !text-[1.5rem]">{plural(placeHits.length, "cementerio coincide", "cementerios coinciden")}</h3>
                     <ul className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                       {placeHits.map((p) => (
                         <li key={p.key}>
@@ -887,7 +888,12 @@ export default function CemeteryGuide({
                     </ul>
                   </div>
                 )}
-                {hits.length > 0 && <ul className="mt-10 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">{hits.map(({ b, p }) => personCard(b, p))}</ul>}
+                {hits.length > 0 && (
+                  <div className="mt-10">
+                    <h3 className="al-titulo !text-[1.5rem]">{plural(hits.length, "persona", "personas")}</h3>
+                    <ul className="mt-4 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">{hits.map(({ b, p }) => personCard(b, p))}</ul>
+                  </div>
+                )}
               </>
             )}
           </section>
@@ -918,7 +924,7 @@ export default function CemeteryGuide({
                 ))}
                 {pendingCount > 0 && (
                   <button type="button" className={chip(region === "pending")} aria-pressed={region === "pending"} onClick={() => pickRegion(region === "pending" ? null : "pending")}>
-                    Por confirmar <span className="font-normal">({pendingCount})</span>
+                    Sin comuna <span className="font-normal">({pendingCount})</span>
                   </button>
                 )}
               </div>

@@ -14,7 +14,7 @@ const NAV: { key: Exclude<Section, "admin">; href: string; label: string; short?
   { key: "arbol", href: "/", label: "Árbol" },
   { key: "mapa", href: "/mapa", label: "Mapa de orígenes", short: "Mapa" },
   { key: "pendientes", href: "/pendientes", label: "Pendientes", adminOnly: true },
-  { key: "cementerios", href: "/cementerios", label: "Cementerios" },
+  { key: "cementerios", href: "/cementerios", label: "Dónde descansan", short: "Descansan" },
 ];
 
 /**

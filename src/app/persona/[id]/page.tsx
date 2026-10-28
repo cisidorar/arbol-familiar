@@ -152,7 +152,7 @@ export default async function PersonaPage({ params }: { params: Promise<{ id: st
         {/* Dónde descansa */}
         {!me.living && (
           <section className="mt-8 rounded-3xl border-2 border-ink bg-white p-5 sm:p-6" aria-label="Dónde descansa">
-            <p className="zb-etiqueta !text-burdeos">{cremated ? "Despedida" : "Dónde descansa"}</p>
+            <p className="zb-etiqueta !text-burdeos">{cremated ? "Cremación" : "Dónde descansa"}</p>
             {cremated ? (
               <p className="mt-1 text-[1.375rem] font-bold text-burdeos">Fue cremado/a</p>
             ) : burial ? (
