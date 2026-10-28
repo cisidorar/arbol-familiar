@@ -1036,6 +1036,7 @@ export function FichaForm({
   notEditable,
   partners = [],
   startWithNew,
+  startTab,
   canReview = false,
   onSave,
   onClose,
@@ -1050,6 +1051,8 @@ export function FichaForm({
   partners?: PartnerChoice[];
   /** Abrir ya con un hecho nuevo en blanco (botón "Agregar un hecho"). */
   startWithNew: boolean;
+  /** Pestaña con la que se abre (por ejemplo "vida" para llegar directo a los hechos, como la sepultura). */
+  startTab?: "datos" | "vida";
   /** Solo administradores: cada hecho puede marcarse como pendiente. */
   canReview?: boolean;
   onSave: (payload: FichaPayload) => Promise<SaveOutcome>;
@@ -1082,7 +1085,7 @@ export function FichaForm({
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
-  const [tab, setTab] = useState<"datos" | "vida">(startWithNew ? "vida" : "datos");
+  const [tab, setTab] = useState<"datos" | "vida">(startWithNew ? "vida" : startTab ?? "datos");
 
   const changedItems = useMemo(
     () =>

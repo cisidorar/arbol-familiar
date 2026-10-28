@@ -738,6 +738,7 @@ export default function CemeteryGuide({
         <div className={photoOf(currentPlace) ? "lg:col-start-2 lg:row-start-1" : "lg:col-start-1 lg:row-start-1"}>
           <p className="zb-texto text-gris">{whereLine(currentPlace)}</p>
           <h1 className="mt-1 font-slab text-[2.25rem] font-bold leading-[1.1] sm:text-5xl">{siteName(currentPlace)}</h1>
+          {currentPlace.incomplete && <p className="mt-2 inline-block rounded-full bg-adobe-2 px-3.5 py-1 text-base font-bold">Por confirmar</p>}
           <p className="zb-texto mt-3">
             <strong>{plural(currentPlace.people.length, "persona", "personas")}</strong> de la familia {currentPlace.people.length === 1 ? "descansa" : "descansan"} aquí
           </p>
@@ -932,7 +933,7 @@ export default function CemeteryGuide({
                   </button>
                 )}
               </div>
-              {region === "pending" && <p className="zb-texto mt-4 max-w-3xl text-gris">Son lugares anotados sin comuna: todavía no podemos armar la ruta. Si sabes cuál es, cuéntaselo a la familia.</p>}
+              {region === "pending" && <p className="zb-texto mt-4 max-w-3xl text-gris">Son lugares anotados sin comuna: todavía no podemos armar la ruta. {canEdit ? "Si sabes en qué comuna queda, anótala desde la ficha de alguien que descansa ahí." : "Si sabes cuál es, cuéntaselo a la familia."}</p>}
               <div className="mt-8 space-y-12">
                 {sections.map((s) => (
                   <div key={s.code} aria-label={s.title}>

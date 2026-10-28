@@ -374,7 +374,7 @@ export default function PersonPanel({
   const [person, setPerson] = useState<PersonDetail | null>(null);
   const [loading, setLoading] = useState(false);
   // El formulario de "Editar" (o null si la ficha solo se está leyendo).
-  const [editing, setEditing] = useState<{ startWithNew: boolean } | null>(null);
+  const [editing, setEditing] = useState<{ startWithNew: boolean; startTab?: "datos" | "vida" } | null>(null);
   const [justSaved, setJustSaved] = useState(false);
   const [tab, setTab] = useState<Tab>("vida");
   const [withFamily, setWithFamily] = useState(true);
@@ -778,6 +778,7 @@ export default function PersonPanel({
           notEditable={notEditable}
           partners={partnerChoices}
           startWithNew={editing.startWithNew}
+          startTab={editing.startTab}
           canReview={Boolean(person.canReview)}
           onSave={save}
           onClose={() => setEditing(null)}
@@ -861,7 +862,7 @@ export default function PersonPanel({
                         <p className="text-base text-gris">{fem ? "Sepultada en" : person.sex === "M" ? "Sepultado en" : "Sepultura"}</p>
                         <p className="font-slab text-xl font-bold leading-snug text-ink">{site}</p>
                         {where ? <p className="text-base text-gris">{where}</p> : canEdit ? (
-                          <button type="button" onClick={() => setEditing({ startWithNew: false })} className="min-h-11 text-left text-base font-bold text-teja underline decoration-2 underline-offset-4">
+                          <button type="button" onClick={() => setEditing({ startWithNew: false, startTab: "vida" })} className="min-h-11 text-left text-base font-bold text-teja underline decoration-2 underline-offset-4">
                             Falta la comuna: tócalo para anotarla
                           </button>
                         ) : null}
