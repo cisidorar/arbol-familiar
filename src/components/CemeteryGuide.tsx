@@ -760,6 +760,9 @@ export default function CemeteryGuide({
                 {NO_ROUTE}, por eso no podemos armar la ruta.{" "}
                 {canEdit ? "Si sabes en qué comuna queda, anótala." : "Si sabes cuál es, cuéntaselo a la familia."}
               </Notice>
+              {currentPlace.incomplete && (
+                <p className="zb-apoyo mt-3">«Por confirmar» quiere decir que este nombre está anotado, pero no estamos seguros de que sea ese cementerio.</p>
+              )}
               {canEdit && currentPlace.people[0] && (
                 <button type="button" onClick={() => setSelectedId(currentPlace.people[0].personId)} className={buttonClass("secundario", "mt-3")}>
                   Anotar la comuna (abre la ficha de {currentPlace.people[0].name.split(" ")[0]})
@@ -816,7 +819,7 @@ export default function CemeteryGuide({
           <p className="mt-4 max-w-3xl text-[1.1875rem] leading-relaxed text-white/90 sm:text-[1.375rem]">
             {plural(total, "persona", "personas")} de la familia en {plural(cemeteries.length, "cementerio", "cementerios")}.<span className="hidden sm:inline"> Busca a quien quieras y te decimos dónde descansa y cómo llegar.</span>
           </p>
-          <p className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1 text-[1.125rem] font-bold">
+          <p className="mt-4 hidden flex-wrap items-center gap-x-5 gap-y-1 text-[1.125rem] font-bold sm:flex">
             <span className="font-normal text-white/80">Ir a:</span>
             <a href="#cem-personas" className="inline-flex min-h-12 items-center underline decoration-2 underline-offset-4 hover:text-trigo">Las personas</a>
             <a href="#cem-lugares" className="inline-flex min-h-12 items-center underline decoration-2 underline-offset-4 hover:text-trigo">Los cementerios</a>
@@ -929,6 +932,7 @@ export default function CemeteryGuide({
                   </button>
                 )}
               </div>
+              {region === "pending" && <p className="zb-texto mt-4 max-w-3xl text-gris">Son lugares anotados sin comuna: todavía no podemos armar la ruta. Si sabes cuál es, cuéntaselo a la familia.</p>}
               <div className="mt-8 space-y-12">
                 {sections.map((s) => (
                   <div key={s.code} aria-label={s.title}>
@@ -1021,6 +1025,11 @@ export default function CemeteryGuide({
         mainId={selectedId}
         homeId={rootId}
         data={treeData}
+        fromGuide
+        relationLabel={(id) => {
+          const rel = everyone.find((r) => r.b.personId === id)?.b.relation;
+          return rel ? capFirst(niceKin(rel).split(", ")[0]) : null;
+        }}
         onClose={() => setSelectedId(null)}
         onNavigate={setSelectedId}
         onPersonChanged={() => router.refresh()}

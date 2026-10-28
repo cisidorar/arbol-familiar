@@ -346,6 +346,8 @@ export default function PersonPanel({
   onPersonChanged,
   onPersonDeleted,
   onTreeData,
+  relationLabel,
+  fromGuide = false,
 }: {
   personId: string | null;
   mainId: string | null;
@@ -355,6 +357,10 @@ export default function PersonPanel({
    *  tronco actual. */
   homeId?: string | null;
   data: any[];
+  /** Si quien abre la ficha ya sabe cómo llamar al parentesco (la guía de cementerios), se usa el mismo texto en vez de recalcularlo. */
+  relationLabel?: (id: string) => string | null;
+  /** Se abrió desde la guía de cementerios: no tiene sentido ofrecer "Ver en la guía". */
+  fromGuide?: boolean;
   onClose: () => void;
   onNavigate: (id: string) => void;
   /** Avisa que se guardó un cambio, con la tarjeta del árbol ya actualizada. */
@@ -581,8 +587,8 @@ export default function PersonPanel({
   // actual del árbol (que cambia al navegar o centrar en alguien más).
   const relationshipFocusId = homeId ?? mainId;
   const relationship = useMemo(
-    () => (personId ? describeRelationship(data, relationshipFocusId, personId) : null),
-    [data, relationshipFocusId, personId],
+    () => (personId ? relationLabel?.(personId) ?? describeRelationship(data, relationshipFocusId, personId) : null),
+    [data, relationshipFocusId, personId, relationLabel],
   );
 
   const open = Boolean(personId);
@@ -854,14 +860,20 @@ export default function PersonPanel({
                       <div className="min-w-0 flex-1 basis-48">
                         <p className="text-base text-gris">{fem ? "Sepultada en" : person.sex === "M" ? "Sepultado en" : "Sepultura"}</p>
                         <p className="font-slab text-xl font-bold leading-snug text-ink">{site}</p>
-                        {where ? <p className="text-base text-gris">{where}</p> : canEdit ? <p className="text-base font-bold text-teja">Falta anotar la comuna</p> : null}
+                        {where ? <p className="text-base text-gris">{where}</p> : canEdit ? (
+                          <button type="button" onClick={() => setEditing({ startWithNew: false })} className="min-h-11 text-left text-base font-bold text-teja underline decoration-2 underline-offset-4">
+                            Falta la comuna: tócalo para anotarla
+                          </button>
+                        ) : null}
                         <p className="mt-0.5 text-base">
                           <span className="font-bold">Tumba: </span>
                           {tomb ? <span className="font-bold">{tomb}</span> : <span className="text-gris">{TOMB_UNKNOWN}</span>}
                         </p>
-                        <a href={`/cementerios?p=${person.id}`} className="mt-1 inline-flex min-h-11 items-center font-bold text-ink underline decoration-2 underline-offset-4 hover:text-teja">
-                          Ver en la guía de cementerios
-                        </a>
+                        {!fromGuide && (
+                          <a href={`/cementerios?p=${person.id}`} className="mt-1 inline-flex min-h-11 items-center font-bold text-ink underline decoration-2 underline-offset-4 hover:text-teja">
+                            Ver en la guía de cementerios
+                          </a>
+                        )}
                       </div>
                       {where && (
                         <a
