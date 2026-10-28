@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { REVIEW_KINDS, type EventForm, type PersonForm } from "@/lib/edit";
 import { describeRelationship } from "@/lib/relationship";
+import { TOMB_UNKNOWN, cremadoText, isCremationPlace } from "@/lib/cemetery-text";
 import { buttonClass } from "./ui";
 import {
   FichaForm,
@@ -837,7 +838,13 @@ export default function PersonPanel({
               <div className="space-y-3 px-5 pb-4 pt-3 sm:space-y-4 sm:pb-5 sm:pt-5 sm:px-7">
                 {/* Sepultura */}
                 {!person.isLiving &&
-                  (site ? (
+                  (isCremationPlace(site) ? (
+                    <div className="rounded-2xl border-2 border-adobe-2 bg-white px-5 py-4">
+                      <p className="text-base text-gris">Cremación</p>
+                      <p className="text-xl font-bold text-burdeos">{cremadoText(person.sex)}</p>
+                      <p className="mt-1 text-base text-gris">No hay tumba que visitar.</p>
+                    </div>
+                  ) : site ? (
                     <div className="flex flex-wrap items-center gap-4 rounded-2xl border-2 border-adobe-2 bg-white px-5 py-4">
                       <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-burdeos/10 text-burdeos" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
@@ -850,7 +857,7 @@ export default function PersonPanel({
                         {where ? <p className="text-base text-gris">{where}</p> : canEdit ? <p className="text-base font-bold text-teja">Falta anotar la comuna</p> : null}
                         <p className="mt-0.5 text-base">
                           <span className="font-bold">Tumba: </span>
-                          {tomb ? <span className="font-bold">{tomb}</span> : <span className="text-gris">aún no sabemos en qué parte</span>}
+                          {tomb ? <span className="font-bold">{tomb}</span> : <span className="text-gris">{TOMB_UNKNOWN}</span>}
                         </p>
                         <a href={`/cementerios?p=${person.id}`} className="mt-1 inline-flex min-h-11 items-center font-bold text-ink underline decoration-2 underline-offset-4 hover:text-teja">
                           Ver en la guía de cementerios

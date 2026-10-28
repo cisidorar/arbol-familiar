@@ -9,6 +9,7 @@ import { requireSession } from "@/lib/auth/session";
 import { getFamilyChartData, getPersonDetail } from "@/lib/data/tree";
 import { getLinkedPersonId } from "@/lib/data/users";
 import { kinshipPhrase, type GraphPerson } from "@/lib/lineage";
+import { TOMB_UNKNOWN, cremadoText, fallecidoText, isCremationPlace, niceKin } from "@/lib/cemetery-text";
 
 export const dynamic = "force-dynamic";
 
@@ -89,10 +90,10 @@ export default async function PersonaPage({ params }: { params: Promise<{ id: st
   );
 
   const graph: GraphPerson[] = chart.map((p) => ({ id: p.id, data: { gender: p.data.gender, label: p.data.label }, rels: p.rels }));
-  const kin = selfId && selfId !== id ? kinshipPhrase(selfId, id, graph)?.label ?? null : selfId === id ? "Eres tú" : null;
+  const kin = selfId && selfId !== id ? niceKin(kinshipPhrase(selfId, id, graph)?.label) || null : selfId === id ? "Eres tú" : null;
 
   const age = me.birth && me.death ? me.death - me.birth : null;
-  const status = me.living ? "Vive" : "Fallecido/a";
+  const status = me.living ? "Vive" : fallecidoText(me.gender);
   // Primero los hechos con fecha; los que no la tienen van al final.
   const timeline = [...detail.timeline.filter((e) => e.year != null), ...detail.timeline.filter((e) => e.year == null)];
   const editor = canEdit(session.role);
@@ -100,7 +101,7 @@ export default async function PersonaPage({ params }: { params: Promise<{ id: st
 
   // Dónde descansa: lo primero que quiere saber quien viene a visitar. La sepultura, o la cremación, o un aviso si no se sabe.
   const burial = detail.timeline.find((e) => e.kind === "BURI" && !e.person && e.place);
-  const cremated = Boolean(burial && /^(cremad[oa]|cremaci[oó]n)\b/i.test(burial.placeInfo?.name ?? burial.place ?? ""));
+  const cremated = Boolean(burial && isCremationPlace(burial.placeInfo?.name ?? burial.place ?? ""));
   const siteName = (burial?.placeInfo?.name || burial?.place || "").replace(/,\s*Chile$/i, "");
   const comuna = burial?.placeInfo?.comuna ?? null;
   const regionText = burial?.placeInfo?.region ? (/^regi[oó]n/i.test(burial.placeInfo.region) ? burial.placeInfo.region : `Región ${burial.placeInfo.region}`) : null;
@@ -137,7 +138,7 @@ export default async function PersonaPage({ params }: { params: Promise<{ id: st
           <ShareButton
             title={`${detail.displayName} · Archivo Zamora Balcázar`}
             text={`Mira la ficha de ${detail.displayName} en el archivo de la familia`}
-            className="inline-flex min-h-12 items-center gap-2 rounded-full bg-teja px-6 text-[1.125rem] font-bold text-white hover:bg-burdeos"
+            className={routeTo && !me.living && !cremated ? "inline-flex min-h-12 items-center gap-2 rounded-full border-2 border-ink bg-white px-6 text-[1.125rem] font-bold hover:bg-adobe-2" : "inline-flex min-h-12 items-center gap-2 rounded-full bg-teja px-6 text-[1.125rem] font-bold text-white hover:bg-burdeos"}
           />
           <Link href={`/mapa?persona=${id}`} className="inline-flex min-h-12 items-center rounded-full border-2 border-ink bg-white px-6 text-[1.125rem] font-bold hover:bg-adobe-2">
             Mapa de sus antepasados
@@ -154,14 +155,17 @@ export default async function PersonaPage({ params }: { params: Promise<{ id: st
           <section className="mt-8 rounded-3xl border-2 border-ink bg-white p-5 sm:p-6" aria-label="Dónde descansa">
             <p className="zb-etiqueta !text-burdeos">{cremated ? "Cremación" : "Dónde descansa"}</p>
             {cremated ? (
-              <p className="mt-1 text-[1.375rem] font-bold text-burdeos">Fue cremado/a</p>
+              <>
+                <p className="mt-1 text-[1.375rem] font-bold text-burdeos">{cremadoText(me.gender)}</p>
+                <p className="zb-texto mt-2 text-gris">No hay tumba que visitar. Pregunta a la familia dónde están sus cenizas.</p>
+              </>
             ) : burial ? (
               <>
                 <p className="mt-1 font-slab text-[1.5rem] font-bold leading-snug">{siteName}</p>
                 {(comuna || regionText) && <p className="zb-texto mt-1 text-gris">{[comuna, regionText].filter(Boolean).join(" · ")}</p>}
                 <p className="mt-3 text-[1.125rem]">
                   <span className="font-bold">Tumba: </span>
-                  {tomb ? <span className="font-bold">{tomb}</span> : <span className="text-gris">aún no sabemos en qué parte. Pregunta a la familia.</span>}
+                  {tomb ? <span className="font-bold">{tomb}</span> : <span className="text-gris">{TOMB_UNKNOWN}</span>}
                 </p>
                 <div className="mt-4 flex flex-wrap gap-3 print:hidden">
                   {routeTo && (
@@ -169,7 +173,7 @@ export default async function PersonaPage({ params }: { params: Promise<{ id: st
                       href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(routeTo)}`}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex min-h-12 items-center gap-2 rounded-full border-2 border-ink bg-white px-6 text-[1.125rem] font-bold hover:bg-adobe-2"
+                      className="inline-flex min-h-12 items-center gap-2 rounded-full border-2 border-teja bg-teja px-6 text-[1.125rem] font-bold text-white hover:border-burdeos hover:bg-burdeos"
                     >
                       Cómo llegar <span aria-hidden>↗</span>
                     </a>

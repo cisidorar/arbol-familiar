@@ -11,7 +11,7 @@ import { getLinkedPersonId } from "@/lib/data/users";
 import { REGIONES, comunasOfRegion } from "@/lib/geo";
 import { kinshipPhrase, type GraphPerson } from "@/lib/lineage";
 
-export const metadata: Metadata = { title: "Cementerios · Archivo Zamora Balcázar" };
+export const metadata: Metadata = { title: "Dónde descansan · Archivo Zamora Balcázar" };
 export const dynamic = "force-dynamic";
 
 export default async function CementeriosPage() {

@@ -8,6 +8,7 @@ import { kinshipPath, type GraphPerson, type LineageStep } from "@/lib/lineage";
 import type { Burial, CemeteryGroup } from "@/lib/cemeteries";
 import { Initial, Notice, buttonClass } from "./ui";
 import { uploadedPhotoUrl } from "@/lib/geo/cemetery-photos";
+import { TOMB_UNKNOWN, cremadoText, niceKin } from "@/lib/cemetery-text";
 
 type Box = [number, number, number, number];
 export type GuideRegion = { code: string; name: string; d: string; bbox: Box };
@@ -53,11 +54,6 @@ function directionsUrl(p: GuidePlace) {
 }
 
 const NO_ROUTE = "Todavía no sabemos dónde queda este lugar";
-
-/** "Pariente (7 pasos en el árbol)" no le dice nada a nadie: "Pariente lejano". */
-const niceKin = (rel: string | null | undefined) => (rel ?? "").replace(/^Pariente \(\d+ pasos? en el árbol\)/i, "Pariente lejano");
-/** "Fue cremado" / "Fue cremada" según se sabe. */
-const cremadoText = (sex: string | null | undefined) => (sex === "F" ? "Fue cremada" : sex === "M" ? "Fue cremado" : "Fue cremado/a");
 
 /** Distancia entre dos palabras (cada cambio, cada letra de más o de menos y cada par de letras al revés cuenta 1). */
 function editDistance(a: string, b: string) {
@@ -532,7 +528,7 @@ export default function CemeteryGuide({
         <div className="min-w-0">
           <p className="zb-etiqueta">Tumba</p>
           <p className={`text-[1.25rem] ${spot ? "font-bold" : "text-gris"}`}>
-            {spot || (canEdit ? "Todavía no se anota dónde está" : "Aún no sabemos en qué parte del cementerio está. Pregunta a la familia.")}
+            {spot || (canEdit ? "Todavía no se anota dónde está" : TOMB_UNKNOWN)}
           </p>
           {spot && <p className="zb-apoyo mt-1">En el cementerio, pregunta en la oficina por «{spot}»: te dicen cómo llegar.</p>}
         </div>
@@ -697,7 +693,7 @@ export default function CemeteryGuide({
                 ) : !p.cremation ? (
                   <Notice kind="info">{NO_ROUTE}. Si lo sabes, cuéntaselo a la familia.</Notice>
                 ) : null}
-                <button type="button" onClick={() => setSelectedId(b.personId)} className={buttonClass("secundario", "!min-h-14 flex-1 sm:flex-none")}>
+                <button type="button" onClick={() => setSelectedId(b.personId)} className={buttonClass(p.cremation ? "principal" : "secundario", "!min-h-14 flex-1 sm:flex-none")}>
                   Ver su ficha completa
                 </button>
                 {rootId && b.personId !== rootId && (
@@ -762,8 +758,13 @@ export default function CemeteryGuide({
               {/* Un solo mensaje, con lo que se puede hacer. */}
               <Notice kind="info">
                 {NO_ROUTE}, por eso no podemos armar la ruta.{" "}
-                {canEdit ? "Si lo sabes, anota la comuna en la ficha de cualquiera de ellos." : "Si sabes cuál es, cuéntaselo a la familia."}
+                {canEdit ? "Si lo sabes, anótala." : "Si sabes cuál es, cuéntaselo a la familia."}
               </Notice>
+              {canEdit && currentPlace.people[0] && (
+                <button type="button" onClick={() => setSelectedId(currentPlace.people[0].personId)} className={buttonClass("secundario", "mt-3")}>
+                  Anotar la comuna
+                </button>
+              )}
             </div>
           )}
         </div>
