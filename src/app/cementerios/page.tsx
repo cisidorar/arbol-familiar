@@ -72,7 +72,7 @@ export default async function CementeriosPage() {
 
   return (
     // Fondo blanco y esquema claro fijo: con el Mac en modo oscuro el texto heredado quedaría casi blanco.
-    <div className="zb min-h-screen bg-white text-ink [color-scheme:light]">
+    <div className="zb album min-h-screen text-ink [color-scheme:light]">
       <SectionHeader current="cementerios" />
       <main>
         <CemeteryGuide

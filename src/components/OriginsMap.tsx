@@ -7,7 +7,7 @@ import LineageModal from "./LineageModal";
 import PersonPanel from "./PersonPanel";
 import { buildAncestorSteps } from "@/lib/lineage";
 import MapPersonPicker from "./MapPersonPicker";
-import { Notice, buttonClass } from "./ui";
+import { Initial, buttonClass } from "./ui";
 import {
   BASIS_LABELS,
   generationCount,
@@ -18,7 +18,6 @@ import {
   summarize,
   topRegions,
   type Ancestor,
-  type ComunaSummary,
   type Filters,
 } from "@/lib/origins";
 import { COMUNAS } from "@/lib/geo/places";
@@ -32,14 +31,14 @@ const COMUNA_NAME = new Map(COMUNAS.map((c) => [c[0], c[1]]));
 
 /** Escala de color: cuántos antepasados son de la comuna. */
 function fillFor(count: number): string {
-  if (count <= 0) return "#e9e8e3";
-  if (count === 1) return "#f6cfa3";
-  if (count === 2) return "#ee9c5c";
-  if (count === 3) return "#d9622f";
-  return "#9f2d14";
+  if (count <= 0) return "#eadfc6";
+  if (count === 1) return "#f0d9a0";
+  if (count === 2) return "#d9a441";
+  if (count === 3) return "#a8432a";
+  return "#6e1f2e";
 }
 const LEGEND: [string, string][] = [["1", fillFor(1)], ["2", fillFor(2)], ["3", fillFor(3)], ["4 o más", fillFor(4)]];
-const HATCH = "repeating-linear-gradient(45deg,#d9622f 0 2px,#f6cfa3 2px 5px)";
+const HATCH = "repeating-linear-gradient(45deg,#a8432a 0 2px,#f0d9a0 2px 5px)";
 
 function unionBox(boxes: Box[]): Box {
   return boxes.reduce<Box>(
@@ -65,36 +64,12 @@ function regionLabel(name: string) {
   return /^(Maule|Biobío)$/.test(name) ? `Región del ${name}` : `Región de ${name}`;
 }
 
-const segmentGroup = "flex max-w-full flex-wrap rounded-3xl border-2 border-line bg-white p-1 gap-1";
-const segment = (on: boolean) =>
-  `min-h-11 shrink-0 rounded-full px-4 text-[1.0625rem] font-bold transition-colors ${on ? "bg-ink text-white" : "text-ink hover:bg-paper"}`;
 const panel = "rounded-2xl border-2 border-line bg-white";
 const eyebrow = "zb-etiqueta";
 const smallButton = buttonClass("secundario", "!min-h-12 !px-5");
 
-function Swatch({ c }: { c: ComunaSummary }) {
-  return (
-    <span
-      aria-hidden="true"
-      className="inline-block h-4 w-4 shrink-0 rounded-sm border border-black/20"
-      style={{ background: c.birthCount === 0 ? HATCH : fillFor(c.count) }}
-    />
-  );
-}
-
-/** Los mismos colores que el árbol: azul hombres, rosado mujeres. */
-const sexColor = (sex?: string | null) => (sex === "F" ? "#b03a62" : sex === "M" ? "#2f66b8" : "#4a4740");
-
 function Avatar({ name, sex }: { name: string; sex?: string | null }) {
-  return (
-    <span
-      aria-hidden="true"
-      className="grid h-12 w-12 shrink-0 place-items-center rounded-xl text-[1.375rem] font-bold"
-      style={{ backgroundColor: `${sexColor(sex)}1a`, color: sexColor(sex) }}
-    >
-      {name.trim().charAt(0).toUpperCase()}
-    </span>
-  );
+  return <Initial name={name} sex={sex} size={48} />;
 }
 
 function PersonRow({ a, sex, third, onOpen, children }: { a: Ancestor; sex?: string | null; third: boolean; onOpen?: () => void; children?: React.ReactNode }) {
@@ -108,7 +83,7 @@ function PersonRow({ a, sex, third, onOpen, children }: { a: Ancestor; sex?: str
           {a.origin.kind !== "none" && (
             <>
               {" "}· {a.origin.label}
-              {a.origin.basis !== "birth" && <span className="text-[#9a4a14]"> ({BASIS_LABELS[a.origin.basis]})</span>}
+              {a.origin.basis !== "birth" && <span className="text-teja"> ({BASIS_LABELS[a.origin.basis]})</span>}
             </>
           )}
         </p>
@@ -118,7 +93,7 @@ function PersonRow({ a, sex, third, onOpen, children }: { a: Ancestor; sex?: str
   return (
     <li className="flex flex-wrap items-center gap-x-3 gap-y-2 py-3">
       {onOpen ? (
-        <button type="button" onClick={onOpen} title="Abrir la ficha para verla o editarla" className="-m-1 flex min-w-0 flex-1 basis-60 items-center gap-3 rounded-xl p-1 text-left hover:bg-paper">
+        <button type="button" onClick={onOpen} title="Abrir la ficha para verla o editarla" className="-m-1 flex min-w-0 flex-1 basis-60 items-center gap-3 rounded-xl p-1 text-left hover:bg-adobe-2">
           {body}
         </button>
       ) : (
@@ -153,7 +128,7 @@ export default function OriginsMap(props: {
   const router = useRouter();
   // La ficha se abre al lado, sin salir del mapa; los datos del árbol (parentesco) se piden la primera vez.
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [treeData, setTreeData] = useState<any[]>([]);
+  const [treeData, setTreeData] = useState<any[]>([]); // eslint-disable-line @typescript-eslint/no-explicit-any
   useEffect(() => {
     if (!selectedId || treeData.length) return;
     fetch("/api/tree")
@@ -186,8 +161,6 @@ export default function OriginsMap(props: {
   const located = locatedCount(summary);
   const percent = summary.total ? Math.round((located / summary.total) * 100) : 0;
   const regionName = (code: string) => regions.find((r) => r.code === code)?.name ?? code;
-  const top = topRegions(summary).map(([code, n]) => `${regionName(code)} (${n})`);
-  const maxCount = ranked[0]?.count ?? 0;
 
   // Pestañas de generación, cada una con cuántos antepasados tienen lugar conocido (según la rama elegida).
   const genTabs = useMemo(() => {
@@ -340,7 +313,7 @@ export default function OriginsMap(props: {
     return (
       <details key={kind} open={open} className={`${panel} group`}>
         <summary className="flex min-h-[4.5rem] cursor-pointer list-none items-center gap-4 px-4 py-3 sm:px-5 [&::-webkit-details-marker]:hidden">
-          <span className="flex h-10 min-w-10 items-center justify-center rounded-full bg-paper px-2 text-[1.125rem] font-bold">{items.length}</span>
+          <span className="flex h-10 min-w-10 items-center justify-center rounded-full bg-adobe-2 px-2 text-[1.125rem] font-bold">{items.length}</span>
           <span className="min-w-0 flex-1">
             <span className="zb-nombre block">{title}</span>
             <span className="zb-apoyo block">{hint}</span>
@@ -381,22 +354,13 @@ export default function OriginsMap(props: {
   const missingTotal = summary.abroad.length + summary.unlocated.length + summary.none.length;
 
   const first = rootName.split(" ")[0];
-  const tabCls = (isOn: boolean) =>
-    `-mb-0.5 inline-flex min-h-12 shrink-0 items-center gap-2 whitespace-nowrap border-b-4 px-4 text-[1.125rem] transition ${
-      isOn ? "border-ink font-bold text-ink" : "border-transparent text-gris hover:text-ink"
-    }`;
-  const countCls = (isOn: boolean) => `rounded-full px-2.5 py-0.5 text-base font-bold ${isOn ? "bg-ink text-white" : "bg-paper text-gris"}`;
-  const pill = (isOn: boolean) =>
-    `min-h-12 whitespace-nowrap rounded-full border-2 px-5 text-[1.0625rem] font-bold transition ${isOn ? "border-ink bg-ink text-white" : "border-line bg-white text-ink hover:border-ink"}`;
-  const zoomBtn = "grid h-12 w-12 place-items-center rounded-xl border-2 border-line bg-white text-[1.5rem] font-bold leading-none hover:border-ink";
-  const missing = summary.total - located;
   const topNames = topRegions(summary, 2).map(([code]) => regionName(code));
 
   const tabs = gens > 1 ? [genTabs[0], ...genTabs.slice(1).reverse()] : [];
   const chip = (isOn: boolean) =>
-    `min-h-10 whitespace-nowrap rounded-full border-2 px-3.5 text-base font-bold transition ${isOn ? "border-ink bg-ink text-white" : "border-line bg-white text-ink hover:border-ink"}`;
+    `min-h-10 whitespace-nowrap rounded-full border-2 px-3.5 text-base font-bold transition ${isOn ? "border-ink bg-burdeos text-white" : "border-line bg-white text-ink hover:border-ink"}`;
   const floatBtn =
-    "grid h-12 w-12 place-items-center bg-white text-[1.5rem] font-bold leading-none text-ink hover:bg-paper";
+    "grid h-12 w-12 place-items-center bg-white text-[1.5rem] font-bold leading-none text-ink hover:bg-adobe-2";
   const markerR = (n: number) => labelSize * (0.55 + 0.1 * Math.min(n, 4));
   const badge = (n: number) => (n >= 3 ? "text-white" : "text-ink");
   const zoomControls = (
@@ -406,13 +370,11 @@ export default function OriginsMap(props: {
       <button type="button" className={`${floatBtn} border-t border-line text-[1.25rem]`} onClick={() => { setView(null); setFocus("all"); }} aria-label="Ver todo el mapa" title="Ver todo el mapa">⤢</button>
     </div>
   );
-  const hovered = hover ?? selected;
-  const hoveredComuna = hovered ? zoneMain.find((c) => c.code === hovered) : undefined;
 
   return (
     <div>
       {/* Mapa a pantalla completa con paneles flotantes (en el teléfono: tarjeta, mapa, barra y lista, una bajo otra) */}
-      <section className="relative isolate flex flex-col bg-[#e8ebee] lg:block lg:h-[calc(100vh-4.5625rem)] lg:min-h-[36rem] lg:overflow-hidden">
+      <section className="relative isolate flex flex-col bg-adobe-2 lg:block lg:h-[calc(100vh-4.5625rem)] lg:min-h-[36rem] lg:overflow-hidden">
         {/* Tarjeta de arriba a la izquierda */}
         <div className="relative z-10 order-1 m-3 rounded-3xl bg-white p-5 shadow-[0_10px_40px_rgba(0,0,0,0.12)] lg:absolute lg:left-4 lg:top-5 lg:m-0 lg:w-[29rem] lg:max-h-[calc(100%-8rem)] lg:overflow-y-auto">
           <h1 className="zb-titulo">De dónde vienen</h1>
@@ -423,14 +385,22 @@ export default function OriginsMap(props: {
             {topNames.length > 0 && <>, sobre todo en {listInWords(topNames)}</>}.
           </p>
 
-          <div className="mt-4 inline-flex w-full rounded-2xl bg-paper p-1.5" role="group" aria-label="Rama">
+          <div className="mt-3" role="img" aria-label={`${located} de ${summary.total} antepasados con lugar conocido (${percent} %)`}>
+            <div className="h-3 overflow-hidden rounded-full bg-adobe-2">
+              <div className="h-full rounded-full bg-parra" style={{ width: `${percent}%` }} />
+            </div>
+            <p className="zb-apoyo mt-1">{located} de {summary.total} con lugar conocido</p>
+          </div>
+
+          <p className="mt-4 font-bold">¿De qué lado de la familia?</p>
+          <div className="mt-2 inline-flex w-full rounded-2xl bg-adobe-2 p-1.5" role="group" aria-label="Rama">
             {([["all", "Ambas"], ["paterna", "Paterna"], ["materna", "Materna"]] as const).map(([value, label]) => (
               <button
                 key={value}
                 type="button"
                 aria-pressed={filters.branch === value}
                 onClick={() => { setFilters({ ...filters, branch: value }); setSelected(null); }}
-                className={`min-h-12 flex-1 rounded-xl px-3 text-[1.0625rem] transition ${filters.branch === value ? "bg-white font-bold text-ink shadow" : "text-gris hover:text-ink"}`}
+                className={`min-h-12 flex-1 rounded-xl px-3 text-[1.125rem] transition ${filters.branch === value ? "bg-white font-bold text-ink shadow" : "text-gris hover:text-ink"}`}
               >
                 {label}
               </button>
@@ -446,10 +416,18 @@ export default function OriginsMap(props: {
             ))}
             <span className="flex items-center gap-1.5" title="Se conoce solo por el bautismo o el matrimonio">
               <span className="inline-block h-5 w-5 rounded-md border border-black/10" style={{ background: HATCH }} />
-              lugar estimado
+              lugar por confirmar
             </span>
           </div>
 
+          <details className="group mt-3 border-t border-line pt-1">
+            <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 font-bold [&::-webkit-details-marker]:hidden">
+              <span>Más opciones</span>
+              <span className="underline decoration-2 underline-offset-4">
+                <span className="group-open:hidden">Mostrar</span>
+                <span className="hidden group-open:inline">Ocultar</span>
+              </span>
+            </summary>
           <label className="zb-apoyo mt-3 flex min-h-11 cursor-pointer items-center gap-3" title="Deja fuera los lugares que se conocen solo por el bautismo o el matrimonio">
             <input type="checkbox" className="h-5 w-5 accent-ink" checked={filters.birthOnly} onChange={(e) => { setFilters({ ...filters, birthOnly: e.target.checked }); setSelected(null); }} />
             Solo nacimientos confirmados
@@ -469,7 +447,7 @@ export default function OriginsMap(props: {
             </div>
           )}
 
-          <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-line pt-3">
+          <div className="mt-3 flex flex-wrap items-center gap-3">
             {!isSelf && hasSelf && (
               <Link href="/mapa" className={buttonClass("enlace")}>
                 Volver al mío
@@ -484,6 +462,7 @@ export default function OriginsMap(props: {
               <MapPersonPicker autoFocus />
             </div>
           )}
+          </details>
         </div>
 
         {/* El mapa */}
@@ -500,14 +479,14 @@ export default function OriginsMap(props: {
             >
               <defs>
                 <pattern id="est" width={labelSize * 0.6} height={labelSize * 0.6} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-                  <rect width={labelSize * 0.6} height={labelSize * 0.6} fill="#f6cfa3" />
-                  <rect width={labelSize * 0.25} height={labelSize * 0.6} fill="#d9622f" />
+                  <rect width={labelSize * 0.6} height={labelSize * 0.6} fill="#f0d9a0" />
+                  <rect width={labelSize * 0.25} height={labelSize * 0.6} fill="#a8432a" />
                 </pattern>
               </defs>
               {zoneMain.map((c) => {
                 if (summary.byComuna.has(c.code)) return null;
                 return (
-                  <path key={c.code} d={c.d} fill="#fff" stroke="#d6dade" strokeWidth={labelSize * 0.05}>
+                  <path key={c.code} d={c.d} fill="#fbf5e8" stroke="#d9ccb0" strokeWidth={labelSize * 0.05}>
                     <title>{c.name}</title>
                   </path>
                 );
@@ -558,23 +537,25 @@ export default function OriginsMap(props: {
                   </g>
                 );
               })}
-              {hoveredComuna && summary.byComuna.has(hoveredComuna.code) && (
+              {/* El nombre de cada comuna con datos, siempre a la vista (en el teléfono no hay "pasar el mouse"). */}
+              {labels.map((l) => (
                 <text
-                  x={(hoveredComuna.bbox[0] + hoveredComuna.bbox[2]) / 2}
-                  y={(hoveredComuna.bbox[1] + hoveredComuna.bbox[3]) / 2 - markerR(summary.byComuna.get(hoveredComuna.code)!.count) - labelSize * 0.9}
+                  key={`n-${l.code}`}
+                  x={l.x}
+                  y={l.y + markerR(summary.byComuna.get(l.code)?.count ?? 1) + labelSize * 1.05}
                   textAnchor="middle"
-                  fontSize={labelSize * 1.1}
+                  fontSize={labelSize * 0.95}
                   fontWeight={700}
-                  fill="#1f1d1a"
-                  stroke="#fff"
+                  fill="#1e1a17"
+                  stroke="#fbf5e8"
                   strokeWidth={labelSize * 0.3}
                   paintOrder="stroke"
                   strokeLinejoin="round"
                   className="pointer-events-none select-none"
                 >
-                  {hoveredComuna.name}
+                  {l.name}
                 </text>
-              )}
+              ))}
             </svg>
           ) : (
             <p className="zb-texto mx-auto mt-24 max-w-md rounded-3xl bg-white p-6 text-gris shadow">
@@ -592,17 +573,17 @@ export default function OriginsMap(props: {
         {/* Barra de generaciones */}
         {tabs.length > 0 && (
           <div className={`pointer-events-none order-3 flex justify-center px-3 py-3 lg:absolute lg:bottom-5 lg:left-0 lg:z-10 lg:p-0 ${listOpen ? "lg:right-[25rem]" : "lg:right-4"}`}>
-            <div className="pointer-events-auto flex max-w-full items-stretch gap-2 overflow-x-auto rounded-3xl bg-ink p-2 shadow-[0_10px_40px_rgba(0,0,0,0.3)]" role="group" aria-label="Generación">
+            <div className="pointer-events-auto flex max-w-full items-stretch gap-2 overflow-x-auto rounded-3xl bg-burdeos p-2 shadow-[0_10px_40px_rgba(0,0,0,0.3)]" role="group" aria-label="Generación">
               {tabs.map((g) => (
                 <button
                   key={g.label}
                   type="button"
                   aria-pressed={on(g)}
                   onClick={() => { setFilters({ ...filters, minGeneration: g.min, maxGeneration: g.max }); setSelected(null); }}
-                  className={`flex min-h-14 shrink-0 flex-col items-center justify-center rounded-2xl px-4 leading-tight transition ${on(g) ? "bg-paper text-ink" : "text-white hover:bg-white/10"}`}
+                  className={`flex min-h-14 shrink-0 flex-col items-center justify-center rounded-2xl px-4 leading-tight transition ${on(g) ? "bg-adobe-2 text-ink" : "text-white hover:bg-white/10"}`}
                 >
-                  <span className="text-[1.0625rem] font-bold">{g.label}</span>
-                  <span className={`text-sm ${on(g) ? "text-gris" : "text-white/70"}`}>
+                  <span className="text-[1.125rem] font-bold">{g.label}</span>
+                  <span className={`text-base ${on(g) ? "text-gris" : "text-white/85"}`}>
                     {g.min === 1 && g.max === gens ? `${g.n} ${g.n === 1 ? "persona" : "personas"}` : g.range || `${g.n} ${g.n === 1 ? "persona" : "personas"}`}
                   </span>
                 </button>
@@ -616,7 +597,7 @@ export default function OriginsMap(props: {
           <aside className="relative z-10 order-4 mx-3 mb-3 flex flex-col overflow-hidden rounded-3xl bg-white shadow-[0_10px_40px_rgba(0,0,0,0.12)] lg:absolute lg:bottom-5 lg:right-4 lg:top-5 lg:m-0 lg:w-[24rem]">
             {sel ? (
               <div ref={listRef} className="min-h-0 flex-1 scroll-mt-4 overflow-y-auto p-5">
-                <button type="button" onClick={() => pick(null)} className={buttonClass("secundario", "!border-transparent !bg-paper hover:!bg-line")}>
+                <button type="button" onClick={() => pick(null)} className={buttonClass("secundario", "!border-transparent !bg-adobe-2 hover:!bg-line")}>
                   <span aria-hidden>←</span> Todas las comunas
                 </button>
                 <p className="zb-texto mt-5 text-gris">{regionLabel(regionName(sel.regionCode))}</p>
@@ -631,25 +612,19 @@ export default function OriginsMap(props: {
                     return (
                       <li key={a.id} className="rounded-3xl border-2 border-line bg-white p-4">
                         <div className="flex items-start gap-4">
-                          <span
-                            aria-hidden="true"
-                            className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl text-[1.5rem] font-bold"
-                            style={{ backgroundColor: `${sexColor(sexById[a.id])}1a`, color: sexColor(sexById[a.id]) }}
-                          >
-                            {a.name.trim().charAt(0).toUpperCase()}
-                          </span>
+                          <Initial name={a.name} sex={sexById[a.id]} size={56} />
                           <div className="min-w-0">
                             <p className="zb-nombre">{a.name}</p>
                             <p className="zb-apoyo mt-0.5">{ancestorPhrase(a, !isSelf)}</p>
                           </div>
                         </div>
                         <div className="mt-3 flex flex-wrap gap-2">
-                          <span className="rounded-full bg-paper px-3.5 py-1 text-base">{year ? `Nació en ${year}` : "Sin año de nacimiento"}</span>
+                          <span className="rounded-full bg-adobe-2 px-3.5 py-1 text-base">{year ? `Nació en ${year}` : "Sin año de nacimiento"}</span>
                           {sure ? (
-                            <span className="rounded-full bg-[#e3f1e8] px-3.5 py-1 text-base font-bold text-listo">Lugar confirmado</span>
+                            <span className="rounded-full bg-parra/15 px-3.5 py-1 text-base font-bold text-parra"><span aria-hidden>✓ </span>Lugar confirmado</span>
                           ) : (
-                            <span className="rounded-full bg-[#fbecd9] px-3.5 py-1 text-base font-bold text-[#9a4a14]">
-                              Lugar por confirmar{a.origin.kind === "comuna" ? ` · según el ${a.origin.basis === "baptism" ? "bautismo" : "matrimonio"}` : ""}
+                            <span className="rounded-full bg-trigo/30 px-3.5 py-1 text-base font-bold text-ink">
+                              <span aria-hidden>? </span>Lugar por confirmar{a.origin.kind === "comuna" ? ` · según el ${a.origin.basis === "baptism" ? "bautismo" : "matrimonio"}` : ""}
                             </span>
                           )}
                         </div>
@@ -669,10 +644,10 @@ export default function OriginsMap(props: {
             ) : (
               <>
                 <div className="flex items-center justify-between gap-3 px-5 py-4">
-                  <h2 className="text-[1.375rem] font-bold leading-tight">
+                  <h2 className="font-slab text-[1.5rem] font-bold leading-tight">
                     {ranked.length} {ranked.length === 1 ? "comuna" : "comunas"}
                   </h2>
-                  <button type="button" onClick={() => setListOpen(false)} className="hidden min-h-11 rounded-xl bg-paper px-4 text-[1.0625rem] font-bold hover:bg-line lg:block">
+                  <button type="button" onClick={() => setListOpen(false)} className="hidden min-h-11 rounded-xl bg-adobe-2 px-4 text-[1.125rem] font-bold hover:bg-adobe lg:block">
                     Ocultar
                   </button>
                 </div>
@@ -688,7 +663,7 @@ export default function OriginsMap(props: {
                             onMouseLeave={() => setHover(null)}
                             onFocus={() => setHover(c.code)}
                             onBlur={() => setHover(null)}
-                            className={`flex min-h-[4.5rem] w-full items-center gap-4 px-5 py-3 text-left hover:bg-paper ${hover === c.code ? "bg-paper" : ""}`}
+                            className={`flex min-h-[4.5rem] w-full items-center gap-4 px-5 py-3 text-left hover:bg-adobe-2 ${hover === c.code ? "bg-adobe-2" : ""}`}
                           >
                             <span
                               aria-hidden="true"
@@ -722,7 +697,7 @@ export default function OriginsMap(props: {
           <button
             type="button"
             onClick={() => setListOpen(true)}
-            className="absolute right-4 top-5 z-10 hidden min-h-12 rounded-2xl bg-white px-5 text-[1.0625rem] font-bold shadow-[0_10px_30px_rgba(0,0,0,0.15)] hover:bg-paper lg:block"
+            className="absolute right-4 top-5 z-10 hidden min-h-12 rounded-2xl bg-white px-5 text-[1.125rem] font-bold shadow-[0_10px_30px_rgba(0,0,0,0.15)] hover:bg-adobe-2 lg:block"
           >
             Mostrar lista
           </button>

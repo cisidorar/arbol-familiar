@@ -113,7 +113,7 @@ export default function LineageModal({
       `}</style>
       <div role="dialog" aria-modal="true" aria-label={`El camino hasta ${target.name}`} className="flex max-h-[94vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:rounded-3xl">
         {/* Cabecera oscura */}
-        <div className="bg-ink px-6 pb-4 pt-5 text-white">
+        <div className="on-dark bg-burdeos px-6 pb-4 pt-5 text-white">
           <div className="flex items-start gap-3">
             <div className="min-w-0 flex-1">
               <p className="zb-etiqueta !text-white/75">El camino en el árbol</p>

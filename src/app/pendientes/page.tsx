@@ -23,7 +23,7 @@ export default async function PendientesPage() {
 
   return (
     // Fondo y esquema claro fijos: con el Mac en modo oscuro el texto heredado quedaría casi blanco.
-    <div className="zb min-h-screen bg-white pb-24 text-ink [color-scheme:light]">
+    <div className="zb album min-h-screen pb-24 text-ink [color-scheme:light]">
       <SectionHeader current="pendientes" />
       <main className="px-4 py-8 sm:px-6 lg:px-10 lg:py-10">
         <PendientesView tasks={tasks} people={people} homeId={homeId} />

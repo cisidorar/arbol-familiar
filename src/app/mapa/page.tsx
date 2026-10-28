@@ -19,7 +19,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function Shell({ children, bleed = false }: { children: React.ReactNode; bleed?: boolean }) {
   return (
     // Fondo blanco y esquema claro fijo: con el Mac en modo oscuro el texto heredado quedaría casi blanco.
-    <div className="zb min-h-screen bg-white text-ink [color-scheme:light]">
+    <div className="zb album min-h-screen text-ink [color-scheme:light]">
       <SectionHeader current="mapa" />
       {bleed ? (
         <main>{children}</main>

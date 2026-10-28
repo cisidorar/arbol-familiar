@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Section } from "./AppHeader";
 
-type Tab = { key: Exclude<Section, "admin">; href: string; label: string; icon: React.ReactNode; adminOnly?: boolean };
+type Tab = { key: Exclude<Section, "admin">; href: string; label: string; icon: React.ReactNode; adminOnly?: boolean; /** Nombre completo, para lectores de pantalla (la etiqueta visible es corta para caber con letra de 16 px). */ full?: string };
 
 const icon = (d: React.ReactNode) => (
   <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -49,7 +49,8 @@ const TABS: Tab[] = [
   {
     key: "cementerios",
     href: "/cementerios",
-    label: "Cementerios",
+    label: "Tumbas",
+    full: "Cementerios",
     icon: icon(
       <>
         <path d="M7 21V9a5 5 0 0 1 10 0v12" />
@@ -61,7 +62,8 @@ const TABS: Tab[] = [
   {
     key: "pendientes",
     href: "/pendientes",
-    label: "Pendientes",
+    label: "Tareas",
+    full: "Pendientes",
     adminOnly: true,
     icon: icon(
       <>
@@ -82,7 +84,7 @@ export default function MobileTabBar({ current, isAdmin, pad = true }: { current
     <nav
       aria-label="Secciones"
       data-pad={pad ? "" : undefined}
-      className="zb-tabbar fixed inset-x-0 bottom-0 z-[24] border-t border-white/10 bg-ink pb-[env(safe-area-inset-bottom)] text-white shadow-[0_-6px_20px_rgba(0,0,0,0.18)] sm:hidden print:hidden"
+      className="zb-tabbar fixed inset-x-0 bottom-0 z-[24] on-dark border-t border-white/10 bg-burdeos pb-[env(safe-area-inset-bottom)] text-white shadow-[0_-6px_20px_rgba(0,0,0,0.18)] sm:hidden print:hidden"
     >
       <ul className="flex">
         {TABS.filter((t) => !t.adminOnly || isAdmin).map((t) => {
@@ -92,9 +94,10 @@ export default function MobileTabBar({ current, isAdmin, pad = true }: { current
               <Link
                 href={t.href}
                 aria-current={on ? "page" : undefined}
-                className={`flex min-h-[4.25rem] flex-col items-center justify-center gap-1 text-[0.75rem] font-bold leading-none tracking-tight ${on ? "text-white" : "text-white/60"}`}
+                aria-label={t.full}
+                className={`flex min-h-[4.5rem] flex-col items-center justify-center gap-1 text-base font-bold leading-none ${on ? "text-white" : "text-white/85"}`}
               >
-                <span className={`grid h-8 w-12 place-items-center rounded-full ${on ? "bg-white text-ink" : ""}`}>{t.icon}</span>
+                <span className={`grid h-8 w-12 place-items-center rounded-full ${on ? "bg-adobe text-ink" : ""}`}>{t.icon}</span>
                 {t.label}
               </Link>
             </li>

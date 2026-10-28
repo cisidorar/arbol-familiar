@@ -23,18 +23,18 @@ export default function AuthShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="zb flex min-h-screen flex-col bg-white lg:flex-row">
+    <div className="zb album flex min-h-screen flex-col lg:flex-row">
       {/* Bienvenida */}
-      <section className="relative overflow-hidden bg-ink text-white lg:flex lg:w-[47%] lg:flex-col">
+      <section className="on-dark relative overflow-hidden bg-burdeos text-white lg:flex lg:w-[47%] lg:flex-col">
         <div className={BRAND_ROW}>
           <SiteBrand />
         </div>
         <div className="px-5 pb-7 pt-3 sm:px-10 sm:pb-10 sm:pt-6 lg:px-12 lg:pt-8 xl:px-14">
-          <h2 className="max-w-[12ch] font-maquina text-[2rem] leading-[1.08] sm:text-5xl lg:text-[3.25rem] xl:text-6xl">
+          <h2 className="max-w-[12ch] font-slab text-[2rem] font-bold leading-[1.08] sm:text-5xl lg:text-[3.25rem] xl:text-6xl">
             {heading}
           </h2>
-          <p className="mt-4 max-w-md text-base leading-relaxed text-white/80 sm:mt-6 sm:text-lg">{lead}</p>
-          <p className="mt-4 text-sm font-bold uppercase tracking-[0.18em] text-white/60">Actualizado el {PORTADA.actualizado}</p>
+          <p className="mt-4 max-w-md text-base leading-relaxed text-white/90 sm:mt-6 sm:text-lg">{lead}</p>
+          <p className="mt-4 text-base font-bold uppercase tracking-[0.14em] text-white/85">Actualizado el {PORTADA.actualizado}</p>
         </div>
 
         {/* Fichas de ejemplo (de antepasados fallecidos): solo en pantallas anchas */}
@@ -44,7 +44,7 @@ export default function AuthShell({
       </section>
 
       {/* Formulario */}
-      <main className="flex flex-1 flex-col bg-white">
+      <main className="flex flex-1 flex-col">
         <div className={BRAND_ROW}>
           <Link
             href="/"

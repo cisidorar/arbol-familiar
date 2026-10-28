@@ -93,7 +93,7 @@ export default function PendientesView({
     // izquierda para seguir viendo el pendiente mientras se edita.
     <div className={`mx-auto max-w-[112rem] transition-[padding] duration-300 ${openId ? "lg:pr-[41rem]" : ""}`}>
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
-        <h1 className="text-3xl font-bold leading-tight">Pendientes</h1>
+        <h1 className="zb-titulo al-regla">Pendientes</h1>
         <p className="zb-texto text-gris">
           {visible.length === 0
             ? "No hay nada pendiente."
@@ -105,7 +105,7 @@ export default function PendientesView({
       </div>
 
       {error && (
-        <p role="alert" className="mt-4 rounded-2xl border-2 border-aviso bg-white px-4 py-3 text-[1.0625rem] font-bold">
+        <p role="alert" className="mt-4 rounded-2xl border-2 border-aviso bg-white px-4 py-3 text-[1.125rem] font-bold">
           {error}
         </p>
       )}
@@ -113,10 +113,10 @@ export default function PendientesView({
       {groups.map((g) => (
         <section key={g.key} className="mt-8" aria-labelledby={`k-${g.key}`}>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b-2 border-line pb-3">
-            <span className="flex h-9 min-w-9 items-center justify-center rounded-full bg-[#e08a00] px-2 text-[1.0625rem] font-bold text-white">
+            <span className="flex h-9 min-w-9 items-center justify-center rounded-full bg-burdeos px-2 text-[1.125rem] font-bold text-white">
               {g.items.length}
             </span>
-            <h2 id={`k-${g.key}`} className="text-[1.375rem] font-bold leading-tight">
+            <h2 id={`k-${g.key}`} className="font-slab text-[1.5rem] font-bold leading-tight">
               {g.label}
             </h2>
             {g.hint && <p className="w-full text-base text-gris md:ml-auto md:w-auto">{g.hint}</p>}
@@ -133,16 +133,16 @@ export default function PendientesView({
               return (
                 <li
                   key={t.eventId}
-                  className={`flex flex-col rounded-3xl border-2 bg-white p-4 sm:p-5 ${isOpen ? "border-[#e08a00] shadow-[0_0_0_3px_rgba(224,138,0,0.18)]" : "border-line"}`}
+                  className={`flex flex-col rounded-3xl border-2 bg-white p-4 sm:p-5 ${isOpen ? "border-teja shadow-[0_0_0_3px_rgba(168,67,42,0.2)]" : "border-line"}`}
                 >
                   <p className="mb-2 flex items-center gap-2">
                     <span
-                      className={`rounded-full px-2.5 py-0.5 text-sm font-bold uppercase tracking-wide ${
+                      className={`rounded-full px-2.5 py-0.5 text-base font-bold uppercase tracking-wide ${
                         t.priority.level === "alta"
-                          ? "bg-[#e08a00] text-white"
+                          ? "bg-teja text-white"
                           : t.priority.level === "media"
-                            ? "bg-[#fff0cc] text-ink"
-                            : "bg-paper text-gris"
+                            ? "bg-trigo text-ink"
+                            : "bg-adobe-2 text-gris"
                       }`}
                     >
                       Prioridad {t.priority.level}
@@ -152,8 +152,8 @@ export default function PendientesView({
                     {t.label}
                     {when && <span className="font-normal text-gris"> · {when}</span>}
                   </p>
-                  {t.place && <p className="mt-0.5 text-[1.0625rem] text-gris">{t.place}</p>}
-                  <p className="mt-2 text-[1.0625rem] leading-snug">
+                  {t.place && <p className="mt-0.5 text-[1.125rem] text-gris">{t.place}</p>}
+                  <p className="mt-2 text-[1.125rem] leading-snug">
                     {t.people.map((p, i) => (
                       <span key={p.id}>
                         {i > 0 && " y "}
@@ -166,14 +166,14 @@ export default function PendientesView({
                   <p className="mt-2 text-base leading-snug text-gris">{t.priority.reason}</p>
 
                   {t.note && (
-                    <p className="mt-3 whitespace-pre-line break-words rounded-xl border-l-4 border-[#e08a00] bg-[#fff6e0] px-3.5 py-2.5 text-base leading-snug text-gray-900">
+                    <p className="mt-3 whitespace-pre-line break-words rounded-xl border-l-4 border-trigo bg-trigo/20 px-3.5 py-2.5 text-base leading-snug text-ink">
                       {t.note}
                     </p>
                   )}
 
                   {t.source ? (
                     <p className="mt-3 line-clamp-2 break-words text-base text-gris" title={t.source.title}>
-                      <span className="mr-1.5 rounded-md bg-paper px-1.5 py-0.5 text-sm font-bold uppercase tracking-wide text-ink">Fuente</span>
+                      <span className="mr-1.5 rounded-md bg-adobe-2 px-1.5 py-0.5 text-base font-bold uppercase tracking-wide text-ink">Fuente</span>
                       {t.source.title !== t.source.url ? t.source.title : "con enlace"}
                     </p>
                   ) : (
@@ -225,11 +225,11 @@ export default function PendientesView({
       {undo && (
         <div
           role="status"
-          className="fixed inset-x-4 bottom-4 z-40 mx-auto flex max-w-md items-center justify-between gap-4 rounded-2xl bg-ink px-5 py-3 text-white shadow-[0_12px_30px_rgba(0,0,0,0.35)]"
+          className="fixed inset-x-4 bottom-4 z-40 mx-auto flex max-w-md items-center justify-between gap-4 on-dark rounded-2xl bg-burdeos px-5 py-3 text-white shadow-[0_12px_30px_rgba(0,0,0,0.35)]"
         >
-          <span className="text-[1.0625rem]">Quitado de pendientes</span>
+          <span className="text-[1.125rem]">Quitado de pendientes</span>
           <span className="flex items-center gap-3">
-            <button type="button" onClick={() => undoDone(undo)} className="min-h-11 px-2 text-[1.0625rem] font-bold underline decoration-2 underline-offset-4">
+            <button type="button" onClick={() => undoDone(undo)} className="min-h-11 px-2 text-[1.125rem] font-bold underline decoration-2 underline-offset-4">
               Deshacer
             </button>
             <button type="button" onClick={() => setUndo(null)} aria-label="Cerrar aviso" className="min-h-11 min-w-11 text-xl">

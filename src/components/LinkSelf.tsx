@@ -29,7 +29,7 @@ export default function LinkSelf() {
       {person && (
         <div className="flex flex-wrap items-center gap-3">
           <button type="button" onClick={confirm} disabled={pending} className={buttonClass("principal")}>
-            {pending ? "Guardando…" : `Sí, soy ${person.name.split(" ")[0]}`}
+            {pending ? "Guardando…" : `Sí, soy ${person.name}`}
           </button>
           <button type="button" onClick={() => setPerson(null)} disabled={pending} className={buttonClass("enlace")}>
             Elegir otra persona

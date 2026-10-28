@@ -99,21 +99,21 @@ export default async function PersonaPage({ params }: { params: Promise<{ id: st
   const color = sexColor(me.gender);
 
   return (
-    <div className="zb min-h-screen bg-white text-ink [color-scheme:light]">
+    <div className="zb album min-h-screen text-ink [color-scheme:light]">
       <SectionHeader current="arbol" />
       <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:py-12">
-        <Link href={`/?persona=${id}`} className="print:hidden inline-flex min-h-12 items-center gap-2 font-bold text-ink hover:text-terra">
+        <Link href={`/?persona=${id}`} className="print:hidden inline-flex min-h-12 items-center gap-2 font-bold text-ink hover:text-teja">
           <span aria-hidden>←</span> Ver en el árbol
         </Link>
 
         {/* Quién es */}
         <header className="mt-4 flex flex-col gap-5 sm:flex-row sm:items-center">
-          <span
-            aria-hidden="true"
-            className="grid h-24 w-24 shrink-0 place-items-center rounded-full text-[2.75rem] font-bold"
-            style={{ backgroundColor: `${color}1a`, color }}
-          >
-            {me.label.trim().charAt(0).toUpperCase()}
+          <span aria-hidden="true" className="foto -rotate-2 shrink-0 self-start p-2.5">
+            <span className="esq-a" />
+            <span className="esq-b" />
+            <span className="grid h-24 w-24 place-items-center bg-adobe-2 font-slab text-[3rem] font-bold" style={{ color }}>
+              {me.label.trim().charAt(0).toUpperCase()}
+            </span>
           </span>
           <div className="min-w-0">
             {kin && <p className="font-bold" style={{ color }}>{kin}</p>}
@@ -128,13 +128,13 @@ export default async function PersonaPage({ params }: { params: Promise<{ id: st
           <ShareButton
             title={`${detail.displayName} · Archivo Zamora Balcázar`}
             text={`Mira la ficha de ${detail.displayName} en el archivo de la familia`}
-            className="inline-flex min-h-12 items-center gap-2 rounded-full bg-ink px-6 text-[1.0625rem] font-bold text-white hover:bg-terra"
+            className="inline-flex min-h-12 items-center gap-2 rounded-full bg-teja px-6 text-[1.125rem] font-bold text-white hover:bg-burdeos"
           />
-          <Link href={`/mapa?persona=${id}`} className="inline-flex min-h-12 items-center rounded-full border-2 border-ink px-6 text-[1.0625rem] font-bold hover:bg-paper">
+          <Link href={`/mapa?persona=${id}`} className="inline-flex min-h-12 items-center rounded-full border-2 border-ink bg-white px-6 text-[1.125rem] font-bold hover:bg-adobe-2">
             Mapa de sus antepasados
           </Link>
           {editor && (
-            <Link href={`/?persona=${id}`} className="inline-flex min-h-12 items-center rounded-full border-2 border-line px-6 text-[1.0625rem] font-bold text-gris hover:border-ink hover:text-ink">
+            <Link href={`/?persona=${id}`} className="inline-flex min-h-12 items-center rounded-full border-2 border-line bg-white px-6 text-[1.125rem] font-bold text-gris hover:border-ink hover:text-ink">
               Editar en el árbol
             </Link>
           )}
@@ -151,18 +151,24 @@ export default async function PersonaPage({ params }: { params: Promise<{ id: st
           ) : (
             <ol className="mt-2">
               {timeline.map((e, i) => (
-                <li key={i} className="grid grid-cols-[4.5rem_1fr] gap-x-4 border-b border-line py-4 last:border-b-0 sm:grid-cols-[6rem_1fr]">
-                  <p className={`font-maquina leading-tight tabular-nums ${e.year == null ? "text-base text-gris" : "text-[1.25rem]"}`}>
-                    {e.year ?? "s. f."}
-                    {e.yearEnd && e.yearEnd !== e.year ? <span className="block text-base text-gris">a {e.yearEnd}</span> : null}
-                  </p>
+                <li key={i} className="grid grid-cols-[4.5rem_1fr] gap-x-4 border-b border-line py-4 last:border-b-0 sm:grid-cols-[5.5rem_1fr]">
+                  <div>
+                    <p
+                      className={`grid h-[4.5rem] w-[4.5rem] place-items-center rounded-full border-4 border-double border-adobe font-maquina leading-tight tabular-nums ${
+                        e.year == null ? "bg-adobe-2 text-base text-gris" : "bg-burdeos text-[1.25rem] text-adobe"
+                      }`}
+                    >
+                      {e.year ?? "s. f."}
+                    </p>
+                    {e.yearEnd && e.yearEnd !== e.year ? <p className="mt-1 text-center text-base text-gris">a {e.yearEnd}</p> : null}
+                  </div>
                   <div className="min-w-0">
                     <p className="text-[1.0625rem] font-bold leading-snug">
                       {e.title}
                       {e.person && (
                         <>
                           {" "}
-                          <Link href={`/persona/${e.person.id}`} className="underline decoration-2 underline-offset-4 hover:text-terra">
+                          <Link href={`/persona/${e.person.id}`} className="underline decoration-2 underline-offset-4 hover:text-teja">
                             {e.person.name}
                           </Link>
                         </>
@@ -181,7 +187,7 @@ export default async function PersonaPage({ params }: { params: Promise<{ id: st
                             {k > 0 && " · "}
                             {p.role}:{" "}
                             {p.personId ? (
-                              <Link href={`/persona/${p.personId}`} className="underline underline-offset-4 hover:text-terra">
+                              <Link href={`/persona/${p.personId}`} className="underline underline-offset-4 hover:text-teja">
                                 {p.name}
                               </Link>
                             ) : (
@@ -195,7 +201,7 @@ export default async function PersonaPage({ params }: { params: Promise<{ id: st
                       <ul className="mt-2 flex flex-wrap gap-2 print:hidden">
                         {e.sources.map((s, k) => (
                           <li key={k}>
-                            <a href={s.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-[#f1efea] px-3.5 text-base font-bold hover:bg-[#e8e5de]">
+                            <a href={s.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-adobe-2 px-3.5 text-base font-bold hover:bg-white">
                               Fuente <span aria-hidden>↗</span>
                             </a>
                           </li>

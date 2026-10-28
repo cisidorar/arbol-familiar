@@ -1,5 +1,5 @@
 // Piezas de la guía de estilo ("Un archivo que toda la familia pueda usar").
-// Botones de al menos 48 px, texto de 18 px (nunca menos de 16), un botón negro
+// Botones de al menos 48 px, texto de 18 px (nunca menos de 16), un botón de teja
 // por pantalla, íconos siempre con su palabra y mensajes en tono de conversación.
 
 import Link from "next/link";
@@ -13,9 +13,9 @@ const BUTTON_BASE =
   "inline-flex min-h-12 items-center justify-center gap-2 text-[1.125rem] font-bold leading-tight transition-colors disabled:cursor-not-allowed disabled:opacity-60";
 const BUTTON_VARIANT: Record<Variant, string> = {
   // Uno por pantalla: la acción principal.
-  principal: "rounded-full border-2 border-ink bg-ink px-7 py-2 text-white hover:bg-gris hover:border-gris",
-  secundario: "rounded-full border-2 border-ink bg-white px-6 py-2 text-ink hover:bg-paper",
-  enlace: "px-3 py-2 text-ink underline decoration-2 underline-offset-4 hover:text-terra",
+  principal: "rounded-full border-2 border-teja bg-teja px-7 py-2 text-white hover:border-burdeos hover:bg-burdeos",
+  secundario: "rounded-full border-2 border-ink bg-white px-6 py-2 text-ink hover:bg-adobe-2",
+  enlace: "px-3 py-2 text-ink underline decoration-2 underline-offset-4 hover:text-teja",
 };
 
 export function buttonClass(variant: Variant = "principal", extra = ""): string {
@@ -70,7 +70,7 @@ export function Field({
         aria-describedby={describedBy}
         {...input}
         className={`min-h-12 w-full rounded-lg border-2 bg-white px-3.5 py-2 text-[1.125rem] text-ink placeholder:text-gris/70 ${
-          error ? "border-aviso" : "border-[#8f8a80] focus:border-hombre"
+          error ? "border-aviso" : "border-[#8f8a80] focus:border-ink"
         } ${className}`}
       />
       {hint && (
@@ -93,7 +93,7 @@ export function Field({
 type NoticeKind = "info" | "listo" | "aviso";
 
 const NOTICE: Record<NoticeKind, { box: string; icon: string; mark: string; label: string }> = {
-  info: { box: "bg-paper", icon: "bg-ink text-white", mark: "i", label: "Información" },
+  info: { box: "bg-adobe-2", icon: "bg-burdeos text-white", mark: "i", label: "Información" },
   listo: { box: "bg-[#e5f1ea]", icon: "bg-listo text-white", mark: "✓", label: "Listo" },
   aviso: { box: "bg-[#fbebe8]", icon: "bg-aviso text-white", mark: "!", label: "Atención" },
 };
@@ -103,7 +103,7 @@ export function Notice({ kind = "info", children }: { kind?: NoticeKind; childre
   return (
     <div
       role={kind === "aviso" ? "alert" : "status"}
-      className={`flex items-start gap-3 rounded-xl px-4 py-3.5 text-[1.0625rem] leading-snug ${n.box}`}
+      className={`flex items-start gap-3 rounded-xl px-4 py-3.5 text-[1.125rem] leading-snug ${n.box}`}
     >
       <span
         aria-label={n.label}
@@ -140,8 +140,8 @@ export function Segmented<T extends string>({
             role="radio"
             aria-checked={on}
             onClick={() => onChange(o.value)}
-            className={`min-h-11 rounded-full px-5 text-[1.0625rem] font-bold transition-colors ${
-              on ? "bg-ink text-white" : "text-ink hover:bg-paper"
+            className={`min-h-11 rounded-full px-5 text-[1.125rem] font-bold transition-colors ${
+              on ? "bg-burdeos text-white" : "text-ink hover:bg-adobe"
             }`}
           >
             {o.label}
@@ -157,12 +157,12 @@ export function Segmented<T extends string>({
 /** Inicial en un cuadrado redondeado, como el logo: azul para hombres, rosa para mujeres. */
 export function Initial({ name, sex, size = 48 }: { name: string; sex?: string | null; size?: number }) {
   const tone =
-    sex === "M" ? "bg-[#dce7f6] text-hombre" : sex === "F" ? "bg-[#f6dde7] text-mujer" : "bg-paper text-gris";
+    sex === "M" ? "bg-[#dce7f6] text-hombre" : sex === "F" ? "bg-[#f6dde7] text-mujer" : "bg-adobe-2 text-gris";
   return (
     <span
       aria-hidden="true"
       style={{ width: size, height: size }}
-      className={`flex shrink-0 items-center justify-center rounded-xl text-[1.375rem] font-bold uppercase ${tone}`}
+      className={`flex shrink-0 items-center justify-center rounded-xl text-[1.25rem] font-bold uppercase ${tone}`}
     >
       {name.trim().charAt(0) || "?"}
     </span>

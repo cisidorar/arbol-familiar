@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Special_Elite, Playfair_Display, Atkinson_Hyperlegible } from "next/font/google";
+import { Special_Elite, Zilla_Slab, Playfair_Display, Atkinson_Hyperlegible } from "next/font/google";
 import "./globals.css";
 
 // Fuente tipo máquina de escribir para el título del archivo (look "archivo
@@ -9,6 +9,13 @@ const specialElite = Special_Elite({
   weight: "400",
   subsets: ["latin"],
   variable: "--font-special-elite",
+});
+
+// Slab suave, de sello y etiqueta, para los títulos del inicio.
+const zilla = Zilla_Slab({
+  weight: ["500", "700"],
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-zilla",
 });
 
 // Serif elegante para los nombres en las tarjetas del árbol, look "registro
@@ -34,7 +41,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="es" suppressHydrationWarning className={`h-full antialiased ${specialElite.variable} ${playfair.variable} ${atkinson.variable}`}>
+    <html lang="es" suppressHydrationWarning className={`h-full antialiased ${specialElite.variable} ${zilla.variable} ${playfair.variable} ${atkinson.variable}`}>
       <body suppressHydrationWarning className="min-h-full flex flex-col font-sans">
         {children}
       </body>

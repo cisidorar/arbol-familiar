@@ -30,7 +30,7 @@ export default async function AdminPage() {
   ]);
 
   return (
-    <div className="zb min-h-screen bg-white text-ink [color-scheme:light]">
+    <div className="zb album min-h-screen text-ink [color-scheme:light]">
       <SectionHeader current="admin" />
 
       <main className="mx-auto flex max-w-3xl flex-col gap-12 px-4 py-8 sm:px-6 lg:py-10">

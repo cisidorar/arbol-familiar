@@ -1,6 +1,8 @@
+import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import LinkSelf from "@/components/LinkSelf";
+import InicioSearch from "@/components/InicioSearch";
 import AncestorRoulette, { type RoulettePerson } from "@/components/AncestorRoulette";
 import SectionHeader from "@/components/SectionHeader";
 import { requireSession } from "@/lib/auth/session";
@@ -16,6 +18,7 @@ export const dynamic = "force-dynamic";
 
 const randomItem = <T,>(list: T[]): T => list[Math.floor(Math.random() * list.length)];
 const MONTHS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+const MONTH_FULL = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 function Names({ people }: { people: { id: string; name: string }[] }) {
@@ -24,7 +27,7 @@ function Names({ people }: { people: { id: string; name: string }[] }) {
       {people.map((p, i) => (
         <span key={p.id}>
           {i > 0 && (i === people.length - 1 ? " y " : ", ")}
-          <Link href={`/persona/${p.id}`} className="underline decoration-2 underline-offset-4 hover:text-terra">
+          <Link href={`/persona/${p.id}`} className="underline decoration-2 underline-offset-4 hover:text-teja">
             {p.name}
           </Link>
         </span>
@@ -34,36 +37,71 @@ function Names({ people }: { people: { id: string; name: string }[] }) {
 }
 
 function sentence(it: FamilyDateItem) {
+  const date = <span className="sr-only"> (el {it.day} de {MONTH_FULL[it.month - 1]})</span>;
   const people = <Names people={it.people} />;
   const place = it.place ? ` en ${it.place}` : "";
   switch (it.kind) {
     case "cumple":
-      return <>{people} cumple {plural(it.years, "año", "años")}</>;
+      return <>{people} cumple {plural(it.years, "año", "años")}{date}</>;
     case "nace":
-      return <>{it.years === 0 ? "Hoy nació" : `Hace ${plural(it.years, "año", "años")} nació`} {people}{place}</>;
+      return <>{it.years === 0 ? "Hoy nació" : `Hace ${plural(it.years, "año", "años")} nació`} {people}{place}{date}</>;
     case "muere":
-      return <>Hace {plural(it.years, "año", "años")} falleció {people}{place}</>;
+      return <>Hace {plural(it.years, "año", "años")} falleció {people}{place}{date}</>;
     case "casan":
-      return <>Hace {plural(it.years, "año", "años")} se casaron {people}{place}</>;
+      return <>Hace {plural(it.years, "año", "años")} se casaron {people}{place}{date}</>;
   }
 }
 
-function DateRow({ it, today }: { it: FamilyDateItem; today: boolean }) {
+const TILE: Record<FamilyDateItem["kind"], string> = {
+  cumple: "bg-trigo text-ink",
+  nace: "bg-parra text-adobe",
+  muere: "bg-burdeos text-adobe",
+  casan: "bg-teja text-adobe",
+};
+
+function DateRow({ it, today, i }: { it: FamilyDateItem; today: boolean; i: number }) {
   return (
-    <li className="flex items-center gap-4 py-4">
+    <li className={`flex items-center gap-4 rounded-2xl border-2 bg-white p-4 ${today ? "border-ink" : "border-line"} ${i % 2 ? "rotate-[0.5deg]" : "-rotate-[0.5deg]"}`}>
       <span
-        className={`grid h-16 w-16 shrink-0 place-items-center rounded-2xl text-center leading-none ${today ? "bg-terra text-white" : "bg-[#f1efea] text-ink"}`}
+        className={`grid h-[4.5rem] w-[4.5rem] shrink-0 place-items-center rounded-full border-4 border-double border-adobe text-center leading-none ${TILE[it.kind]}`}
         aria-hidden="true"
       >
         <span>
-          <span className="block font-maquina text-[1.5rem]">{it.day}</span>
-          <span className="mt-1 block text-sm font-bold uppercase tracking-wide">{MONTHS[it.month - 1]}</span>
+          <span className="block font-maquina text-[1.25rem]">{it.day}</span>
+          <span className="block text-base font-bold uppercase">{MONTHS[it.month - 1]}</span>
         </span>
       </span>
-      <p className="zb-texto min-w-0">{sentence(it)}</p>
+      <p className="zb-texto min-w-0">{today && <strong>Hoy: </strong>}{sentence(it)}</p>
     </li>
   );
 }
+
+const PATHS: { href: string; title: string; text: string; tone: string; num: string; icon: ReactNode }[] = [
+  {
+    href: "/",
+    title: "Árbol",
+    text: "Recorre a la familia, generación por generación.",
+    tone: "bg-teja text-adobe",
+    num: "N.º 1",
+    icon: <path d="M12 21V9m0 4-5-4m5 1 5-4M12 9V3m0 0-3 3m3-3 3 3" />,
+  },
+  {
+    href: "/mapa",
+    title: "De dónde vienen",
+    text: "Las comunas donde nacieron tus antepasados.",
+    tone: "bg-parra text-adobe",
+    num: "N.º 2",
+    icon: <path d="M12 21s-6-5.5-6-11a6 6 0 1 1 12 0c0 5.5-6 11-6 11Zm0-8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />,
+  },
+  {
+    href: "/cementerios",
+    title: "Dónde descansan",
+    text: "Cementerios, tumbas y cómo llegar.",
+    tone: "bg-burdeos text-adobe",
+    num: "N.º 3",
+    icon: <path d="M6 21V9a6 6 0 0 1 12 0v12M3 21h18M12 8v6m-2.5-3.5h5" />,
+  },
+];
 
 export default async function InicioPage() {
   const session = await requireSession();
@@ -113,7 +151,7 @@ export default async function InicioPage() {
       id: a.id,
       name: a.name,
       rel: `Tu ${a.relation}`,
-      years: p?.death ? `${p.birth} – ${p.death}` : `n. ${p?.birth}`,
+      years: p?.death ? `${p.birth} – ${p.death}` : `nació ${p?.birth}`,
       place,
       blurb,
     };
@@ -126,38 +164,56 @@ export default async function InicioPage() {
   const noteYear = note ? Number(today.slice(0, 4)) - note.years : 0;
   const noteKin = note && me ? kinshipPhrase(me.id, note.people[0].id, graph)?.label.toLowerCase() ?? null : null;
   const when = note ? (note.inDays === 0 ? "hoy" : note.inDays === 1 ? "mañana" : `en ${note.inDays} días`) : "";
-  const MONTH_FULL = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 
-  const paths: { href: string; title: string; text: string; tone: string; num: string }[] = [
-    { href: "/", title: "Árbol", text: "Recorre a la familia, generación por generación.", tone: "bg-[#dfe9d6]", num: "1" },
-    { href: "/mapa", title: "De dónde vienen", text: "Las comunas donde nacieron tus antepasados.", tone: "bg-[#f6dcc9]", num: "2" },
-    { href: "/cementerios", title: "Dónde descansan", text: "Cementerios, tumbas y cómo llegar.", tone: "bg-[#e4e2dc]", num: "3" },
-  ];
+  const knownLabel = `${known} con lugar de origen conocido y ${direct.length - known} sin lugar todavía.`;
 
   return (
-    <div className="zb min-h-screen bg-white text-ink [color-scheme:light]">
+    <div className="zb album min-h-screen text-ink [color-scheme:light]">
       <SectionHeader current="inicio" />
 
-      <header className="bg-ink text-white">
-        <div className="mx-auto grid max-w-6xl gap-10 px-4 pb-12 pt-10 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:pb-16 lg:pt-14">
+      <header className="relative overflow-hidden">
+        <svg aria-hidden="true" viewBox="0 0 120 320" className="pointer-events-none absolute -right-4 top-0 h-72 w-24 text-parra opacity-25 sm:right-4 sm:h-80 sm:w-28">
+          <path d="M60 320C60 240 30 220 50 150S90 80 60 0" fill="none" stroke="currentColor" strokeWidth="4" />
+          {[40, 90, 140, 190, 240].map((y, i) => (
+            <path key={y} d={i % 2 ? "M62 0c24 6 36 24 30 44-24-4-34-20-30-44Z" : "M58 0c-24 6-36 24-30 44 24-4 34-20 30-44Z"} transform={`translate(0 ${y})`} fill="currentColor" />
+          ))}
+          <circle cx="86" cy="262" r="9" fill="currentColor" />
+          <circle cx="76" cy="280" r="9" fill="currentColor" />
+          <circle cx="92" cy="282" r="9" fill="currentColor" />
+        </svg>
+
+        <svg aria-hidden="true" viewBox="0 0 100 100" className="sello-redondo pointer-events-none absolute left-[58%] top-6 hidden h-28 w-28 -rotate-12 opacity-25 lg:block">
+          <circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" strokeWidth="3" />
+          <circle cx="50" cy="50" r="38" fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3 3" />
+          <path d="M50 72V46m0 6-10-8m10 5 10-8M50 46V30m0 0-6 6m6-6 6 6" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        <div className="relative mx-auto grid max-w-6xl gap-10 px-4 pb-10 pt-8 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:pb-14 lg:pt-10">
           <div>
-            <p className="text-sm font-bold uppercase tracking-[0.18em] text-white/70">{dateLabel}</p>
-            <h1 className="mt-3 font-maquina text-[2.75rem] leading-[1.05] sm:text-6xl">Hola, {first}.</h1>
-            <p className="mt-4 max-w-xl text-[1.1875rem] leading-relaxed text-white/80 sm:text-[1.375rem]">
-              ¿Qué quieres descubrir hoy? Elige un camino o deja que el archivo te sorprenda.
-            </p>
-            <div className="mt-7 flex flex-wrap gap-3">
-              <Link href="/" className="inline-flex min-h-12 items-center rounded-full border-2 border-white/80 px-6 text-[1.0625rem] font-bold text-white hover:bg-white hover:text-ink">
-                Ver mi árbol
-              </Link>
+            <p className="zb-etiqueta !text-burdeos capitalize">{dateLabel}</p>
+            <h1 className="mt-2 font-slab text-[2.75rem] font-bold leading-[1.05] sm:text-6xl">Hola, {first}.</h1>
+
+            <Link
+              href="/"
+              className="group al-mueve mt-7 flex min-h-14 w-full max-w-xl items-center justify-center gap-3 rounded-full border-4 border-burdeos bg-teja px-8 py-3 text-[1.375rem] font-bold text-adobe hover:bg-burdeos sm:min-h-16 sm:w-auto sm:px-10 sm:text-[1.5rem]"
+            >
+              Ir al árbol <span aria-hidden="true" className="transition-transform duration-200 group-hover:translate-x-1">→</span>
+            </Link>
+
+            <div className="mt-6 max-w-xl rounded-2xl bg-trigo p-4">
+              <InicioSearch />
             </div>
+            {me && (
+              <Link href={`/persona/${me.id}`} className="mt-3 inline-flex min-h-12 items-center px-1 py-2 text-[1.125rem] font-bold underline decoration-2 underline-offset-4 hover:text-teja">
+                Mi ficha
+              </Link>
+            )}
           </div>
 
           {note && (
-            <aside aria-label="Esta semana en la familia" className="relative mx-auto w-full max-w-md rotate-[1.5deg] bg-[#fbe58a] p-6 pt-8 text-ink shadow-[0_14px_30px_rgba(0,0,0,0.35)] lg:ml-auto">
-              <span aria-hidden className="absolute -top-3 left-1/2 h-6 w-24 -translate-x-1/2 -rotate-2 bg-white/50" />
-              <p className="text-sm font-bold uppercase tracking-[0.14em] text-ink/70">Esta semana en la familia</p>
-              <p className="mt-3 font-maquina text-[1.375rem] leading-snug">
+            <aside aria-label="Esta semana en la familia" className="relative w-full max-w-md -rotate-1 rounded-sm bg-white p-6 pt-8 shadow-[0_6px_18px_rgba(30,26,23,0.25)] lg:ml-auto">
+              <span className="cinta" aria-hidden="true" />
+              <h2 className="al-titulo al-regla !text-[1.5rem]">Esta semana en la familia</h2>
+              <p className="zb-texto mt-3">
                 {note.kind === "cumple" ? (
                   <>
                     <Names people={note.people} /> cumple {plural(note.years, "año", "años")} {when}
@@ -171,7 +227,7 @@ export default async function InicioPage() {
                   </>
                 )}
               </p>
-              <Link href={`/persona/${note.people[0].id}`} className="mt-4 inline-block font-bold underline decoration-2 underline-offset-4 hover:text-terra">
+              <Link href={`/persona/${note.people[0].id}`} className="mt-3 inline-flex min-h-12 items-center font-bold underline decoration-2 underline-offset-4 hover:text-teja">
                 Ver su ficha →
               </Link>
             </aside>
@@ -179,65 +235,11 @@ export default async function InicioPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl space-y-14 px-4 py-10 sm:px-6 lg:py-14">
-        {roulette.length > 1 && <AncestorRoulette people={roulette} initialId={startId} />}
-
-        {/* Elige tu camino */}
-        <section aria-label="Elige tu camino">
-          <h2 className="zb-seccion">Elige tu camino</h2>
-          <ul className="mt-5 grid gap-4 md:grid-cols-3">
-            {paths.map((c) => (
-              <li key={c.href}>
-                <Link href={c.href} className={`group flex h-full min-h-44 flex-col justify-between rounded-3xl p-6 transition hover:-translate-y-0.5 hover:shadow-lg ${c.tone}`}>
-                  <span className="font-maquina text-[2.25rem] leading-none text-ink/50">{c.num}</span>
-                  <span>
-                    <span className="block text-[1.5rem] font-bold">{c.title}</span>
-                    <span className="mt-1 block text-[1.0625rem] leading-snug text-ink/80">{c.text}</span>
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        {/* Qué tanto conocemos */}
-        {me && direct.length > 0 && (
-          <section aria-label="Tus antepasados" className="rounded-3xl border-2 border-dashed border-ink/30 p-6 sm:p-8">
-            <h2 className="zb-seccion">
-              Ya conocemos {known} de tus {direct.length} antepasados directos
-            </h2>
-            <p className="zb-apoyo mt-2">Cada punto es un antepasado; los de color tienen un lugar de origen conocido.</p>
-            <ul className="mt-5 flex flex-wrap gap-2" aria-hidden="true">
-              {[...direct]
-                .sort((a, b) => a.generation - b.generation)
-                .map((a) => (
-                  <li key={a.id} className={`h-5 w-5 rounded-full ${a.origin.kind === "comuna" || a.origin.kind === "abroad" ? "bg-terra" : "bg-ink/15"}`} />
-                ))}
-            </ul>
-          </section>
-        )}
-
-        {/* Fechas */}
-        {(todayItems.length > 0 || soon.length > 0) && (
-          <section aria-label="Hoy en la familia">
-            <div className="border-b border-line pb-3">
-              <h2 className="zb-seccion">{todayItems.length > 0 ? "Hoy en la familia" : "En los próximos días"}</h2>
-            </div>
-            <ul className="divide-y divide-line">
-              {todayItems.map((it, i) => (
-                <DateRow key={`t${i}`} it={it} today />
-              ))}
-              {soon.map((it, i) => (
-                <DateRow key={`s${i}`} it={it} today={false} />
-              ))}
-            </ul>
-          </section>
-        )}
-
-        {/* Su línea directa, o preguntar quién es */}
+      <main className="mx-auto max-w-6xl space-y-12 px-4 pb-14 pt-4 sm:px-6">
+        {/* Primero quién eres: sin eso, el archivo no puede hablarte de tu familia. */}
         {!me && (
-          <section aria-label="¿Quién eres en el árbol?" className="rounded-3xl bg-[#f1efea] p-6 sm:p-8">
-            <h2 className="zb-seccion">¿Quién eres en el árbol?</h2>
+          <section aria-label="¿Quién eres en el árbol?" className="rounded-3xl border-2 border-ink bg-white p-6 sm:p-8">
+            <h2 className="al-titulo al-regla">¿Quién eres en el árbol?</h2>
             <p className="zb-texto mt-3 max-w-2xl text-gris">
               Búscate por tu nombre. Así el archivo puede decirte qué parentesco tienes con cada persona y mostrarte tu propia línea de antepasados.
             </p>
@@ -246,7 +248,78 @@ export default async function InicioPage() {
             </div>
           </section>
         )}
+
+        {roulette.length > 1 && <AncestorRoulette people={roulette} initialId={startId} />}
+
+        {/* Elige tu camino */}
+        <section aria-label="Elige tu camino">
+          <h2 className="al-titulo al-regla">Elige tu camino</h2>
+          <ul className="mt-5 grid gap-5 md:grid-cols-3">
+            {PATHS.map((c) => (
+              <li key={c.href}>
+                <Link href={c.href} className={`sello al-mueve group flex h-full min-h-48 flex-col justify-between p-7 hover:-translate-y-1 ${c.tone}`}>
+                  <span className="flex items-center justify-between">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-9 w-9 fill-none stroke-current" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      {c.icon}
+                    </svg>
+                    <span className="font-maquina text-[1.125rem]">{c.num}</span>
+                  </span>
+                  <span>
+                    <span className="block font-slab text-[1.625rem] font-bold leading-tight">{c.title}</span>
+                    <span className="mt-1 block text-[1.125rem] leading-snug">{c.text}</span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        {/* Fechas */}
+        {(todayItems.length > 0 || soon.length > 0) && (
+          <section aria-label="Hoy en la familia">
+            <h2 className="al-titulo al-regla">{todayItems.length > 0 ? "Hoy en la familia" : "En los próximos días"}</h2>
+            <ul className="mt-5 grid gap-4 md:grid-cols-2">
+              {todayItems.map((it, i) => (
+                <DateRow key={`t${i}`} it={it} today i={i} />
+              ))}
+              {soon.map((it, i) => (
+                <DateRow key={`s${i}`} it={it} today={false} i={i + todayItems.length} />
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {/* Qué tanto conocemos */}
+        {me && direct.length > 0 && (
+          <section aria-label="Tus antepasados" className="rounded-3xl border-2 border-dashed border-ink/50 p-6 sm:p-8">
+            <h2 className="al-titulo al-regla">
+              Ya conocemos {known} de tus {direct.length} antepasados directos
+            </h2>
+            <p className="zb-texto mt-2">{knownLabel}</p>
+            <ul className="mt-5 flex flex-wrap gap-2" aria-hidden="true">
+              {[...direct]
+                .sort((a, b) => a.generation - b.generation)
+                .map((a) => (
+                  <li
+                    key={a.id}
+                    className={`h-6 w-6 rounded-full border-2 border-parra ${a.origin.kind === "comuna" || a.origin.kind === "abroad" ? "bg-parra" : "bg-transparent"}`}
+                  />
+                ))}
+            </ul>
+            <p className="zb-apoyo mt-3">Círculo lleno: lugar conocido. Círculo vacío: todavía falta.</p>
+            {known < direct.length && (
+              <Link href="/pendientes" className="mt-3 inline-flex min-h-12 items-center font-bold underline decoration-2 underline-offset-4 hover:text-teja">
+                Ver lo que falta →
+              </Link>
+            )}
+          </section>
+        )}
       </main>
+
+      <footer className="mx-auto max-w-6xl px-4 pb-10 sm:px-6">
+        <div className="alero-tejas rotate-180 opacity-60" aria-hidden="true" />
+        <p className="zb-apoyo mt-3 text-center">Archivo Zamora Balcázar · Hecho en familia</p>
+      </footer>
     </div>
   );
 }

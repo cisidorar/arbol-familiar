@@ -71,13 +71,13 @@ export function LoginForm() {
             type={shown ? "text" : "password"}
             autoComplete="current-password"
             required
-            className="min-h-12 w-full rounded-lg border-2 border-[#8f8a80] bg-white py-2 pl-3.5 pr-28 text-[1.125rem] text-ink focus:border-hombre"
+            className="min-h-12 w-full rounded-lg border-2 border-[#8f8a80] bg-white py-2 pl-3.5 pr-28 text-[1.125rem] text-ink focus:border-ink"
           />
           <button
             type="button"
             onClick={() => setShown((v) => !v)}
             aria-pressed={shown}
-            className="absolute right-1.5 top-1/2 flex min-h-10 -translate-y-1/2 items-center rounded-md bg-paper px-3.5 text-base font-bold text-ink hover:bg-line"
+            className="absolute right-1.5 top-1/2 flex min-h-10 -translate-y-1/2 items-center rounded-md bg-adobe-2 px-3.5 text-base font-bold text-ink hover:bg-line"
           >
             {shown ? "Ocultar" : "Mostrar"}
           </button>
@@ -123,7 +123,7 @@ export function AcceptInviteForm({
       <input type="hidden" name="token" value={token} />
       <div className="flex flex-col gap-1.5">
         <span className="text-[1.125rem] font-bold">Tu correo</span>
-        <p className="break-all rounded-lg bg-paper px-3.5 py-3 text-[1.125rem]">{email}</p>
+        <p className="break-all rounded-lg bg-adobe-2 px-3.5 py-3 text-[1.125rem]">{email}</p>
         {/* Para que el navegador guarde la contraseña junto al correo correcto. */}
         <input type="hidden" name="username" autoComplete="username" value={email} readOnly />
       </div>

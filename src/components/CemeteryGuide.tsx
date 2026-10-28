@@ -1,12 +1,12 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, type DragEvent } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import LineageModal from "./LineageModal";
 import PersonPanel from "./PersonPanel";
 import { kinshipPath, type GraphPerson, type LineageStep } from "@/lib/lineage";
 import type { Burial, CemeteryGroup } from "@/lib/cemeteries";
-import { Notice, buttonClass } from "./ui";
+import { Initial, Notice, buttonClass } from "./ui";
 import { uploadedPhotoUrl } from "@/lib/geo/cemetery-photos";
 
 type Box = [number, number, number, number];
@@ -20,11 +20,12 @@ export type GuidePlace = CemeteryGroup & {
   photo: { src: string; by: string | null } | null;
 };
 
-type Mode = "cemetery" | "person";
+
 
 const WRAP = "mx-auto max-w-[120rem] px-4 sm:px-6 lg:px-10 2xl:px-14";
 /** "Metropolitana de Santiago" → "Metropolitana"; las demás quedan igual. */
 const shortRegion = (name: string) => name.replace(/^Metropolitana.*/, "Metropolitana");
+const capFirst = (t: string) => (t ? t.charAt(0).toUpperCase() + t.slice(1) : t);
 const norm = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 /** Más personas primero; si empatan, por nombre. */
@@ -46,9 +47,6 @@ function mapsUrl(p: GuidePlace) {
 function directionsUrl(p: GuidePlace) {
   return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${p.name}, ${p.locality ?? ""}, Chile`)}`;
 }
-
-/** Los mismos colores que el árbol: azul hombres, rosado mujeres. */
-const sexColor = (sex?: string | null) => (sex === "F" ? "#b03a62" : sex === "M" ? "#2f66b8" : "#4a4740");
 
 /** "Metropolitana de Santiago" → "Región Metropolitana"; "Valparaíso" → "Región de Valparaíso". */
 function regionLabel(name: string) {
@@ -102,6 +100,7 @@ const ImageIcon = ({ className = "h-9 w-9" }: { className?: string }) => (
   </svg>
 );
 
+
 export default function CemeteryGuide({
   places,
   regions,
@@ -116,17 +115,34 @@ export default function CemeteryGuide({
   canEdit: boolean;
 }) {
   const router = useRouter();
-  const [mode, setMode] = useState<Mode>("cemetery");
+  const search = useSearchParams();
   const [region, setRegion] = useState<string | null>(null);
   const [q, setQ] = useState("");
-  /** null = la lista de cementerios; con una clave = ese cementerio abierto. */
-  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
   const [steps, setSteps] = useState<LineageStep[] | null>(null);
   const [noPath, setNoPath] = useState<string | null>(null);
 
-  // La ficha de la persona se abre al lado, sin salir de la página. Los datos del árbol (para el parentesco) se piden la primera vez.
+  // Qué se está mirando vive en la dirección (?p=persona, ?c=cementerio): el botón "atrás" del teléfono funciona y se puede compartir el enlace.
+  const personParam = search.get("p");
+  const placeParam = search.get("c");
+  const pushed = useRef(false);
+  const go = (next: { p?: string; c?: string } | null) => {
+    const u = new URLSearchParams();
+    if (next?.p) u.set("p", next.p);
+    if (next?.c) u.set("c", next.c);
+    pushed.current = true;
+    window.history.pushState(null, "", u.size ? `?${u}` : window.location.pathname);
+    window.scrollTo({ top: 0 });
+    setPhotoErr(null);
+    setEditingId(null);
+  };
+  const back = () => (pushed.current ? window.history.back() : go(null));
+  const openPlace = (key: string) => go({ c: key });
+  const openPerson = (id: string) => go({ p: id });
+
+  // La ficha completa de la persona se abre al lado. Los datos del árbol (para el parentesco) se piden la primera vez.
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [treeData, setTreeData] = useState<any[]>([]);
+  const [treeData, setTreeData] = useState<any[]>([]); // eslint-disable-line @typescript-eslint/no-explicit-any
   useEffect(() => {
     if (!selectedId || treeData.length) return;
     fetch("/api/tree")
@@ -138,10 +154,12 @@ export default function CemeteryGuide({
   // Fotos y ubicaciones: lo recién guardado se ve al tiro; cuando la página se refresca vuelve a mandar la verdad.
   const [photoOverride, setPhotoOverride] = useState<Record<string, GuidePlace["photo"]>>({});
   const [spotOverride, setSpotOverride] = useState<Record<string, string>>({});
-  useEffect(() => {
+  const [seenPlaces, setSeenPlaces] = useState(places);
+  if (seenPlaces !== places) {
+    setSeenPlaces(places);
     setPhotoOverride({});
     setSpotOverride({});
-  }, [places]);
+  }
   const [photoBusy, setPhotoBusy] = useState<string | null>(null);
   const [photoErr, setPhotoErr] = useState<string | null>(null);
   const [dragKey, setDragKey] = useState<string | null>(null);
@@ -171,26 +189,30 @@ export default function CemeteryGuide({
   }, [places]); // eslint-disable-line react-hooks/exhaustive-deps
   const pendingCount = places.filter((p) => !p.point).length;
 
-  // Filtro: por región y por texto (cementerio, comuna, región o persona).
-  const filtered = useMemo(() => {
-    const words = norm(q).split(/\s+/).filter(Boolean);
-    return places
-      .filter((p) => (region === "pending" ? !p.point : region ? p.regionCode === region && p.point : true))
-      .map((p) => {
-        if (!words.length) return p;
-        const placeText = norm(`${p.name} ${p.locality ?? ""} ${regionName(p.regionCode)}`);
-        if (words.every((w) => placeText.includes(w))) return p;
-        const people = p.people.filter((b) => words.every((w) => norm(`${b.name} ${b.relation ?? ""} ${placeText}`).includes(w)));
-        return people.length ? { ...p, people } : null;
-      })
-      .filter((p): p is GuidePlace => p !== null);
-  }, [places, region, q]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Por región (las de más personas primero) y, dentro, los cementerios con más personas primero.
+  // Todas las personas, las más cercanas a quien mira primero.
+  const everyone = useMemo(
+    () => places.flatMap((p) => p.people.map((b) => ({ b, p }))).sort((x, y) => (x.b.distance ?? 99) - (y.b.distance ?? 99) || x.b.name.localeCompare(y.b.name, "es")),
+    [places],
+  );
+  const words = useMemo(() => norm(q).split(/\s+/).filter(Boolean), [q]);
+  const placeText = (p: GuidePlace) => norm(`${p.name} ${p.locality ?? ""} ${regionName(p.regionCode)}`);
+  // Búsqueda: personas (por nombre, parentesco, cementerio o comuna) y cementerios.
+  const hits = useMemo(
+    () => (words.length ? everyone.filter(({ b, p }) => words.every((w) => norm(`${b.name} ${b.relation ?? ""} ${placeText(p)}`).includes(w))) : []),
+    [everyone, words], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  const placeHits = useMemo(
+    () => (words.length ? places.filter((p) => words.every((w) => placeText(p).includes(w))).sort(byPeople) : []),
+    [places, words], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
+  // Cementerios por región (las de más personas primero) y, dentro, los de más personas primero.
   const sections = useMemo(() => {
     const byRegion = new Map<string, GuidePlace[]>();
     const pending: GuidePlace[] = [];
-    for (const p of filtered) {
+    for (const p of places) {
+      if (region === "pending" ? p.point : region ? p.regionCode !== region || !p.point : false) continue;
       if (!p.point || !p.regionCode) pending.push(p);
       else byRegion.set(p.regionCode, [...(byRegion.get(p.regionCode) ?? []), p]);
     }
@@ -199,30 +221,13 @@ export default function CemeteryGuide({
       .sort((a, b) => sumPeople(b.places) - sumPeople(a.places) || order.indexOf(a.code) - order.indexOf(b.code));
     if (pending.length) list.push({ code: "pending", title: "Por ubicar", places: pending.sort(byPeople) });
     return list;
-  }, [filtered]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [places, region]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // El cementerio abierto: con todas sus personas, sin importar la búsqueda.
-  const current = selectedKey ? places.find((p) => p.key === selectedKey) ?? null : null;
+  const currentPlace = placeParam ? places.find((p) => p.key === placeParam) ?? null : null;
+  const personRow = personParam ? everyone.find((r) => r.b.personId === personParam) ?? null : null;
+  const near = everyone.slice(0, 6);
+  const shown = showAll ? everyone : near;
 
-  // Vista "Por persona": todas las personas, las más cercanas primero.
-  const everyone = useMemo(() => {
-    const rows = filtered.flatMap((p) => p.people.map((b) => ({ b, p })));
-    return rows.sort((x, y) => (x.b.distance ?? 99) - (y.b.distance ?? 99) || x.b.name.localeCompare(y.b.name, "es"));
-  }, [filtered]);
-
-  const toTop = () => requestAnimationFrame(() => document.getElementById("cem-inicio")?.scrollIntoView({ block: "start" }));
-  const openPlace = (key: string) => {
-    setSelectedKey(key);
-    setPhotoErr(null);
-    setEditingId(null);
-    toTop();
-  };
-  const backToList = () => {
-    setSelectedKey(null);
-    setPhotoErr(null);
-    setEditingId(null);
-    toTop();
-  };
 
   const openPath = (p: GuidePlace, b: Burial) => {
     if (!rootId) return;
@@ -397,430 +402,454 @@ export default function CemeteryGuide({
       setSpotBusy(false);
     }
   };
-
   /* ---------- Piezas ---------- */
 
-  const tab = (on: boolean) =>
-    `inline-flex min-h-14 shrink-0 items-center gap-3 whitespace-nowrap rounded-full border px-6 text-[1.125rem] font-bold transition ${
-      on ? "border-paper bg-paper text-ink" : "border-white/35 text-white hover:border-white hover:bg-white/10"
+  const chip = (on: boolean) =>
+    `inline-flex min-h-12 items-center gap-2 whitespace-nowrap rounded-full border-2 px-5 text-[1.125rem] font-bold transition-colors ${
+      on ? "border-burdeos bg-burdeos text-white" : "border-ink/30 bg-white text-ink hover:border-ink"
     }`;
-  const count = (on: boolean) => `rounded-full px-2.5 py-0.5 text-base font-bold ${on ? "bg-ink text-white" : "bg-white/15 text-white"}`;
-  const pickTab = (r: string | null) => {
-    setRegion(r);
-    if (selectedKey) backToList();
-  };
+  const pickRegion = (r: string | null) => setRegion(r);
 
-  const capFirst = (t: string) => (t ? t.charAt(0).toUpperCase() + t.slice(1) : t);
-  const drawerPerson = (b: Burial, p: GuidePlace) => {
-    const spot = spotOf(b);
-    const editing = editingId === b.personId;
-    const [kin, ...rest] = (b.relation ?? "").split(", ");
-    return (
-      <li key={`${p.key}-${b.personId}`} className={`rounded-2xl bg-[#f1efea] p-4 ${selectedId === b.personId ? "ring-2 ring-ink" : ""}`}>
-        <div className="flex items-baseline justify-between gap-3 border-b border-terra pb-2 font-maquina text-[0.9375rem] uppercase tracking-wide">
-          <span>{kin || "Familia"}</span>
-          <span className="shrink-0 tabular-nums">{b.birth ?? "?"} – {b.death ?? "?"}</span>
-        </div>
-        <p className="mt-3 text-[1.25rem] font-bold leading-snug">{b.name}</p>
-        <div className="mt-3 flex items-center justify-between gap-3">
-          <p className="zb-apoyo min-w-0">{capFirst(rest.join(", "))}</p>
-          <button type="button" onClick={() => setSelectedId(b.personId)} className="min-h-12 shrink-0 rounded-full bg-white px-5 text-[1.0625rem] font-bold hover:bg-paper">
-            Ver ficha
-          </button>
-        </div>
-        <div className="mt-3 border-t border-white pt-3">
-          {editing ? (
-            <div className="space-y-3">
-              <label htmlFor={`tumba-${b.personId}`} className="zb-apoyo block">
-                Tumba de {b.name}
-              </label>
-              <input
-                id={`tumba-${b.personId}`}
-                autoFocus
-                value={spotDraft}
-                maxLength={200}
-                onChange={(e) => setSpotDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") saveSpot(b);
-                  if (e.key === "Escape") {
-                    e.stopPropagation();
-                    setEditingId(null);
-                  }
-                }}
-                placeholder="Por ejemplo: cruz 158, patio 8"
-                className="min-h-12 w-full rounded-lg border-2 border-[#8f8a80] bg-white px-3.5 py-2 text-[1.125rem] text-ink placeholder:text-gris/70 focus:border-hombre focus:outline-none"
-              />
-              {spotErr && <Notice kind="aviso">{spotErr}</Notice>}
-              <div className="flex flex-wrap gap-2">
-                <button type="button" disabled={spotBusy} onClick={() => saveSpot(b)} className={buttonClass("principal", "!min-h-12 !px-6")}>
-                  {spotBusy ? "Guardando…" : "Guardar"}
-                </button>
-                <button type="button" disabled={spotBusy} onClick={() => setEditingId(null)} className={buttonClass("enlace")}>
-                  Cancelar
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-              <p className="zb-apoyo min-w-0">
-                Tumba: <strong className={spot ? "text-ink" : "font-normal"}>{spot || "sin ubicación anotada"}</strong>
-              </p>
-              <div className="flex shrink-0 items-center gap-3">
-                {canEdit && b.eventId && (
-                  <button type="button" onClick={() => startSpot(b)} className={buttonClass("enlace", "!px-1")} aria-label={`${spot ? "Cambiar" : "Anotar"} la tumba de ${b.name}`}>
-                    {spot ? "Cambiar" : "Anotar"}
-                  </button>
-                )}
-                {rootId && b.personId !== rootId && (
-                  <button type="button" onClick={() => openPath(p, b)} className={buttonClass("enlace", "!px-1")}>
-                    Ver camino
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      </li>
-    );
-  };
+  const yearsOf = (b: Burial) => (b.birth || b.death ? `${b.birth ?? "?"} – ${b.death ?? "?"}` : "Sin fechas");
 
-  // El panel del cementerio: Escape lo cierra y la página de atrás no se mueve mientras está abierto.
+  // Escape vuelve a la lista cuando se mira una persona o un cementerio.
   useEffect(() => {
-    if (!selectedKey) return;
+    if (!personParam && !placeParam) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !selectedId && !steps) backToList();
+      if (e.key === "Escape" && !selectedId && !steps && !editingId) back();
     };
     document.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
-    };
-  }, [selectedKey, selectedId, steps]); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => document.removeEventListener("keydown", onKey);
+  }, [personParam, placeParam, selectedId, steps, editingId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const personCard = (b: Burial, p: GuidePlace, showPlace: boolean) => {
+  const backButton = (label: string) => (
+    <button type="button" onClick={back} className={buttonClass("secundario", "print:hidden")}>
+      <span aria-hidden>←</span> {label}
+    </button>
+  );
+
+  /** La tumba: lo que se sabe, y para quien edita, el botón para anotarla. */
+  const spotBlock = (b: Burial) => {
     const spot = spotOf(b);
-    const editing = editingId === b.personId;
-    return (
-      <li key={`${p.key}-${b.personId}`} className={`flex flex-col gap-4 rounded-3xl border-2 bg-white p-5 ${selectedId === b.personId ? "border-ink" : "border-line"}`}>
-        <div className="flex items-start gap-4">
-          <span
-            className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl text-[1.5rem] font-bold"
-            style={{ backgroundColor: `${sexColor(b.sex)}1a`, color: sexColor(b.sex) }}
-            aria-hidden
-          >
-            {b.name.trim().charAt(0).toUpperCase()}
-          </span>
-          <div className="min-w-0">
-            <p className="zb-nombre">{b.name}</p>
-            {b.relation && <p className="zb-apoyo mt-0.5">{b.relation}</p>}
-            {showPlace && (
-              <button
-                type="button"
-                onClick={() => openPlace(p.key)}
-                className="mt-1 inline-flex min-h-8 items-center gap-1.5 text-start text-base font-bold text-[#9a4a14] underline decoration-2 underline-offset-4"
-              >
-                <PinIcon /> {siteName(p)}
-                {p.locality ? `, ${p.locality}` : ""}
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div className="overflow-hidden rounded-2xl bg-[#f7f6f3]">
-          <div className="grid grid-cols-2 divide-x-2 divide-white">
-            <div className="px-4 py-3">
-              <p className="zb-apoyo">Nació</p>
-              <p className="text-[1.125rem] font-bold tabular-nums">{b.birth ?? "Sin dato"}</p>
-            </div>
-            <div className="px-4 py-3">
-              <p className="zb-apoyo">Murió</p>
-              <p className="text-[1.125rem] font-bold tabular-nums">{b.death ?? "Sin dato"}</p>
-            </div>
-          </div>
-          <div className="border-t-2 border-white px-4 py-3">
-            {editing ? (
-              <div className="space-y-3">
-                <label htmlFor={`tumba-${b.personId}`} className="zb-apoyo block">
-                  Tumba de {b.name}
-                </label>
-                <input
-                  id={`tumba-${b.personId}`}
-                  autoFocus
-                  value={spotDraft}
-                  maxLength={200}
-                  onChange={(e) => setSpotDraft(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") saveSpot(b);
-                    if (e.key === "Escape") setEditingId(null);
-                  }}
-                  placeholder="Por ejemplo: cruz 158, patio 8"
-                  className="min-h-12 w-full rounded-lg border-2 border-[#8f8a80] bg-white px-3.5 py-2 text-[1.125rem] text-ink placeholder:text-gris/70 focus:border-hombre focus:outline-none"
-                />
-                {spotErr && <Notice kind="aviso">{spotErr}</Notice>}
-                <div className="flex flex-wrap gap-2">
-                  <button type="button" disabled={spotBusy} onClick={() => saveSpot(b)} className={buttonClass("principal", "!min-h-12 !px-6")}>
-                    {spotBusy ? "Guardando…" : "Guardar"}
-                  </button>
-                  <button type="button" disabled={spotBusy} onClick={() => setEditingId(null)} className={buttonClass("enlace")}>
-                    Cancelar
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="zb-apoyo">Tumba</p>
-                  <p className={`text-[1.125rem] ${spot ? "font-bold" : "text-gris"}`}>{spot || "Sin ubicación anotada"}</p>
-                </div>
-                {canEdit && b.eventId && (
-                  <button type="button" onClick={() => startSpot(b)} className={buttonClass("enlace", "shrink-0")} aria-label={`${spot ? "Cambiar" : "Anotar"} la tumba de ${b.name}`}>
-                    {spot ? "Cambiar" : "Anotar"}
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="mt-auto flex flex-wrap gap-3 print:hidden">
-          <button type="button" onClick={() => setSelectedId(b.personId)} className={buttonClass("principal", "min-w-0 flex-1 !px-5")}>
-            Ver ficha
-          </button>
-          {rootId && b.personId !== rootId && (
-            <button type="button" onClick={() => openPath(p, b)} className={buttonClass("secundario", "min-w-0 flex-1 !px-5")}>
-              Ver camino
+    if (editingId === b.personId) {
+      return (
+        <div className="space-y-3">
+          <label htmlFor={`tumba-${b.personId}`} className="block text-[1.125rem] font-bold">
+            ¿Dónde está la tumba de {b.name}?
+          </label>
+          <input
+            id={`tumba-${b.personId}`}
+            autoFocus
+            value={spotDraft}
+            maxLength={200}
+            onChange={(e) => setSpotDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") saveSpot(b);
+              if (e.key === "Escape") {
+                e.stopPropagation();
+                setEditingId(null);
+              }
+            }}
+            placeholder="Por ejemplo: cruz 158, patio 8"
+            className="min-h-12 w-full rounded-lg border-2 border-[#8f8a80] bg-white px-3.5 py-2 text-[1.125rem] text-ink placeholder:text-gris/70 focus:border-ink"
+          />
+          {spotErr && <Notice kind="aviso">{spotErr}</Notice>}
+          <div className="flex flex-wrap gap-3">
+            <button type="button" disabled={spotBusy} onClick={() => saveSpot(b)} className={buttonClass("principal", "!px-6")}>
+              {spotBusy ? "Guardando…" : "Guardar"}
             </button>
-          )}
+            <button type="button" disabled={spotBusy} onClick={() => setEditingId(null)} className={buttonClass("enlace")}>
+              Cancelar
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="zb-etiqueta">Tumba</p>
+          <p className={`text-[1.25rem] ${spot ? "font-bold" : "text-gris"}`}>{spot || "Todavía no se anota dónde está"}</p>
+        </div>
+        {canEdit && b.eventId && (
+          <button type="button" onClick={() => startSpot(b)} className={buttonClass("secundario", "shrink-0")} aria-label={`${spot ? "Cambiar" : "Anotar"} la tumba de ${b.name}`}>
+            {spot ? "Cambiar" : "Anotar dónde está"}
+          </button>
+        )}
+      </div>
+    );
+  };
+
+  /** Tarjeta de una persona en la lista: quién es, dónde descansa y el botón para llegar. */
+  const personCard = (b: Burial, p: GuidePlace) => {
+    const spot = spotOf(b);
+    return (
+      <li key={`${p.key}-${b.personId}`} className="flex flex-col rounded-3xl border-2 border-line bg-white transition-colors hover:border-ink">
+        <button type="button" onClick={() => openPerson(b.personId)} className="flex w-full items-start gap-4 rounded-t-3xl p-5 text-left" aria-label={`Ver a ${b.name}`}>
+          <Initial name={b.name} sex={b.sex} size={56} />
+          <span className="min-w-0 flex-1">
+            <span className="block font-slab text-[1.5rem] font-bold leading-tight">{b.name}</span>
+            {b.relation && <span className="zb-apoyo mt-0.5 block">{capFirst(b.relation)}</span>}
+            <span className="mt-2 flex items-start gap-1.5 text-[1.125rem] font-bold text-teja">
+              <PinIcon className="mt-1 h-4 w-4 shrink-0" />
+              <span>
+                {siteName(p)}
+                {p.locality ? `, ${p.locality}` : ""}
+              </span>
+            </span>
+            <span className="zb-apoyo mt-1 block">
+              {yearsOf(b)} · Tumba: {spot || "sin ubicación anotada"}
+            </span>
+          </span>
+        </button>
+        <div className="mt-auto flex flex-wrap items-center gap-3 border-t-2 border-line p-4 print:hidden">
+          <a href={directionsUrl(p)} target="_blank" rel="noreferrer" className={buttonClass("secundario", "min-w-0 flex-1 !px-5")}>
+            Cómo llegar <span aria-hidden>↗</span>
+          </a>
+          <button type="button" onClick={() => openPerson(b.personId)} className={buttonClass("enlace")}>
+            Ver más →
+          </button>
         </div>
       </li>
     );
   };
 
-  return (
-    <div id="cem-inicio" className="scroll-mt-4">
-      {/* Franja oscura: título, resumen y regiones */}
-      <header className="bg-ink text-white print:hidden">
-        <div className={`${WRAP} pb-8 pt-10 lg:pb-10 lg:pt-14`}>
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <h1 className="font-maquina text-[2.5rem] leading-[1.05] sm:text-6xl">Dónde descansan</h1>
-              <p className="mt-5 max-w-3xl text-[1.1875rem] leading-relaxed text-white/80 sm:text-[1.375rem]">
-                {plural(total, "persona", "personas")} de la familia en {plural(places.length, "cementerio", "cementerios")}. Toca uno para ver quiénes descansan ahí y cómo llegar.
-              </p>
+  /** Fila corta (dentro de un cementerio o "también descansan aquí"). */
+  const personRowItem = (b: Burial, active = false) => (
+    <li key={b.personId}>
+      <button
+        type="button"
+        onClick={() => openPerson(b.personId)}
+        aria-current={active ? "true" : undefined}
+        className={`flex min-h-16 w-full items-center gap-4 rounded-2xl border-2 bg-white p-3 text-left transition-colors hover:border-ink ${active ? "border-burdeos" : "border-line"}`}
+      >
+        <Initial name={b.name} sex={b.sex} size={48} />
+        <span className="min-w-0 flex-1">
+          <span className="block text-[1.25rem] font-bold leading-snug">{b.name}</span>
+          <span className="zb-apoyo block">
+            {[b.relation ? capFirst(b.relation.split(", ")[0]) : null, yearsOf(b), spotOf(b) ? `Tumba: ${spotOf(b)}` : null].filter(Boolean).join(" · ")}
+          </span>
+        </span>
+        <span aria-hidden className="shrink-0 text-xl">→</span>
+      </button>
+    </li>
+  );
+
+  /** Botones de la foto del cementerio (solo para quien edita). */
+  const photoTools = (p: GuidePlace) =>
+    canEdit && (
+      <div className="mt-3 print:hidden">
+        <p className="zb-apoyo">{photoOf(p) ? "Para cambiar la foto, arrastra otra sobre ella." : "Para agregar la foto, arrástrala sobre el cuadro."}</p>
+        {photoOf(p) && (
+          <div className="mt-3 flex flex-wrap gap-3">
+            <label className={`${buttonClass("secundario")} cursor-pointer ${photoBusy === p.key ? "pointer-events-none opacity-60" : ""}`}>
+              Elegir otra foto
+              <input
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                disabled={photoBusy === p.key}
+                onChange={(e) => {
+                  uploadPhoto(p, e.target.files?.[0]);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+            <button type="button" disabled={photoBusy === p.key} onClick={() => removePhoto(p)} className={buttonClass("enlace")}>
+              Quitar foto
+            </button>
+          </div>
+        )}
+      </div>
+    );
+
+  const whereLine = (p: GuidePlace) => [p.locality ?? "Comuna desconocida", regionLabel(regionName(p.regionCode))].filter(Boolean).join(" · ");
+
+  /* ---------- Vistas ---------- */
+
+  // Una persona: lo que más importa (dónde está, la tumba, cómo llegar) a la vista, sin paneles encima de paneles.
+  const personView = personRow && (
+    <div className={`${WRAP} py-8 lg:py-12 print:hidden`}>
+      {backButton("Volver")}
+      {(() => {
+        const { b, p } = personRow;
+        const [kin, ...rest] = (b.relation ?? "").split(", ");
+        const others = p.people.filter((x) => x.personId !== b.personId);
+        return (
+          <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
+            <div className="space-y-6">
+              <article className="rounded-3xl border-2 border-ink bg-white p-6 sm:p-8">
+                <p className="zb-etiqueta !text-burdeos">{kin ? capFirst(kin) : "Familia"}</p>
+                <h2 className="mt-1 font-slab text-[2.25rem] font-bold leading-[1.1] sm:text-5xl">{b.name}</h2>
+                {rest.length > 0 && <p className="zb-texto mt-2 text-gris">{capFirst(rest.join(", "))}</p>}
+                <dl className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-line">
+                  <div className="bg-adobe-2 px-4 py-3">
+                    <dt className="zb-apoyo">Nació</dt>
+                    <dd className="text-[1.25rem] font-bold tabular-nums">{b.birth ?? "Sin dato"}</dd>
+                  </div>
+                  <div className="bg-adobe-2 px-4 py-3">
+                    <dt className="zb-apoyo">Murió</dt>
+                    <dd className="text-[1.25rem] font-bold tabular-nums">{b.death ?? "Sin dato"}</dd>
+                  </div>
+                </dl>
+                <div className="mt-5 border-t-2 border-line pt-5">
+                  <p className="zb-etiqueta">Descansa en</p>
+                  <button type="button" onClick={() => openPlace(p.key)} className="mt-1 flex items-start gap-2 text-left text-[1.375rem] font-bold text-teja underline decoration-2 underline-offset-4">
+                    <PinIcon className="mt-1.5 h-5 w-5 shrink-0" />
+                    <span>{siteName(p)}</span>
+                  </button>
+                  <p className="zb-texto mt-1 text-gris">{whereLine(p)}</p>
+                </div>
+                <div className="mt-5 border-t-2 border-line pt-5">{spotBlock(b)}</div>
+              </article>
+
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                <a href={directionsUrl(p)} target="_blank" rel="noreferrer" className={buttonClass("principal", "!min-h-14 flex-1 !px-6 sm:flex-none")}>
+                  Cómo llegar al cementerio <span aria-hidden>↗</span>
+                </a>
+                <button type="button" onClick={() => setSelectedId(b.personId)} className={buttonClass("secundario", "!min-h-14 flex-1 sm:flex-none")}>
+                  Ver su ficha completa
+                </button>
+                {rootId && b.personId !== rootId && (
+                  <button type="button" onClick={() => openPath(p, b)} className={buttonClass("secundario", "!min-h-14 flex-1 sm:flex-none")}>
+                    ¿Cómo es mi parentesco?
+                  </button>
+                )}
+              </div>
+              {noPath && <Notice kind="aviso">No encuentro un parentesco entre tú y {noPath} en el árbol.</Notice>}
             </div>
-            <button type="button" onClick={() => window.print()} className="inline-flex min-h-12 items-center rounded-full border border-white/35 px-5 text-[1.0625rem] font-bold text-white hover:border-white hover:bg-white/10">
+
+            <aside className="space-y-6">
+              <div>
+                <div className="foto -rotate-1 p-3 pb-5">
+                  <span className="esq-a" aria-hidden="true" />
+                  <span className="esq-b" aria-hidden="true" />
+                  {photoSquare(p, true)}
+                  <p className="mt-3 font-maquina text-[1.125rem] text-gris">{siteName(p)}</p>
+                </div>
+                {photoTools(p)}
+                {photoErr && (
+                  <div className="mt-3">
+                    <Notice kind="aviso">{photoErr}</Notice>
+                  </div>
+                )}
+              </div>
+              {others.length > 0 && (
+                <section aria-label="También descansan aquí">
+                  <h3 className="al-titulo al-regla !text-[1.5rem]">También descansan aquí</h3>
+                  <ul className="mt-4 space-y-3">{others.map((x) => personRowItem(x))}</ul>
+                </section>
+              )}
+            </aside>
+          </div>
+        );
+      })()}
+    </div>
+  );
+
+  // Un cementerio: la foto, cómo llegar y quiénes descansan ahí.
+  const placeView = currentPlace && (
+    <div className={`${WRAP} py-8 lg:py-12 print:hidden`}>
+      {backButton("Volver")}
+      <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-start">
+        <div>
+          <div className="foto -rotate-1 p-3 pb-5">
+            <span className="esq-a" aria-hidden="true" />
+            <span className="esq-b" aria-hidden="true" />
+            {photoSquare(currentPlace, true)}
+            {currentPlace.incomplete && <p className="mt-3 text-[1.125rem] font-bold">Por confirmar: aún no estamos seguros de este lugar.</p>}
+          </div>
+          {photoTools(currentPlace)}
+          {photoErr && (
+            <div className="mt-3">
+              <Notice kind="aviso">{photoErr}</Notice>
+            </div>
+          )}
+        </div>
+        <div>
+          <p className="zb-texto text-gris">{whereLine(currentPlace)}</p>
+          <h2 className="mt-1 font-slab text-[2.25rem] font-bold leading-[1.1] sm:text-5xl">{siteName(currentPlace)}</h2>
+          <p className="zb-texto mt-3">
+            <strong>{plural(currentPlace.people.length, "persona", "personas")}</strong> de la familia {currentPlace.people.length === 1 ? "descansa" : "descansan"} aquí
+          </p>
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+            <a href={directionsUrl(currentPlace)} target="_blank" rel="noreferrer" className={buttonClass("principal", "!min-h-14 flex-1 !px-6 sm:flex-none")}>
+              Cómo llegar <span aria-hidden>↗</span>
+            </a>
+            <a href={mapsUrl(currentPlace)} target="_blank" rel="noreferrer" className={buttonClass("secundario", "!min-h-14 flex-1 sm:flex-none")}>
+              Ver en el mapa
+            </a>
+            <button type="button" onClick={() => copyAddress(currentPlace)} className={buttonClass("secundario", "!min-h-14 flex-1 sm:flex-none")} aria-live="polite">
+              {copied ? "Dirección copiada ✓" : "Copiar dirección"}
+            </button>
+          </div>
+          <h3 className="al-titulo al-regla mt-8 !text-[1.5rem]">Aquí descansan</h3>
+          <ul className="mt-4 space-y-3">{currentPlace.people.map((b) => personRowItem(b))}</ul>
+        </div>
+      </div>
+    </div>
+  );
+
+  // La entrada: un buscador grande y, debajo, los más cercanos y los cementerios.
+  const searching = words.length > 0;
+  const listView = (
+    <>
+      <header className="on-dark relative bg-burdeos text-white print:hidden">
+        <div className={`${WRAP} pb-10 pt-8 lg:pb-12 lg:pt-12`}>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <h1 className="font-slab text-[2.5rem] font-bold leading-[1.05] sm:text-6xl">Dónde descansan</h1>
+            <button type="button" onClick={() => window.print()} className="inline-flex min-h-12 items-center rounded-full border-2 border-white/60 px-5 text-[1.125rem] font-bold text-white hover:border-white hover:bg-white/10">
               Imprimir lista
             </button>
           </div>
-          <div className="-mx-4 mt-7 flex gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0" role="group" aria-label="Región">
-            <button type="button" className={tab(region === null)} aria-pressed={region === null} onClick={() => pickTab(null)}>
-              Todas <span className={count(region === null)}>{places.length}</span>
-            </button>
-            {regionCounts.map(([code, n]) => (
-              <button key={code} type="button" className={tab(region === code)} aria-pressed={region === code} onClick={() => pickTab(region === code ? null : code)}>
-                {shortRegion(regionName(code))} <span className={count(region === code)}>{n}</span>
-              </button>
-            ))}
-            {pendingCount > 0 && (
-              <button type="button" className={tab(region === "pending")} aria-pressed={region === "pending"} onClick={() => pickTab(region === "pending" ? null : "pending")}>
-                Por ubicar <span className={count(region === "pending")}>{pendingCount}</span>
-              </button>
-            )}
+          <p className="mt-4 max-w-3xl text-[1.1875rem] leading-relaxed text-white/90 sm:text-[1.375rem]">
+            {plural(total, "persona", "personas")} de la familia en {plural(places.length, "cementerio", "cementerios")}. Busca a quien quieras y te decimos dónde descansa y cómo llegar.
+          </p>
+          <div className="mt-6 max-w-3xl">
+            <label htmlFor="cem-q" className="block text-[1.25rem] font-bold">
+              ¿A quién buscas?
+            </label>
+            <div className="relative mt-2">
+              <svg viewBox="0 0 24 24" className="pointer-events-none absolute left-4 top-1/2 h-6 w-6 -translate-y-1/2 text-gris" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+                <circle cx="11" cy="11" r="7" />
+                <path d="m20 20-3.5-3.5" />
+              </svg>
+              <input
+                id="cem-q"
+                type="search"
+                enterKeyHint="search"
+                autoComplete="off"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Un nombre, un apellido o un cementerio"
+                className="min-h-14 w-full rounded-2xl border-2 border-transparent bg-white py-2 pl-14 pr-14 text-[1.25rem] text-ink outline-none placeholder:text-gris/70 focus:border-trigo [&::-webkit-search-cancel-button]:hidden"
+              />
+              {q && (
+                <button type="button" onClick={() => setQ("")} aria-label="Borrar lo escrito" className="absolute right-2 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full text-2xl text-gris hover:bg-adobe-2">
+                  ×
+                </button>
+              )}
+            </div>
           </div>
         </div>
+        <div className="alero-tejas pointer-events-none absolute inset-x-0 top-full z-10 [--tj:var(--color-burdeos)]" aria-hidden="true" />
       </header>
 
-      <div className={`${WRAP} py-8 lg:py-10`}>
-      {/* Búsqueda y forma de ver */}
-      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 print:hidden">
-        <label className="relative block min-w-0 flex-1 basis-72 sm:max-w-2xl">
-          <span className="sr-only">Buscar una persona, comuna o cementerio</span>
-          <svg viewBox="0 0 24 24" className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gris" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
-            <circle cx="11" cy="11" r="7" />
-            <path d="m20 20-3.5-3.5" />
-          </svg>
-          <input
-            value={q}
-            onChange={(e) => {
-              setQ(e.target.value);
-              if (selectedKey) setSelectedKey(null);
-            }}
-            placeholder="Busca una persona, comuna o cementerio"
-            className="min-h-12 w-full rounded-2xl border-2 border-[#8f8a80] bg-white py-2 pl-12 pr-12 text-[1.125rem] text-ink placeholder:text-gris/70 focus:border-hombre focus:outline-none"
-          />
-          {q && (
-            <button type="button" onClick={() => setQ("")} aria-label="Borrar búsqueda" className="absolute right-1.5 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full text-xl text-gris hover:bg-paper">
-              ×
-            </button>
-          )}
-        </label>
-        <div className="inline-flex rounded-2xl bg-paper p-1.5" role="tablist" aria-label="Cómo ver la lista">
-          {([["cemetery", "Por cementerio"], ["person", "Por persona"]] as const).map(([m, label]) => (
-            <button
-              key={m}
-              type="button"
-              role="tab"
-              aria-selected={mode === m}
-              onClick={() => {
-                setMode(m);
-                setSelectedKey(null);
-              }}
-              className={`min-h-12 rounded-xl px-5 text-[1.0625rem] transition ${mode === m ? "bg-white font-bold text-ink shadow" : "text-gris hover:text-ink"}`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <div className={`${WRAP} space-y-14 py-10 lg:py-14 print:hidden`}>
+        {photoErr && <Notice kind="aviso">{photoErr}</Notice>}
 
-      {noPath && (
-        <div className="mt-4 print:hidden">
-          <Notice kind="aviso">No encuentro un parentesco entre tú y {noPath} en el árbol.</Notice>
-        </div>
-      )}
-
-      {mode === "person" ? (
-        /* Por persona */
-        !everyone.length ? (
-          <p className="zb-texto mt-8 rounded-2xl border-2 border-dashed border-line p-8 text-center text-gris print:hidden">No encontramos personas con esa búsqueda. Prueba con otra palabra.</p>
-        ) : (
-          <section className="mt-8 print:hidden" aria-label="Personas">
-            <div className="flex items-end justify-between gap-4 border-b-2 border-ink pb-3">
-              <h2 className="zb-seccion">Personas</h2>
-              <p className="zb-apoyo">{plural(everyone.length, "persona", "personas")}, las más cercanas a ti primero</p>
-            </div>
-            <ul className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">{everyone.map(({ b, p }) => personCard(b, p, true))}</ul>
+        {searching ? (
+          <section aria-label="Resultados">
+            <h2 className="al-titulo al-regla" aria-live="polite">
+              {hits.length || placeHits.length ? `${plural(hits.length, "persona", "personas")} para «${q.trim()}»` : "No encontramos a nadie"}
+            </h2>
+            {hits.length === 0 && placeHits.length === 0 ? (
+              <div className="mt-6 max-w-xl rounded-3xl border-2 border-dashed border-ink/40 bg-white p-6">
+                <p className="zb-texto">No hay nadie con «{q.trim()}». Prueba con solo el apellido o con menos letras.</p>
+                <button type="button" onClick={() => setQ("")} className={buttonClass("secundario", "mt-4")}>
+                  Ver a todos
+                </button>
+              </div>
+            ) : (
+              <>
+                {hits.length > 0 && <ul className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">{hits.map(({ b, p }) => personCard(b, p))}</ul>}
+                {placeHits.length > 0 && (
+                  <div className="mt-10">
+                    <h3 className="al-titulo !text-[1.5rem]">Cementerios que coinciden</h3>
+                    <ul className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                      {placeHits.map((p) => (
+                        <li key={p.key}>
+                          <button type="button" onClick={() => openPlace(p.key)} className="flex min-h-16 w-full items-center gap-3 rounded-2xl border-2 border-line bg-white p-4 text-left hover:border-ink">
+                            <PinIcon className="h-5 w-5 shrink-0 text-teja" />
+                            <span className="min-w-0 flex-1">
+                              <span className="block text-[1.25rem] font-bold leading-snug">{siteName(p)}</span>
+                              <span className="zb-apoyo block">
+                                {p.locality ?? "Comuna desconocida"} · {plural(p.people.length, "persona", "personas")}
+                              </span>
+                            </span>
+                            <span aria-hidden>→</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </>
+            )}
           </section>
-        )
-      ) : !sections.length ? (
-        <p className="zb-texto mt-8 rounded-2xl border-2 border-dashed border-line p-8 text-center text-gris print:hidden">No encontramos cementerios ni personas con esa búsqueda. Prueba con otra palabra.</p>
-      ) : (
-        /* La lista: cementerios por región */
-        <div className="mt-8 space-y-14 print:hidden">
-          {photoErr && <Notice kind="aviso">{photoErr}</Notice>}
-          {sections.map((s) => (
-            <section key={s.code} aria-label={s.title}>
-              <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 border-b border-line pb-3">
-                <h2 className="text-[1.5rem] font-bold leading-tight sm:text-[1.75rem]">{s.code === "pending" ? s.title : regionLabel(s.title)}</h2>
-                <p className="zb-texto text-gris">{plural(sumPeople(s.places), "persona", "personas")}</p>
+        ) : (
+          <>
+            <section aria-label={rootId ? "Los más cercanos a ti" : "Personas"}>
+              <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                <h2 className="al-titulo al-regla">{rootId ? "Los más cercanos a ti" : "Personas"}</h2>
               </div>
-              <ul className="mt-6 grid gap-x-7 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {s.places.map((p) => (
-                  <li key={p.key} className="flex flex-col">
-                    <div className="relative">
-                      {photoSquare(p, false)}
-                      {p.incomplete && (
-                        <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-white px-3.5 py-1.5 text-base font-bold shadow">Por confirmar</span>
-                      )}
-                    </div>
-                    <div className="mt-4 flex items-start justify-between gap-3">
-                      <button type="button" onClick={() => openPlace(p.key)} className="min-w-0 text-left">
-                        <span className="zb-nombre block">{siteName(p)}</span>
-                        <span className="zb-apoyo mt-0.5 block">
-                          {p.locality ?? "Comuna desconocida"} · {plural(p.people.length, "persona", "personas")}
-                        </span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => openPlace(p.key)}
-                        className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-ink text-white transition hover:bg-terra"
-                        aria-label={`Ver ${siteName(p)}`}
-                      >
-                        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2.2} aria-hidden>
-                          <path d="M5 12h14m-6-6 6 6-6 6" />
-                        </svg>
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              <ul className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">{shown.map(({ b, p }) => personCard(b, p))}</ul>
+              {everyone.length > near.length && (
+                <button type="button" onClick={() => setShowAll((v) => !v)} aria-expanded={showAll} className={buttonClass("secundario", "mt-6")}>
+                  {showAll ? "Ver menos" : `Ver a las ${everyone.length} personas`}
+                </button>
+              )}
             </section>
-          ))}
-        </div>
-      )}
 
-      {/* Panel del cementerio abierto */}
-      {current && (
-        <div className="fixed inset-0 z-40 print:hidden" role="dialog" aria-modal="true" aria-label={siteName(current)}>
-          <button type="button" className="absolute inset-0 cursor-default bg-ink/55" onClick={backToList} aria-label="Cerrar" tabIndex={-1} />
-          <aside className="absolute right-0 top-0 flex h-full w-full flex-col overflow-y-auto bg-white shadow-2xl sm:w-[min(36rem,92vw)]">
-            <div className="relative shrink-0">
-              {photoSquare(current, true)}
-              {current.incomplete && (
-                <span className="pointer-events-none absolute bottom-3 left-4 rounded-full bg-white px-3.5 py-1.5 text-base font-bold shadow">Por confirmar</span>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={backToList}
-              aria-label="Cerrar"
-              className="fixed right-4 top-4 z-10 grid h-12 w-12 place-items-center rounded-full bg-white text-ink shadow-lg hover:bg-paper sm:absolute"
-            >
-              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2.2} aria-hidden>
-                <path d="m6 6 12 12M18 6 6 18" />
-              </svg>
-            </button>
-            <div className="p-6">
-              <p className="zb-texto text-gris">
-                {[current.locality ?? "Comuna desconocida", regionLabel(regionName(current.regionCode))].filter(Boolean).join(" · ")}
-              </p>
-              <h2 className="zb-titulo mt-1">{siteName(current)}</h2>
-              <p className="zb-texto mt-3">
-                <strong>{plural(current.people.length, "persona", "personas")}</strong> de la familia {current.people.length === 1 ? "descansa" : "descansan"} aquí
-              </p>
-              <div className="mt-5 flex flex-wrap gap-3">
-                <a href={directionsUrl(current)} target="_blank" rel="noreferrer" className={buttonClass("principal", "min-w-0 flex-1 !px-5")}>
-                  Cómo llegar <span aria-hidden>↗</span>
-                </a>
-                <a href={mapsUrl(current)} target="_blank" rel="noreferrer" className={buttonClass("secundario", "min-w-0 flex-1 !px-5")}>
-                  Ver en el mapa
-                </a>
+            <section aria-label="Cementerios">
+              <h2 className="al-titulo al-regla">Los cementerios</h2>
+              <div className="mt-5 flex flex-wrap gap-3" role="group" aria-label="Región">
+                <button type="button" className={chip(region === null)} aria-pressed={region === null} onClick={() => pickRegion(null)}>
+                  Todas <span className="font-normal">({places.length})</span>
+                </button>
+                {regionCounts.map(([code, n]) => (
+                  <button key={code} type="button" className={chip(region === code)} aria-pressed={region === code} onClick={() => pickRegion(region === code ? null : code)}>
+                    {shortRegion(regionName(code))} <span className="font-normal">({n})</span>
+                  </button>
+                ))}
+                {pendingCount > 0 && (
+                  <button type="button" className={chip(region === "pending")} aria-pressed={region === "pending"} onClick={() => pickRegion(region === "pending" ? null : "pending")}>
+                    Por ubicar <span className="font-normal">({pendingCount})</span>
+                  </button>
+                )}
               </div>
-              <button type="button" onClick={() => copyAddress(current)} className={buttonClass("enlace", "mt-2 !px-1")} aria-live="polite">
-                {copied ? "Dirección copiada" : "Copiar dirección"}
-              </button>
-              {canEdit && (
-                <div className="mt-3">
-                  <p className="zb-apoyo">{photoOf(current) ? "Para cambiar la foto, arrastra otra sobre ella." : "Para agregar la foto, arrástrala sobre el cuadro."}</p>
-                  {photoOf(current) && (
-                    <div className="mt-3 flex flex-wrap gap-3">
-                      <label className={`${buttonClass("secundario")} cursor-pointer ${photoBusy === current.key ? "pointer-events-none opacity-60" : ""}`}>
-                        Elegir otra foto
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="sr-only"
-                          disabled={photoBusy === current.key}
-                          onChange={(e) => {
-                            uploadPhoto(current, e.target.files?.[0]);
-                            e.target.value = "";
-                          }}
-                        />
-                      </label>
-                      <button type="button" disabled={photoBusy === current.key} onClick={() => removePhoto(current)} className={buttonClass("enlace")}>
-                        Quitar foto
-                      </button>
+              <div className="mt-8 space-y-12">
+                {sections.map((s) => (
+                  <div key={s.code} aria-label={s.title}>
+                    <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 border-b-2 border-ink/20 pb-2">
+                      <h3 className="text-[1.5rem] font-bold leading-tight">{s.code === "pending" ? s.title : regionLabel(s.title)}</h3>
+                      <p className="zb-texto text-gris">{plural(sumPeople(s.places), "persona", "personas")}</p>
                     </div>
-                  )}
-                </div>
-              )}
-              {photoErr && (
-                <div className="mt-4">
-                  <Notice kind="aviso">{photoErr}</Notice>
-                </div>
-              )}
-              <ul className="mt-6 space-y-4" aria-label="Aquí descansan">
-                {current.people.map((b) => drawerPerson(b, current))}
-              </ul>
-            </div>
-          </aside>
-        </div>
-      )}
+                    <ul className="mt-6 grid gap-x-7 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                      {s.places.map((p) => (
+                        <li key={p.key} className="flex flex-col">
+                          <div className="relative">
+                            {photoSquare(p, false)}
+                            {p.incomplete && <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-white px-3.5 py-1.5 text-base font-bold shadow">Por confirmar</span>}
+                          </div>
+                          <button type="button" onClick={() => openPlace(p.key)} className="mt-4 flex min-h-12 items-start justify-between gap-3 text-left">
+                            <span className="min-w-0">
+                              <span className="block font-slab text-[1.375rem] font-bold leading-tight">{siteName(p)}</span>
+                              <span className="zb-apoyo mt-0.5 block">
+                                {p.locality ?? "Comuna desconocida"} · {plural(p.people.length, "persona", "personas")}
+                              </span>
+                            </span>
+                            <span aria-hidden className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-teja text-xl text-white">→</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </>
+        )}
+      </div>
+    </>
+  );
+
+  return (
+    <div id="cem-inicio">
+      {personParam && personRow ? personView : placeParam && currentPlace ? placeView : listView}
 
       {/* Al imprimir: todos los cementerios con su gente, en una lista seguida. */}
-      <div className="hidden print:block">
+      <div className={`${WRAP} hidden print:block`}>
         {sections.map((s) => (
           <section key={s.code} className="mb-6">
             <h2 className="mb-2 border-b border-[#ccc] pb-1 text-lg font-semibold">{s.title}</h2>
@@ -841,8 +870,6 @@ export default function CemeteryGuide({
             ))}
           </section>
         ))}
-      </div>
-
       </div>
 
       <PersonPanel

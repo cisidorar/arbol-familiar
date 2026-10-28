@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 interface Result {
   id: string;
@@ -9,7 +9,23 @@ interface Result {
   isLiving: boolean;
 }
 
-export default function SearchBox({ onSelect }: { onSelect: (id: string) => void }) {
+export default function SearchBox({
+  onSelect,
+  placeholder = "Buscar persona o lugar",
+  inputClassName = "border-transparent",
+  label,
+  labelClassName = "",
+}: {
+  onSelect: (id: string) => void;
+  placeholder?: string;
+  /** Borde del campo: transparente sobre fondo oscuro, visible sobre papel. */
+  inputClassName?: string;
+  /** Rótulo visible sobre el campo; sin él, el campo lleva un rótulo solo para lectores de pantalla. */
+  label?: string;
+  /** Color del rótulo visible (p. ej. blanco sobre un fondo de color). */
+  labelClassName?: string;
+}) {
+  const id = useId();
   const [q, setQ] = useState("");
   const [results, setResults] = useState<Result[]>([]);
   const [open, setOpen] = useState(false);
@@ -44,13 +60,13 @@ export default function SearchBox({ onSelect }: { onSelect: (id: string) => void
   }, []);
 
   return (
-    <div ref={containerRef} className="zb relative flex w-full items-center gap-3">
-      <label htmlFor="buscar" className="sr-only">
-        Buscar:
+    <div ref={containerRef} className={`zb relative flex w-full gap-3 ${label ? "flex-col items-stretch gap-2" : "items-center"}`}>
+      <label htmlFor={id} className={label ? `text-[1.125rem] font-bold ${labelClassName}` : "sr-only"}>
+        {label ?? "Buscar:"}
       </label>
       <div className="relative min-w-0 flex-1">
         <input
-          id="buscar"
+          id={id}
           type="search"
           value={q}
           onChange={(e) => setQ(e.target.value)}
@@ -61,8 +77,8 @@ export default function SearchBox({ onSelect }: { onSelect: (id: string) => void
               (e.target as HTMLInputElement).blur();
             }
           }}
-          placeholder="Buscar persona o lugar"
-          className="min-h-12 w-full rounded-lg border-2 border-transparent bg-white py-2 pl-3.5 pr-12 text-[1.125rem] text-ink outline-none placeholder:text-gris/70 focus:border-hombre [&::-webkit-search-cancel-button]:hidden"
+          placeholder={placeholder}
+          className={`min-h-12 w-full rounded-lg border-2 ${inputClassName} bg-white py-2 pl-3.5 pr-12 text-[1.125rem] text-ink outline-none placeholder:text-gris/70 focus:border-hombre [&::-webkit-search-cancel-button]:hidden`}
         />
         {q && (
           <button
@@ -99,7 +115,7 @@ export default function SearchBox({ onSelect }: { onSelect: (id: string) => void
                 </li>
               ))
             ) : (
-              <li className="px-4 py-3 text-[1.0625rem] text-gris">
+              <li className="px-4 py-3 text-[1.125rem] text-gris">
                 No encontramos a nadie con &laquo;{q}&raquo;. Prueba con solo el apellido.
               </li>
             )}

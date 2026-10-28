@@ -31,7 +31,7 @@ export default function Logo({
         width={tinta ? 60 : 64}
         height={tinta ? 60 : 64}
         rx={14}
-        fill={tinta ? "#ffffff" : "#f4f1ea"}
+        fill={tinta ? "#ffffff" : "#f4e9d3"}
         stroke={tinta ? "#1a1816" : "none"}
         strokeWidth={tinta ? 4 : 0}
       />
@@ -45,7 +45,7 @@ export default function Logo({
       >
         ZB
       </text>
-      <rect x={15} y={46} width={34} height={4} fill={tinta ? "#1a1816" : "#c4572e"} />
+      <rect x={15} y={46} width={34} height={4} fill={tinta ? "#1a1816" : "#a8432a"} />
     </svg>
   );
 }

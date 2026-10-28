@@ -7,7 +7,7 @@ import { ROLE_LABELS, type Role } from "@/lib/auth/roles";
 
 export type CurrentUser = { name: string; role: Role };
 
-const ITEM = "flex min-h-12 items-center px-4 py-2 hover:bg-paper";
+const ITEM = "flex min-h-12 items-center px-4 py-2 hover:bg-adobe";
 
 /** Botón con la inicial de quien entró: su nombre, su rol, la administración y cerrar sesión. */
 export default function UserMenu({ user }: { user: CurrentUser }) {
@@ -38,7 +38,7 @@ export default function UserMenu({ user }: { user: CurrentUser }) {
       >
         <span
           aria-hidden="true"
-          className="flex h-9 w-9 items-center justify-center rounded-lg bg-paper text-lg font-bold uppercase text-ink"
+          className="flex h-9 w-9 items-center justify-center rounded-lg bg-adobe text-lg font-bold uppercase text-ink"
         >
           {user.name.trim().charAt(0) || "?"}
         </span>

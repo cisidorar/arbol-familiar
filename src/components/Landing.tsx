@@ -14,7 +14,7 @@ function Stat({ value, label }: { value: string; label: string }) {
   return (
     <div>
       <p className="font-maquina text-3xl leading-none sm:text-4xl">{value}</p>
-      <p className="mt-1.5 text-sm text-white/70">{label}</p>
+      <p className="mt-1.5 text-base text-white/85">{label}</p>
     </div>
   );
 }
@@ -47,9 +47,9 @@ export default function Landing({ stats, surnames = [] }: { stats: PublicStats |
   ].filter(Boolean) as { value: string; label: string }[];
 
   return (
-    <div className="zb min-h-screen bg-white text-ink">
+    <div className="zb album min-h-screen text-ink">
       {/* Bienvenida */}
-      <section className="overflow-hidden bg-ink text-white">
+      <section className="on-dark overflow-hidden bg-burdeos text-white">
         <header className={`${BRAND_ROW} w-full gap-3`}>
           <SiteBrand />
           <Link
@@ -62,10 +62,10 @@ export default function Landing({ stats, surnames = [] }: { stats: PublicStats |
 
         <div className="mx-auto grid w-full max-w-6xl gap-12 px-4 pb-16 pt-8 sm:px-6 sm:pt-12 lg:grid-cols-2 lg:items-center lg:gap-10 lg:pb-20">
           <div>
-            <p className="text-sm font-bold uppercase tracking-[0.18em] text-white/70">
+            <p className="text-base font-bold uppercase tracking-[0.14em] text-white/85">
               Actualizado el {PORTADA.actualizado}
             </p>
-            <h1 className="mt-4 font-maquina text-[2.75rem] leading-[1.05] sm:text-6xl">Hola, familia.</h1>
+            <h1 className="mt-4 font-slab text-[2.75rem] font-bold leading-[1.05] sm:text-6xl">Hola, familia.</h1>
             <div className="mt-6 max-w-xl space-y-4 text-[1.1875rem] leading-relaxed text-white/85">
               <p>Aquí vamos juntando lo que hemos encontrado de nuestros antepasados: nombres, fechas, lugares y alguna que otra historia.</p>
               <p>Pasa a mirar cómo va la investigación y, si tienes algo, súmalo: una foto, un recuerdo, un nombre que falta.</p>
@@ -73,7 +73,7 @@ export default function Landing({ stats, surnames = [] }: { stats: PublicStats |
             <div className="mt-7">
               <Link
                 href="/login"
-                className={buttonClass("principal", "!border-paper !bg-paper !text-ink hover:!bg-white hover:!border-white")}
+                className={buttonClass("principal", "!min-h-14 !border-adobe !bg-adobe !px-9 !text-[1.25rem] !text-ink hover:!border-white hover:!bg-white")}
               >
                 Entrar al archivo <span aria-hidden="true">→</span>
               </Link>
@@ -91,11 +91,12 @@ export default function Landing({ stats, surnames = [] }: { stats: PublicStats |
           <ScatteredCards className="mx-auto h-[26rem] w-full max-w-[32rem] sm:h-[31rem]" />
         </div>
       </section>
+      <div className="alero-tejas [--tj:var(--color-burdeos)]" aria-hidden="true" />
 
       {/* Apellidos */}
       {surnames.length > 0 && (
         <section className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
-          <h2 className="font-maquina text-[1.75rem] leading-tight sm:text-4xl">Nuestros apellidos</h2>
+          <h2 className="al-titulo al-regla !text-[1.75rem] sm:!text-4xl">Nuestros apellidos</h2>
           <p className="mt-3 max-w-2xl text-lg text-gris">Las ramas que vamos siguiendo y cuántas personas tiene cada una en el archivo.</p>
           <ul className="mt-10 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
             {surnames.map((s, i) => (
@@ -108,14 +109,14 @@ export default function Landing({ stats, surnames = [] }: { stats: PublicStats |
       )}
 
       {/* Lo último que encontramos */}
-      <section className="bg-paper">
+      <section className="bg-adobe-2">
         <div className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
-          <h2 className="font-maquina text-[1.75rem] leading-tight sm:text-4xl">Lo último que encontramos</h2>
+          <h2 className="al-titulo al-regla !text-[1.75rem] sm:!text-4xl">Lo último que encontramos</h2>
           <p className="mt-3 max-w-2xl text-lg text-gris">Algunas historias que fueron apareciendo en los registros.</p>
           <ul className="mt-10 grid gap-5 md:grid-cols-2">
             {PORTADA.hallazgos.map((h) => (
               <li key={h.titulo} className="rounded-2xl bg-white p-6 shadow-[0_6px_18px_-12px_rgba(0,0,0,0.4)] ring-1 ring-black/5">
-                <p className="text-sm font-bold uppercase tracking-[0.14em] text-terra">{h.cuando}</p>
+                <p className="text-base font-bold uppercase tracking-[0.1em] text-teja">{h.cuando}</p>
                 <h3 className="mt-2 text-[1.25rem] font-bold leading-snug">{h.titulo}</h3>
                 <p className="mt-2 text-[1.0625rem] leading-relaxed text-gris">{h.texto}</p>
               </li>
@@ -125,18 +126,18 @@ export default function Landing({ stats, surnames = [] }: { stats: PublicStats |
       </section>
 
       {/* Aportar */}
-      <section className="bg-ink text-white">
+      <section className="on-dark bg-parra text-white">
         <div className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
-          <h2 className="max-w-2xl font-maquina text-[1.75rem] leading-tight sm:text-4xl">¿Tienes algo de la familia?</h2>
+          <h2 className="max-w-2xl font-slab text-[1.75rem] font-bold leading-tight sm:text-4xl">¿Tienes algo de la familia?</h2>
           <p className="mt-3 max-w-xl text-lg text-white/80">
             Fotos, actas, cartas o anécdotas de los abuelos: todo suma. Cuando entres al archivo podrás verlo completo y dejar lo tuyo.
           </p>
-          <p className="mt-5 max-w-xl text-base text-white/70">¿Aún no tienes acceso? Pídeselo a quien te habló del archivo.</p>
+          <p className="mt-5 max-w-xl text-base text-white/85">¿Aún no tienes acceso? Pídeselo a quien te habló del archivo.</p>
         </div>
       </section>
 
-      <footer className="bg-ink">
-        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 border-t border-white/15 px-4 py-5 text-base text-white/60 sm:px-6">
+      <footer className="on-dark bg-burdeos">
+        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 border-t border-white/15 px-4 py-5 text-base text-white/85 sm:px-6">
           <p>Archivo Zamora Balcázar · Solo para la familia</p>
         </div>
       </footer>
