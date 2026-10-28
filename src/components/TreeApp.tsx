@@ -137,6 +137,13 @@ export default function TreeApp({ data, user, homeId, selfId }: { data: any[]; u
         }}
       />
 
+      {/* Para quien recorre con teclado: saltar las decenas de tarjetas y llegar a los controles. */}
+      <a
+        href="#despues-del-arbol"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-[104px] focus:z-30 focus:rounded-full focus:border-2 focus:border-ink focus:bg-white focus:px-5 focus:py-3 focus:text-[1.125rem] focus:font-bold focus:text-ink focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ink"
+      >
+        Saltar el árbol
+      </a>
       <main aria-label="Árbol genealógico" className="h-full w-full">
         <FamilyTree
           data={data}
@@ -146,6 +153,7 @@ export default function TreeApp({ data, user, homeId, selfId }: { data: any[]; u
           resetKey={resetKey}
           controlsRef={controls}
           onSelectPerson={(id) => setSelectedId(id)}
+          selectedId={selectedId}
           onRecenter={recenter}
           onAddRelative={
             canEdit(user.role)
@@ -154,6 +162,7 @@ export default function TreeApp({ data, user, homeId, selfId }: { data: any[]; u
           }
         />
       </main>
+      <div id="despues-del-arbol" tabIndex={-1} />
 
       {previous && (
         <button

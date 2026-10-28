@@ -18,24 +18,25 @@ import {
   type RelativeDatum,
 } from "@/lib/relatives";
 import { DateField } from "./PersonEditor";
+import { buttonClass } from "./ui";
 
 /** A quién se le agrega el familiar y dónde está su "+" en la pantalla. */
 export type AddTarget = { personId: string; rect: { left: number; top: number; right: number; bottom: number } };
 
 const inputClass =
-  "mt-1 w-full rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 aria-[invalid=true]:border-red-400";
-const labelClass = "block text-xs font-medium text-gray-600";
+  "mt-1 min-h-12 w-full rounded-lg border-2 border-[#8f8a80] bg-white px-3.5 py-2 text-[1.125rem] text-ink outline-none placeholder:text-gris/70 focus:border-ink focus:ring-4 focus:ring-ink/15 aria-[invalid=true]:border-aviso";
+const labelClass = "block text-base font-bold text-ink";
 
 function FieldError({ id, message }: { id: string; message?: string }) {
   if (!message) return null;
   return (
-    <p id={id} className="mt-1 text-xs text-red-600">
+    <p id={id} className="mt-1 text-base font-bold text-aviso">
       {message}
     </p>
   );
 }
 
-const MENU_WIDTH = 256;
+const MENU_WIDTH = 288;
 
 function Menu({
   target,
@@ -97,10 +98,10 @@ function Menu({
       aria-label={`Agregar un familiar de ${of.data.label ?? "esta persona"}`}
       onKeyDown={onKeyDown}
       style={{ left: pos.left, top: pos.top, width: MENU_WIDTH }}
-      className="fixed z-40 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 text-sm text-gray-900 shadow-xl"
+      className="fixed z-40 overflow-hidden rounded-xl border-2 border-ink bg-white py-1 text-base text-ink shadow-xl"
     >
-      <p className="truncate border-b border-gray-100 px-3.5 pb-2 pt-1.5 text-xs text-gray-500">
-        Agregar a la familia de <span className="font-medium text-gray-700">{of.data.label}</span>
+      <p className="truncate border-b-2 border-adobe-2 px-3.5 pb-2 pt-1.5 text-base text-gris">
+        Agregar a la familia de <span className="font-bold text-ink">{of.data.label}</span>
       </p>
       {options.map((option) => (
         <button
@@ -109,10 +110,10 @@ function Menu({
           role="menuitem"
           disabled={Boolean(option.blocked)}
           onClick={() => onPick(option.relation)}
-          className="block w-full px-3.5 py-2 text-left outline-none hover:bg-gray-50 focus-visible:bg-gray-100 disabled:cursor-not-allowed disabled:hover:bg-white"
+          className="block min-h-12 w-full px-3.5 py-2.5 text-left outline-none hover:bg-adobe-2 focus-visible:bg-adobe-2 focus-visible:outline-3 focus-visible:-outline-offset-3 focus-visible:outline-ink disabled:cursor-not-allowed disabled:hover:bg-white"
         >
-          <span className={option.blocked ? "text-gray-400" : undefined}>{option.label}</span>
-          {option.blocked && <span className="block text-xs text-gray-400">{option.blocked}</span>}
+          <span className={option.blocked ? "text-gris" : undefined}>{option.label}</span>
+          {option.blocked && <span className="block text-base text-gris">{option.blocked}</span>}
         </button>
       ))}
     </div>
@@ -237,7 +238,7 @@ function Form({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-gray-900/40 p-4 sm:items-center"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/50 p-4 sm:items-center"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget && !saving) onCancel();
       }}
@@ -249,10 +250,10 @@ function Form({
         role="dialog"
         aria-modal="true"
         aria-labelledby={`${uid}-title`}
-        className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl"
+        className="album w-full max-w-md rounded-2xl border-2 border-ink p-5 shadow-2xl"
       >
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">Agregar al árbol</p>
-        <h2 id={`${uid}-title`} className="mt-0.5 text-lg font-semibold leading-snug text-gray-900">
+        <p className="text-base font-bold uppercase tracking-wide text-gris">Agregar al árbol</p>
+        <h2 id={`${uid}-title`} className="mt-0.5 font-slab text-2xl font-bold leading-snug text-ink">
           {title}
         </h2>
 
@@ -378,17 +379,17 @@ function Form({
         </div>
 
         {failure && (
-          <p role="alert" className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p role="alert" className="mt-4 rounded-lg border-2 border-aviso bg-white px-3 py-2 text-base font-bold text-aviso">
             {failure}
           </p>
         )}
 
-        <p className="mt-4 text-xs text-gray-500">Después se abre su ficha para completar el resto.</p>
+        <p className="mt-4 text-base text-gris">Después se abre su ficha para completar el resto.</p>
         <div className="mt-3 flex items-center gap-2">
           <button
             type="submit"
             disabled={saving}
-            className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
+            className={buttonClass("principal")}
           >
             {saving ? "Agregando…" : "Agregar"}
           </button>
@@ -396,7 +397,7 @@ function Form({
             type="button"
             onClick={onCancel}
             disabled={saving}
-            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+            className={buttonClass("secundario")}
           >
             Cancelar
           </button>

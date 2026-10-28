@@ -140,6 +140,16 @@ div.f3 div.card-female.card-child .card-inner.card-rect {
   --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23c44f72'%3E%3Ccircle cx='7.3' cy='8.3' r='1.9'/%3E%3Ccircle cx='16.7' cy='8.3' r='1.9'/%3E%3Ccircle cx='12' cy='8' r='4.3'/%3E%3Cpath d='M8 20c0-2.8 1.8-5 4-5s4 2.2 4 5z'/%3E%3C/svg%3E");
 }
 
+/* Filete punteado por dentro de la ficha (el mismo del sello postal de Inicio): se lee como ficha de archivo. */
+div.f3 div.card-rect::after {
+  content: "";
+  position: absolute;
+  inset: 4px 4px 4px 4px;
+  border: 1.5px dashed rgba(110, 31, 46, 0.3);
+  border-radius: 6px;
+  pointer-events: none;
+}
+
 /* Avatar: círculo blanco con silueta del color de acento (sin fotos por
    ahora, fase 0 pendiente: los enlaces de MyHeritage ya vencieron). */
 div.f3 div.card-rect::before {
@@ -232,6 +242,12 @@ div.f3 div.card-main:hover .card-inner {
     0 0 0 3px var(--color-burdeos),
     0 6px 16px rgba(30, 26, 23, 0.16);
 }
+/* La persona cuya ficha está abierta: anillo de tinta, aparte del borde burdeos del centro. */
+div.f3 div.card.card-selected .card-inner {
+  outline: 3px solid var(--color-ink);
+  outline-offset: 3px;
+}
+
 /* Marca de la persona del centro del árbol: una pestañita burdeos sobre la tarjeta. */
 div.f3 div.card-main::after {
   content: "Centro";
@@ -256,8 +272,8 @@ div.f3 div.card-main::after {
    "round" ese codo se ve como un vértice filoso, casi como si fueran dos
    líneas distintas que se cruzan en vez de una sola doblando. */
 div.f3 path.link {
-  stroke: #a89f8c !important;
-  stroke-width: 2px;
+  stroke: #7a6a55 !important;
+  stroke-width: 2.5px;
   stroke-linejoin: round;
   stroke-linecap: round;
 }
@@ -334,13 +350,16 @@ div.f3 div.mini-tree:is([data-dir="up"], [data-dir="down"], [data-dir="left"], [
 
 /* Arriba y abajo hay lugar para la palabra ("Padres", "Hijos"): una pastilla en vez de un círculo mudo. */
 div.f3 div.mini-tree:is([data-dir="up"], [data-dir="down"]) {
-  width: auto;
+  /* Centrada sin transform: la librería le pone su propio transform al pasar el cursor y la corría hacia un lado. */
+  left: 0;
+  right: 0;
+  margin-inline: auto;
+  width: fit-content;
   min-width: 28px;
   height: 30px;
   gap: 6px;
   grid-auto-flow: column;
   padding: 0 12px 0 10px;
-  transform: translateX(-50%);
   white-space: nowrap;
 }
 div.f3 div.mini-tree .mini-label {
@@ -401,7 +420,6 @@ div.f3 div.card-collapse:focus-visible {
 
 div.f3 div.mini-tree[data-dir="up"] {
   top: -36px;
-  left: 50%;
 }
 div.f3 div.mini-tree[data-dir="up"]::before {
   transform: translateY(2px) rotate(45deg);
@@ -410,7 +428,6 @@ div.f3 div.mini-tree[data-dir="up"]::before {
 div.f3 div.mini-tree[data-dir="down"] {
   top: auto;
   bottom: -36px;
-  left: 50%;
 }
 div.f3 div.mini-tree[data-dir="down"]::before {
   transform: translateY(-2px) rotate(225deg);
@@ -438,19 +455,19 @@ div.f3 div.mini-tree[data-dir="right"]::before {
    sin depender de la letra. */
 div.f3 div.card-add {
   position: absolute;
-  top: 4px;
-  right: 4px;
+  top: 3px;
+  right: 3px;
   z-index: 2;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: 9999px;
   background:
-    linear-gradient(#4a4740, #4a4740) center / 12px 2px no-repeat,
-    linear-gradient(#4a4740, #4a4740) center / 2px 12px no-repeat,
+    linear-gradient(#4a4740, #4a4740) center / 14px 2px no-repeat,
+    linear-gradient(#4a4740, #4a4740) center / 2px 14px no-repeat,
     var(--color-adobe);
   box-shadow: 0 0 0 1px rgb(74 71 64 / 0.4);
   cursor: pointer;
-  opacity: 0.75;
+  opacity: 0.9;
   transition:
     opacity 0.15s ease-in-out,
     box-shadow 0.15s ease-in-out;
@@ -463,8 +480,8 @@ div.f3 div.card:focus-within div.card-add {
 
 div.f3 div.card-add:hover {
   background:
-    linear-gradient(#ffffff, #ffffff) center / 12px 2px no-repeat,
-    linear-gradient(#ffffff, #ffffff) center / 2px 12px no-repeat,
+    linear-gradient(#ffffff, #ffffff) center / 14px 2px no-repeat,
+    linear-gradient(#ffffff, #ffffff) center / 2px 14px no-repeat,
     #6e1f2e;
   box-shadow: 0 0 0 1px #6e1f2e;
 }
@@ -498,16 +515,17 @@ div.f3 div.card-review-flag {
    tarjeta (hacia donde se pliegan). */
 div.f3 div.card-collapse {
   position: absolute;
-  top: calc(50% - 12px);
+  top: calc(50% - 14px);
   z-index: 3;
-  width: 24px;
-  height: 24px;
+  box-sizing: border-box;
+  width: 28px;
+  height: 28px;
+  border: 1.5px solid #8f8472;
   border-radius: 9999px;
-  background: #4a4740;
-  box-shadow: 0 0 0 1px #4a4740;
+  background: var(--color-adobe);
+  box-shadow: 0 1px 2px rgb(30 26 23 / 0.12);
   cursor: pointer;
-  opacity: 0.9;
-  transition: opacity 0.15s ease-in-out, background 0.15s ease-in-out;
+  transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
 }
 div.f3 div.card-collapse[data-side="right"] {
   left: calc(100% + 6px);
@@ -522,8 +540,9 @@ div.f3 div.card-collapse::before {
   left: 50%;
   width: 7px;
   height: 7px;
-  border-top: 2px solid #fff;
-  border-left: 2px solid #fff;
+  border-top: 2px solid #4a4740;
+  border-left: 2px solid #4a4740;
+  transition: border-color 0.15s ease-in-out;
 }
 /* Hermanos a la derecha: la flecha apunta a la izquierda, y al revés. */
 div.f3 div.card-collapse[data-side="right"]::before {
@@ -533,8 +552,11 @@ div.f3 div.card-collapse[data-side="left"]::before {
   transform: translate(-70%, -50%) rotate(135deg);
 }
 div.f3 div.card-collapse:hover {
-  opacity: 1;
-  background: #3f4c63;
+  background: #6e1f2e;
+  border-color: #6e1f2e;
+}
+div.f3 div.card-collapse:hover::before {
+  border-color: #fff;
 }
 
 

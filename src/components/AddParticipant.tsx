@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
+import { buttonClass } from "./ui";
 
 export type NewParticipantPayload = {
   person: { given: string; surnamePat: string; surnameMat: string; sex: "M" | "F" | "U"; isLiving: boolean; notes: string };
@@ -23,7 +24,7 @@ const sexFromRole = (role: string): "M" | "F" | "U" => {
 };
 
 const inputClass =
-  "w-full rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs text-gray-900 outline-none placeholder:text-gray-400 focus:border-gray-900";
+  "min-h-12 w-full rounded-lg border-2 border-[#8f8a80] bg-white px-3 py-2 text-[1.125rem] text-ink outline-none placeholder:text-gris/70 focus:border-ink focus:ring-4 focus:ring-ink/15";
 
 /**
  * Mini formulario bajo un padrino/testigo sin vincular: confirma el nombre y deja agregarlo al
@@ -67,24 +68,24 @@ export default function AddParticipant({
   }
 
   return (
-    <form onSubmit={submit} className="mt-1.5 flex flex-col gap-2 rounded-lg border border-gray-200 bg-gray-50 p-2.5 text-xs">
-      <p className="font-medium text-gray-700">Agregar al árbol a {name}</p>
-      <div className="grid grid-cols-3 gap-1.5">
-        <label className="col-span-3 flex flex-col gap-0.5 text-gray-500 sm:col-span-1" htmlFor={`${uid}-g`}>
+    <form onSubmit={submit} className="mt-1.5 flex flex-col gap-3 rounded-xl border-2 border-adobe-2 bg-white p-3 text-base">
+      <p className="font-bold text-ink">Agregar al árbol a {name}</p>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <label className="flex flex-col gap-0.5 font-bold text-ink" htmlFor={`${uid}-g`}>
           Nombres
           <input id={`${uid}-g`} value={given} onChange={(e) => setGiven(e.target.value)} className={inputClass} />
         </label>
-        <label className="flex flex-col gap-0.5 text-gray-500" htmlFor={`${uid}-p`}>
+        <label className="flex flex-col gap-0.5 font-bold text-ink" htmlFor={`${uid}-p`}>
           Apellido paterno
           <input id={`${uid}-p`} value={pat} onChange={(e) => setPat(e.target.value)} className={inputClass} />
         </label>
-        <label className="flex flex-col gap-0.5 text-gray-500" htmlFor={`${uid}-m`}>
+        <label className="flex flex-col gap-0.5 font-bold text-ink" htmlFor={`${uid}-m`}>
           Apellido materno
           <input id={`${uid}-m`} value={mat} onChange={(e) => setMat(e.target.value)} className={inputClass} />
         </label>
       </div>
-      <div className="grid grid-cols-2 gap-1.5">
-        <label className="flex flex-col gap-0.5 text-gray-500" htmlFor={`${uid}-s`}>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <label className="flex flex-col gap-0.5 font-bold text-ink" htmlFor={`${uid}-s`}>
           Sexo
           <select id={`${uid}-s`} value={sex} onChange={(e) => setSex(e.target.value as "M" | "F" | "U")} className={inputClass}>
             <option value="U">No sé</option>
@@ -92,7 +93,7 @@ export default function AddParticipant({
             <option value="M">Hombre</option>
           </select>
         </label>
-        <label className="flex flex-col gap-0.5 text-gray-500" htmlFor={`${uid}-r`}>
+        <label className="flex flex-col gap-0.5 font-bold text-ink" htmlFor={`${uid}-r`}>
           Parentesco con {ownerName}
           <select
             id={`${uid}-r`}
@@ -108,16 +109,16 @@ export default function AddParticipant({
           </select>
         </label>
       </div>
-      {error && <p role="alert" className="text-red-600">{error}</p>}
+      {error && <p role="alert" className="font-bold text-aviso">{error}</p>}
       <div className="flex items-center gap-3">
         <button
           type="submit"
           disabled={busy || !(given.trim() || pat.trim())}
-          className="rounded-md bg-gray-900 px-3 py-1.5 font-medium text-white hover:bg-gray-700 disabled:opacity-50"
+          className={buttonClass("principal")}
         >
           {busy ? "Agregando…" : "Agregar y vincular"}
         </button>
-        <button type="button" onClick={onCancel} className="text-gray-500 underline decoration-gray-300 underline-offset-2 hover:text-gray-900">
+        <button type="button" onClick={onCancel} className="min-h-12 px-3 font-bold text-ink underline decoration-2 underline-offset-4 hover:text-teja">
           Cancelar
         </button>
       </div>

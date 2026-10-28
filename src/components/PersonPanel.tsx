@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { REVIEW_KINDS, type EventForm, type PersonForm } from "@/lib/edit";
 import { describeRelationship } from "@/lib/relationship";
+import { buttonClass } from "./ui";
 import {
   FichaForm,
   type EditableFact,
@@ -81,10 +82,10 @@ function PersonChip({ name, onClick, color }: { name: string; onClick: () => voi
   return (
     <button
       onClick={onClick}
-      className="group mt-2 flex items-center gap-2.5 rounded-xl border border-[#e7e5df] bg-white px-3 py-2 text-left hover:border-[#c9c6bd] hover:bg-[#f9f8f5]"
+      className="group mt-2 flex min-h-12 items-center gap-2.5 rounded-xl border-2 border-adobe-2 bg-white px-3 py-2 text-left hover:border-ink"
     >
       <span
-        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-400"
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-adobe-2 text-gris"
         style={color ? { backgroundColor: `${color}1a`, color } : undefined}
       >
         <svg viewBox="0 0 24 24" fill="currentColor" className="h-3.5 w-3.5">
@@ -92,7 +93,7 @@ function PersonChip({ name, onClick, color }: { name: string; onClick: () => voi
           <path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8" />
         </svg>
       </span>
-      <span className="text-base text-gray-800">{name}</span>
+      <span className="text-base text-ink">{name}</span>
     </button>
   );
 }
@@ -105,19 +106,19 @@ function SourceLink({ source, context }: { source: TimelineSource; context?: str
         target="_blank"
         rel="noopener noreferrer"
         title={source.url}
-        className="group flex max-w-full items-start gap-3 rounded-xl border border-[#e7e5df] bg-[#f9f8f5] px-3.5 py-2.5 text-sm leading-snug text-gray-700 transition hover:border-[#c9c6bd] hover:bg-white"
+        className="group flex max-w-full items-start gap-3 rounded-xl border-2 border-adobe-2 bg-white px-3.5 py-2.5 text-base leading-snug text-ink transition hover:border-ink"
       >
-        <span className="mt-0.5 shrink-0 rounded-md bg-[#ebe9e3] px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-gray-600">Fuente</span>
+        <span className="mt-0.5 shrink-0 rounded-md bg-adobe-2 px-2 py-0.5 text-base font-bold text-ink">Fuente</span>
         <span className="min-w-0 flex-1">
-          {context && <span className="block text-xs font-medium text-gray-500">{context}</span>}
+          {context && <span className="block text-base font-medium text-gris">{context}</span>}
           {source.title}
         </span>
-        <span className="shrink-0 text-gray-400 group-hover:text-gray-700" aria-hidden="true">
+        <span className="shrink-0 text-gris group-hover:text-ink" aria-hidden="true">
           ↗
         </span>
       </a>
       {source.quote && (
-        <p className="mt-2 border-l-2 border-[#d9d7d0] pl-3 text-sm italic leading-relaxed text-gray-500">
+        <p className="mt-2 rounded-lg bg-adobe-2/60 px-3 py-2 text-base italic leading-relaxed text-gris">
           “{source.quote}”
         </p>
       )}
@@ -142,7 +143,7 @@ function ChildApproxDate({
     return (
       <button
         onClick={() => { setValue(initial); setError(null); setOpen(true); }}
-        className="mt-1.5 text-xs font-medium text-gray-500 underline decoration-gray-300 underline-offset-2 hover:text-gray-800"
+        className="mt-1.5 min-h-11 text-base font-medium text-ink underline decoration-2 underline-offset-4 hover:text-teja"
       >
         {initial ? "Cambiar la fecha aproximada" : "Agregar fecha aproximada"}
       </button>
@@ -157,10 +158,10 @@ function ChildApproxDate({
   };
   return (
     <form
-      className="mt-2 rounded-lg border border-gray-200 bg-gray-50 p-2.5"
+      className="mt-2 rounded-xl border-2 border-adobe-2 bg-white p-3"
       onSubmit={(ev) => { ev.preventDefault(); save(value); }}
     >
-      <label className="block text-xs font-medium text-gray-600" htmlFor="child-approx">
+      <label className="block text-base font-bold text-ink" htmlFor="child-approx">
         Fecha aproximada de nacimiento
       </label>
       <input
@@ -169,19 +170,19 @@ function ChildApproxDate({
         value={value}
         onChange={(ev) => setValue(ev.target.value)}
         placeholder="Por ejemplo: 1885, c. 1885 o entre 1884 y 1887"
-        className="mt-1 w-full rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-sm"
+        className="mt-1 min-h-12 w-full rounded-lg border-2 border-[#8f8a80] bg-white px-3 py-2 text-base text-ink focus:border-ink"
       />
-      <p className="mt-1 text-[11px] text-gray-500">Se anota solo aquí, en la ficha del padre o madre; la ficha del hijo o hija no cambia.</p>
-      {error && <p role="alert" className="mt-1 text-xs font-medium text-red-700">{error}</p>}
+      <p className="mt-1 text-base text-gris">Se anota solo aquí, en la ficha del padre o madre; la ficha del hijo o hija no cambia.</p>
+      {error && <p role="alert" className="mt-1 text-base font-bold text-aviso">{error}</p>}
       <div className="mt-2 flex flex-wrap gap-2">
-        <button type="submit" disabled={saving} className="rounded-md bg-black px-3 py-1 text-xs font-medium text-white disabled:opacity-60">
+        <button type="submit" disabled={saving} className={buttonClass("principal")}>
           {saving ? "Guardando…" : "Guardar"}
         </button>
-        <button type="button" onClick={() => setOpen(false)} disabled={saving} className="rounded-md border border-gray-300 bg-white px-3 py-1 text-xs font-medium text-gray-700">
+        <button type="button" onClick={() => setOpen(false)} disabled={saving} className={buttonClass("secundario")}>
           Cancelar
         </button>
         {initial && (
-          <button type="button" onClick={() => save("")} disabled={saving} className="rounded-md px-2 py-1 text-xs font-medium text-red-700 underline">
+          <button type="button" onClick={() => save("")} disabled={saving} className="min-h-12 px-3 text-base font-bold text-aviso underline decoration-2 underline-offset-4">
             Quitar
           </button>
         )}
@@ -214,24 +215,24 @@ function TimelineItem({
   const detail = [e.dateText, e.place].filter(Boolean).join(" · ");
   return (
     <li className="group/item flex gap-3 px-5 sm:gap-4 sm:px-7">
-      <div className="w-[4.5rem] shrink-0 pt-5 text-right">
+      <div className="w-[5.5rem] shrink-0 pt-5 text-right">
         {e.year != null ? (
-          <div className="text-xl font-semibold leading-none text-gray-900">
-            {e.approx && <span className="mr-1 text-xs font-normal text-gray-400">c.</span>}
+          <div className="font-maquina text-xl leading-none text-ink">
+            {e.approx && <span className="mr-1 font-body text-base font-normal text-gris">c.</span>}
             {e.year}
           </div>
         ) : e.kind === "OCCU" ? null : (
           // El oficio casi nunca tiene fecha: no se marca "s/f" en cada uno.
-          <div className="text-sm leading-[20px] text-gray-300" title="Sin fecha">
+          <div className="font-maquina text-base leading-[20px] text-gris" title="Sin fecha">
             s/f
           </div>
         )}
-        {e.yearEnd != null && <div className="mt-1 text-sm leading-tight text-gray-500">–{e.yearEnd}</div>}
-        {e.age != null && <div className="mt-1 text-xs text-gray-400">Edad ~{e.age}</div>}
+        {e.yearEnd != null && <div className="mt-1 font-maquina text-base leading-tight text-gris">–{e.yearEnd}</div>}
+        {e.age != null && <div className="mt-1 text-base text-gris">Edad ~{e.age}</div>}
       </div>
       {/* Riel de la línea de vida: un punto por hecho, unidos por una línea. */}
       <div className="relative w-5 shrink-0" aria-hidden="true">
-        <span className="absolute bottom-0 left-1/2 top-0 w-0.5 -translate-x-1/2 bg-[#e3e1da] group-first/item:top-6 group-last/item:bottom-auto group-last/item:h-6" />
+        <span className="absolute bottom-0 left-1/2 top-0 w-0.5 -translate-x-1/2 bg-ink/25 group-first/item:top-6 group-last/item:bottom-auto group-last/item:h-6" />
         <span
           className="absolute left-1/2 top-[1.15rem] h-4 w-4 -translate-x-1/2 rounded-full border-[3px] bg-white"
           style={{ borderColor: dotColor ?? accentColor, boxShadow: `0 0 0 3px ${dotColor ?? accentColor}22` }}
@@ -239,11 +240,11 @@ function TimelineItem({
       </div>
       <div className="min-w-0 flex-1 pb-6 pt-5">
         {e.tag && (
-          <p className="mb-1 text-xs font-bold uppercase leading-none tracking-wider" style={{ color: accentColor }}>
+          <p className="mb-1 text-base font-bold uppercase leading-none tracking-wide text-burdeos">
             {e.tag}
           </p>
         )}
-        <p className={`text-base text-gray-900 ${e.tag ? "leading-snug" : "font-bold uppercase tracking-wide text-[0.8rem]"}`}>
+        <p className={`text-base text-ink ${e.tag ? "leading-snug" : "font-bold uppercase tracking-wide"}`}>
           {e.title}
           {e.person && !e.tag ? ":" : ""}
         </p>
@@ -255,8 +256,8 @@ function TimelineItem({
             onSave={(date) => onChildDate(e.childApprox!.childId, date)}
           />
         )}
-        {detail && <p className="mt-1.5 text-base text-gray-700">{detail}</p>}
-        {e.description && <p className="mt-1.5 whitespace-pre-line text-base text-gray-700">{e.description}</p>}
+        {detail && <p className="mt-1.5 text-base text-ink">{detail}</p>}
+        {e.description && <p className="mt-1.5 whitespace-pre-line text-base text-ink">{e.description}</p>}
         {e.participants && e.participants.length > 0 && (
           <ul className="mt-2 flex flex-col items-start gap-1">
             {e.participants.map((part, pi) =>
@@ -265,14 +266,14 @@ function TimelineItem({
                   <PersonChip name={`${part.role}: ${part.name}`} onClick={() => onNavigate(part.personId!)} />
                 </li>
               ) : (
-                <li key={pi} className="w-full text-xs text-gray-500">
+                <li key={pi} className="w-full text-base text-gris">
                   {part.role}: {part.name}
-                  <span className="ml-1 text-gray-400">(sin vincular)</span>
+                  <span className="ml-1">(sin vincular)</span>
                   {onAddParticipant && part.id && e.edit?.id && addingParticipant !== part.id && (
                     <button
                       type="button"
                       onClick={() => setAddingParticipant(part.id!)}
-                      className="ml-2 font-medium text-gray-700 underline decoration-gray-300 underline-offset-2 hover:text-gray-900"
+                      className="ml-2 min-h-11 font-bold text-ink underline decoration-2 underline-offset-4 hover:text-teja"
                     >
                       Agregar al árbol
                     </button>
@@ -303,13 +304,13 @@ function TimelineItem({
           </ul>
         )}
         {e.needsReview && (
-          <p className="mt-3 inline-flex items-center gap-2 rounded-full border-2 border-[#e08a00] bg-[#fff6e0] px-3.5 py-1.5 text-base font-bold text-gray-900">
-            <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full bg-[#e08a00]" />
+          <p className="mt-3 inline-flex items-center gap-2 rounded-full border-2 border-teja bg-white px-3.5 py-1.5 text-base font-bold text-ink">
+            <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full bg-teja" />
             {REVIEW_KINDS.find((k) => k.key === e.edit?.form.review)?.label ?? "Por revisar"}
           </p>
         )}
         {e.needsReview && e.reviewNote && (
-          <p className="mt-2 whitespace-pre-line break-words rounded-xl border-l-4 border-[#e08a00] bg-[#fff6e0] px-3.5 py-2.5 text-base leading-snug text-gray-900">
+          <p className="mt-2 whitespace-pre-line break-words rounded-xl border-2 border-teja bg-white px-3.5 py-2.5 text-base leading-snug text-ink">
             {e.reviewNote}
           </p>
         )}
@@ -681,16 +682,16 @@ export default function PersonPanel({
         <button
           type="button"
           onClick={() => onNavigate(id)}
-          className="flex w-full items-center gap-4 rounded-2xl border border-[#e7e5df] bg-white px-4 py-3.5 text-left transition hover:border-gray-900"
+          className="flex min-h-12 w-full items-center gap-4 rounded-2xl border-2 border-adobe-2 bg-white px-4 py-3.5 text-left transition hover:border-ink"
         >
           <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full text-lg font-semibold" style={{ backgroundColor: `${color}1a`, color }} aria-hidden="true">
             {initialOf(d.data?.label ?? "?")}
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-base font-bold leading-snug text-gray-900">{d.data?.label}</span>
-            {sub && <span className="mt-0.5 block text-sm text-gray-600">{sub}</span>}
+            <span className="block text-base font-bold leading-snug text-ink">{d.data?.label}</span>
+            {sub && <span className="mt-0.5 block text-base text-gris">{sub}</span>}
           </span>
-          <span aria-hidden="true" className="text-xl text-gray-400">→</span>
+          <span aria-hidden="true" className="text-xl text-gris">→</span>
         </button>
       </li>
     );
@@ -703,35 +704,35 @@ export default function PersonPanel({
   const familySection = (title: string, ids: string[], subOf: (id: string) => string | null) =>
     ids.length > 0 && (
       <section key={title} className="mt-6 first:mt-0">
-        <h3 className="mb-2.5 text-sm font-bold uppercase tracking-wider text-gray-500">{title}</h3>
+        <h3 className="mb-2.5 text-base font-bold uppercase tracking-wide text-gris">{title}</h3>
         <ul className="space-y-2.5">{ids.map((id) => personCard(id, subOf(id)))}</ul>
       </section>
     );
   const marriedIn = (spouseId: string) => person?.timeline.find((t) => (t.kind === "MARR" || t.kind === "MARS") && t.person?.id === spouseId)?.year ?? null;
   const childBirth = (childId: string) => person?.timeline.find((t) => t.kind === "CHILD_BIRT" && t.person?.id === childId);
 
-  const btnOutline = "inline-flex items-center gap-2 rounded-full border border-[#d9d7d0] bg-white px-5 py-2.5 text-base font-medium text-gray-800 transition hover:border-gray-900";
+  const btnOutline = buttonClass("secundario");
 
   return (
     <>
     {/* Mientras se edita, el árbol queda detrás de un velo: no se cambia de persona a medio escribir. */}
-    {editing && <div className="fixed inset-0 z-[25] bg-gray-900/30" aria-hidden="true" />}
+    {editing && <div className="fixed inset-0 z-[25] bg-ink/40" aria-hidden="true" />}
     {/* Clic fuera de la ficha: se cierra (menos al editar, para no perder lo escrito). */}
     <aside
       ref={asideRef}
-      className={`fixed right-0 top-0 z-30 flex h-full w-full flex-col border-l border-gray-200 bg-white shadow-xl transition-transform duration-300 ease-out sm:max-w-[34rem] lg:max-w-[40rem] ${
+      className={`album fixed right-0 top-0 z-30 flex h-full w-full flex-col border-l-2 border-ink shadow-xl transition-transform duration-300 ease-out sm:max-w-[34rem] lg:max-w-[40rem] ${
         open ? "translate-x-0" : "pointer-events-none translate-x-full"
       }`}
     >
       {editing ? (
-        <div className="flex shrink-0 items-start justify-between gap-3 border-b-2 border-line bg-white px-4 py-4 sm:px-6">
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b-2 border-ink bg-adobe px-4 py-4 sm:px-6">
           <div className="min-w-0">
             <p className="zb-etiqueta">Editando la ficha de</p>
-            <h2 className="mt-1 break-words text-2xl font-bold leading-tight text-gray-900 sm:text-3xl">{person?.displayName ?? ""}</h2>
+            <h2 className="mt-1 break-words font-slab text-2xl font-bold leading-tight text-ink sm:text-3xl">{person?.displayName ?? ""}</h2>
           </div>
           <button
             onClick={() => formRef.current?.requestClose()}
-            className="inline-flex min-h-12 shrink-0 items-center gap-2 rounded-full border-2 border-ink bg-white px-5 text-[1.125rem] font-bold text-ink hover:bg-paper"
+            className={buttonClass("secundario", "shrink-0")}
           >
             <span aria-hidden="true">✕</span> Cerrar
           </button>
@@ -778,22 +779,22 @@ export default function PersonPanel({
                   )}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <h2 className="text-2xl font-bold leading-tight text-gray-900 sm:text-3xl">
+                  <h2 className="font-slab text-2xl font-bold leading-tight text-ink sm:text-3xl">
                     {person?.displayName ?? (loading ? "Cargando…" : "")}
                   </h2>
                   {relationship && (
-                    <p className="mt-1.5 text-lg font-semibold" style={{ color: accentColor }}>
+                    <p className="mt-1.5 text-lg font-bold text-burdeos">
                       {relationship}
                     </p>
                   )}
                   {person && (
                     <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-                      <span className={`inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-base font-medium ${person.isLiving ? "bg-emerald-50 text-emerald-700" : "bg-[#f1efea] text-gray-700"}`}>
-                        <span className={`h-2 w-2 rounded-full ${person.isLiving ? "bg-emerald-500" : "bg-gray-500"}`} />
+                      <span className={`inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-base font-medium ${person.isLiving ? "bg-parra/10 text-parra" : "bg-burdeos/10 text-burdeos"}`}>
+                        <span className={`h-2.5 w-2.5 rounded-full ${person.isLiving ? "bg-parra" : "bg-burdeos"}`} />
                         {person.isLiving ? (fem ? "Viva" : "Vivo") : fem ? "Fallecida" : person.sex === "M" ? "Fallecido" : "Fallecida/o"}
                       </span>
-                      <span className="text-base text-gray-600">
-                        <span className="tabular-nums">{person.isLiving ? (born ? `n. ${born}` : "") : yearsLine(born, died) ?? ""}</span>
+                      <span className="text-base text-gris">
+                        <span className="font-maquina tabular-nums">{person.isLiving ? (born ? `n. ${born}` : "") : yearsLine(born, died) ?? ""}</span>
                         {ageText && <> · {ageText}</>}
                       </span>
                     </div>
@@ -802,7 +803,7 @@ export default function PersonPanel({
                 <button
                   onClick={onClose}
                   aria-label="Cerrar"
-                  className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#f1efea] text-lg text-gray-700 hover:bg-[#e7e5df]"
+                  className="grid h-12 w-12 shrink-0 place-items-center rounded-full border-2 border-ink bg-white text-lg text-ink hover:bg-adobe-2"
                 >
                   ✕
                 </button>
@@ -814,24 +815,24 @@ export default function PersonPanel({
                 {/* Sepultura */}
                 {!person.isLiving &&
                   (site ? (
-                    <div className="flex flex-wrap items-center gap-4 rounded-2xl bg-[#f4f3ef] px-5 py-4">
-                      <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-white text-gray-600" aria-hidden="true">
+                    <div className="flex flex-wrap items-center gap-4 rounded-2xl border-2 border-adobe-2 bg-white px-5 py-4">
+                      <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-burdeos/10 text-burdeos" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
                           <path d="M7 21V9a5 5 0 0 1 10 0v12" /><path d="M4 21h16" /><path d="M12 8v5M9.75 10.25h4.5" />
                         </svg>
                       </span>
                       <div className="min-w-0 flex-1 basis-48">
-                        <p className="text-sm text-gray-500">{fem ? "Sepultada en" : person.sex === "M" ? "Sepultado en" : "Sepultura"}</p>
-                        <p className="text-xl font-bold leading-snug text-gray-900">{site}</p>
-                        {where ? <p className="text-base text-gray-600">{where}</p> : canEdit ? <p className="text-sm text-amber-700">Sin comuna asignada</p> : null}
-                        {tomb && <p className="mt-0.5 text-sm text-gray-500">{tomb}</p>}
+                        <p className="text-base text-gris">{fem ? "Sepultada en" : person.sex === "M" ? "Sepultado en" : "Sepultura"}</p>
+                        <p className="font-slab text-xl font-bold leading-snug text-ink">{site}</p>
+                        {where ? <p className="text-base text-gris">{where}</p> : canEdit ? <p className="text-base font-bold text-teja">Sin comuna asignada</p> : null}
+                        {tomb && <p className="mt-0.5 text-base text-gris">{tomb}</p>}
                       </div>
                       {where && (
                         <a
                           href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([site, info?.comuna, "Chile"].filter(Boolean).join(", "))}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex shrink-0 items-center gap-2 rounded-full bg-[#1a1917] px-6 py-3 text-base font-semibold text-white hover:bg-black"
+                          className={buttonClass("secundario", "shrink-0")}
                         >
                           Cómo llegar <span aria-hidden="true">↗</span>
                         </a>
@@ -840,7 +841,7 @@ export default function PersonPanel({
                   ) : canEdit ? (
                     <button
                       onClick={() => setEditing({ startWithNew: true })}
-                      className="flex w-full items-center gap-2 rounded-2xl border border-dashed border-[#d9d7d0] px-5 py-4 text-base text-gray-500 hover:border-gray-400 hover:text-gray-800"
+                      className="flex min-h-12 w-full items-center gap-2 rounded-2xl border-2 border-dashed border-ink/40 px-5 py-4 text-base text-ink hover:border-ink hover:bg-white"
                     >
                       <span aria-hidden="true">+</span> Agregar dónde está sepultad{fem ? "a" : person.sex === "M" ? "o" : "a/o"}
                     </button>
@@ -849,25 +850,25 @@ export default function PersonPanel({
                 {/* Datos clave */}
                 {(birthFact || deathFact || jobs.length > 0 || spouseIds.length > 0) && (() => {
                   const cells: React.ReactNode[] = [];
-                  const label = (t: string) => <p className="text-sm text-gray-500">{t}</p>;
-                  if (birthFact) cells.push(<div key="b">{label("Nació")}<p className="mt-1 text-lg font-bold leading-snug text-gray-900">{birthFact.main}</p>{birthFact.sub && <p className="mt-1 text-base text-gray-600">{birthFact.sub}</p>}</div>);
-                  if (deathFact) cells.push(<div key="d">{label(fem ? "Murió" : "Murió")}<p className="mt-1 text-lg font-bold leading-snug text-gray-900">{deathFact.main}</p>{deathFact.sub && <p className="mt-1 text-base text-gray-600">{deathFact.sub}</p>}</div>);
-                  if (jobs.length > 0) cells.push(<div key="j">{label("Trabajo")}<p className="mt-1 text-lg font-bold leading-snug text-gray-900">{jobs.join(", ")}</p></div>);
+                  const label = (t: string) => <p className="text-base text-gris">{t}</p>;
+                  if (birthFact) cells.push(<div key="b">{label("Nació")}<p className="mt-1 text-lg font-bold leading-snug text-ink">{birthFact.main}</p>{birthFact.sub && <p className="mt-1 text-base text-gris">{birthFact.sub}</p>}</div>);
+                  if (deathFact) cells.push(<div key="d">{label(fem ? "Murió" : "Murió")}<p className="mt-1 text-lg font-bold leading-snug text-ink">{deathFact.main}</p>{deathFact.sub && <p className="mt-1 text-base text-gris">{deathFact.sub}</p>}</div>);
+                  if (jobs.length > 0) cells.push(<div key="j">{label("Trabajo")}<p className="mt-1 text-lg font-bold leading-snug text-ink">{jobs.join(", ")}</p></div>);
                   if (spouseIds.length > 0)
                     cells.push(
                       <div key="s">
                         {label(spouseLabel)}
                         {spouseIds.map((id) => (
-                          <button key={id} type="button" onClick={() => onNavigate(id)} className="mt-1 block text-left text-lg font-bold leading-snug hover:underline" style={{ color: sexColorOf(byId.get(id)?.data?.gender) }}>
+                          <button key={id} type="button" onClick={() => onNavigate(id)} className="mt-1 block min-h-11 text-left text-lg font-bold leading-snug text-ink underline decoration-2 underline-offset-4 hover:text-teja">
                             {byId.get(id)?.data?.label}
                           </button>
                         ))}
-                        {childIds.length > 0 && <p className="mt-1 text-base text-gray-600">{childIds.length === 1 ? "1 hijo/a" : `${childIds.length} hijos`}</p>}
+                        {childIds.length > 0 && <p className="mt-1 text-base text-gris">{childIds.length === 1 ? "1 hijo/a" : `${childIds.length} hijos`}</p>}
                       </div>,
                     );
                   if (cells.length % 2 === 1) cells.push(<div key="pad" />);
                   return (
-                    <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-[#e7e5df] bg-[#e7e5df]">
+                    <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border-2 border-adobe-2 bg-adobe-2">
                       {cells.map((c, i) => (
                         <div key={i} className="bg-white p-4 sm:p-5">{c}</div>
                       ))}
@@ -878,7 +879,7 @@ export default function PersonPanel({
                 {/* Acciones */}
                 <div className="flex flex-wrap gap-2.5">
                   {canEdit && (
-                    <button onClick={() => setEditing({ startWithNew: false })} className="inline-flex items-center gap-2 rounded-full bg-[#1a1917] px-6 py-2.5 text-base font-semibold text-white hover:bg-black">
+                    <button onClick={() => setEditing({ startWithNew: false })} className={buttonClass("principal")}>
                       Editar
                     </button>
                   )}
@@ -904,25 +905,25 @@ export default function PersonPanel({
 
             {/* Pestañas */}
             {person && (
-              <div role="tablist" className="sticky top-0 z-10 mt-1 flex gap-1 overflow-x-auto border-b border-[#e7e5df] bg-white px-4 sm:px-6">
+              <div role="tablist" className="sticky top-0 z-10 mt-1 flex gap-1 overflow-x-auto border-b-2 border-adobe-2 bg-adobe px-4 sm:px-6">
                 {([["vida", "Línea de vida", visibleTimeline.length], ["familia", "Familia", familyCount], ["fuentes", "Fuentes", sourcesAll.length]] as const).map(([key, label, n]) => (
                   <button
                     key={key}
                     role="tab"
                     aria-selected={tab === key}
                     onClick={() => setTab(key)}
-                    className={`-mb-px shrink-0 border-b-[3px] px-3 py-3.5 text-lg font-bold transition ${tab === key ? "border-[#1a1917] text-gray-900" : "border-transparent text-gray-500 hover:text-gray-800"}`}
+                    className={`-mb-px shrink-0 border-b-[3px] px-3 py-3.5 text-lg font-bold transition ${tab === key ? "border-burdeos text-ink" : "border-transparent text-gris hover:text-ink"}`}
                   >
-                    {label} <span className="ml-0.5 text-base font-normal text-gray-500">{n}</span>
+                    {label} <span className="ml-0.5 font-maquina text-base font-normal text-gris">{n}</span>
                   </button>
                 ))}
               </div>
             )}
 
-            {loading && <p className="p-5 text-base text-gray-400">Cargando…</p>}
+            {loading && <p className="p-5 text-base text-gris">Cargando…</p>}
 
             {justSaved && (
-              <p role="status" className="border-b border-emerald-100 bg-emerald-50 px-5 py-2.5 text-base font-medium text-emerald-800">
+              <p role="status" className="border-b-2 border-parra bg-parra/10 px-5 py-2.5 text-base font-bold text-parra">
                 ✓ Cambios guardados
               </p>
             )}
@@ -930,25 +931,25 @@ export default function PersonPanel({
             {person && tab === "vida" && (
               <>
                 {person.notes && (
-                  <div className="border-b border-[#efede7] px-5 py-4 sm:px-7">
-                    <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Notas</p>
-                    <p className="mt-1 whitespace-pre-line text-base leading-relaxed text-gray-700">{person.notes}</p>
+                  <div className="border-b-2 border-adobe-2 px-5 py-4 sm:px-7">
+                    <p className="text-base font-bold uppercase tracking-wide text-gris">Notas</p>
+                    <p className="mt-1 whitespace-pre-line text-base leading-relaxed text-ink">{person.notes}</p>
                   </div>
                 )}
                 <div className="flex flex-wrap items-center justify-between gap-3 px-5 pb-1 pt-5 sm:px-7">
-                  <p className="text-base text-gray-500">
+                  <p className="text-base text-gris">
                     {visibleTimeline.length === 1 ? "1 hecho" : `${visibleTimeline.length} hechos`}
                     {familyFacts > 0 && <> · {ownCount} suyos y {familyFacts} de su familia</>}
                   </p>
                   {familyFacts > 0 && (
-                    <label className="flex cursor-pointer items-center gap-2.5 text-base text-gray-800">
-                      <input type="checkbox" className="h-5 w-5 accent-[#1a1917]" checked={withFamily} onChange={(e) => setWithFamily(e.target.checked)} />
+                    <label className="flex cursor-pointer items-center gap-2.5 text-base text-ink">
+                      <input type="checkbox" className="h-6 w-6 accent-burdeos" checked={withFamily} onChange={(e) => setWithFamily(e.target.checked)} />
                       Incluir hechos de la familia
                     </label>
                   )}
                 </div>
                 <ul className="pb-2 pt-3">
-                  {shownTimeline.length === 0 && <li className="px-7 py-5 text-base text-gray-400">Sin hechos registrados</li>}
+                  {shownTimeline.length === 0 && <li className="px-7 py-5 text-base text-gris">Sin hechos registrados</li>}
                   {shownTimeline.map((e, i) => (
                     <TimelineItem
                       key={e.edit?.id ?? e.edit?.research ?? i}
@@ -967,7 +968,7 @@ export default function PersonPanel({
 
             {person && tab === "familia" && (
               <div className="px-5 py-6 sm:px-7">
-                {familyCount === 0 && <p className="text-base text-gray-400">{data.length ? "Sin familiares en el árbol." : "Cargando…"}</p>}
+                {familyCount === 0 && <p className="text-base text-gris">{data.length ? "Sin familiares en el árbol." : "Cargando…"}</p>}
                 {familySection("Padres", parentIds, (id) => yearsLine(byId.get(id)?.data?.birth_year, byId.get(id)?.data?.death_year))}
                 {familySection(spouseIds.length > 1 ? "Parejas" : spouseLabel, spouseIds, (id) => {
                   const y = marriedIn(id);
@@ -976,9 +977,9 @@ export default function PersonPanel({
                   return [unmarried ? "sin matrimonio" : y ? `Casados en ${y}` : null, d?.death_year ? `murió en ${d.death_year}` : d?.birth_year ? `n. ${d.birth_year}` : null].filter(Boolean).join(" · ") || null;
                 })}
                 {canEdit && (person.familiesAsPartner ?? []).some((f) => f.partner1_id && f.partner2_id) && (
-                  <div className="mt-3 rounded-2xl border border-dashed border-[#d9d7d0] px-4 py-3">
-                    <p className="text-sm font-semibold text-gray-700">Tipo de unión</p>
-                    <p className="mb-2 text-xs text-gray-500">Una pareja puede tener hijos sin haberse casado.</p>
+                  <div className="mt-3 rounded-2xl border-2 border-dashed border-ink/40 px-4 py-3">
+                    <p className="text-base font-bold text-ink">Tipo de unión</p>
+                    <p className="mb-2 text-base text-gris">Una pareja puede tener hijos sin haberse casado.</p>
                     <ul className="space-y-2">
                       {(person.familiesAsPartner ?? [])
                         .filter((f) => f.partner1_id && f.partner2_id)
@@ -987,8 +988,8 @@ export default function PersonPanel({
                           const current = f.union_type ?? "marriage";
                           return (
                             <li key={f.id} className="flex flex-wrap items-center justify-between gap-2">
-                              <span className="text-sm text-gray-800">{other ?? "(sin nombre)"}</span>
-                              <span className="inline-flex overflow-hidden rounded-full border border-[#d9d7d0] text-xs font-medium">
+                              <span className="text-base text-ink">{other ?? "(sin nombre)"}</span>
+                              <span className="inline-flex flex-wrap overflow-hidden rounded-2xl border-2 border-ink text-base font-bold">
                                 {([["marriage", "Casados"], ["partnership", "Sin matrimonio"], ["unknown", "No se sabe"]] as const).map(([value, text]) => (
                                   <button
                                     key={value}
@@ -996,7 +997,7 @@ export default function PersonPanel({
                                     disabled={unionBusy}
                                     onClick={() => changeUnion(f.id, value)}
                                     aria-pressed={current === value}
-                                    className={`px-3 py-1.5 ${current === value ? "bg-gray-900 text-white" : "bg-white text-gray-700 hover:bg-[#f1efea]"}`}
+                                    className={`min-h-11 px-4 py-1.5 ${current === value ? "bg-burdeos text-white" : "bg-white text-ink hover:bg-adobe-2"}`}
                                   >
                                     {text}
                                   </button>
@@ -1006,7 +1007,7 @@ export default function PersonPanel({
                           );
                         })}
                     </ul>
-                    {unionError && <p role="alert" className="mt-2 text-xs font-medium text-red-700">{unionError}</p>}
+                    {unionError && <p role="alert" className="mt-2 text-base font-bold text-aviso">{unionError}</p>}
                   </div>
                 )}
                 {familySection("Hijos", childIds, (id) => {
@@ -1020,7 +1021,7 @@ export default function PersonPanel({
             {person && tab === "fuentes" && (
               <div className="px-5 py-6 sm:px-7">
                 {sourcesAll.length === 0 ? (
-                  <p className="text-base text-gray-400">Sin fuentes registradas todavía.</p>
+                  <p className="text-base text-gris">Sin fuentes registradas todavía.</p>
                 ) : (
                   <ul className="space-y-4">
                     {sourcesAll.map(({ source, context }) => (
@@ -1032,7 +1033,7 @@ export default function PersonPanel({
             )}
           </div>
 
-          <div className="shrink-0 border-t border-[#e7e5df] px-5 py-3.5 text-sm text-gray-500 sm:px-7">
+          <div className="shrink-0 border-t-2 border-adobe-2 px-5 py-3.5 text-base text-gris sm:px-7">
             <div className="flex items-center justify-between gap-3">
               <span>
                 {person?.edited
@@ -1056,15 +1057,15 @@ function DeleteZone({ name, deleting, error, onDelete }: { name: string; deletin
   const first = name.trim().split(/\s+/)[0] ?? "";
   const ok = first !== "" && norm(typed) === norm(first);
   return (
-    <div className="mx-5 mb-6 mt-4 border-t border-[#e7e5df] pt-5 sm:mx-7">
+    <div className="mx-5 mb-6 mt-4 border-t-2 border-adobe-2 pt-5 sm:mx-7">
       {!open ? (
-        <button type="button" onClick={() => setOpen(true)} className="min-h-11 text-base font-medium text-red-700 underline decoration-red-200 underline-offset-4 hover:text-red-800">
+        <button type="button" onClick={() => setOpen(true)} className="min-h-12 text-base font-bold text-aviso underline decoration-2 underline-offset-4 hover:text-ink">
           Eliminar a esta persona del árbol…
         </button>
       ) : (
-        <div role="alertdialog" aria-label="Confirmar eliminación" className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-900">
+        <div role="alertdialog" aria-label="Confirmar eliminación" className="rounded-xl border-2 border-aviso bg-white p-4 text-ink">
           <p className="text-[1.125rem] font-bold">¿Eliminar a {name} del árbol?</p>
-          <p className="mt-1 text-base text-red-800">
+          <p className="mt-1 text-base text-ink">
             Se borran sus datos y hechos. Sus hijos y demás familiares se quedan en el árbol. Queda anotado en el historial.
           </p>
           <label className="mt-3 block text-base">
@@ -1073,15 +1074,15 @@ function DeleteZone({ name, deleting, error, onDelete }: { name: string; deletin
               value={typed}
               onChange={(e) => setTyped(e.target.value)}
               autoComplete="off"
-              className="mt-1.5 block min-h-12 w-full rounded-lg border-2 border-red-200 bg-white px-3 text-[1.125rem] text-ink focus:border-red-700 focus:outline-none"
+              className="mt-1.5 block min-h-12 w-full rounded-lg border-2 border-[#8f8a80] bg-white px-3 text-[1.125rem] text-ink focus:border-aviso"
             />
           </label>
           {error && <p role="alert" className="mt-2 text-base font-medium">{error}</p>}
           <div className="mt-3 flex flex-wrap gap-2">
-            <button type="button" onClick={onDelete} disabled={!ok || deleting} className="min-h-12 rounded-full bg-red-700 px-5 text-base font-bold text-white hover:bg-red-800 disabled:opacity-40">
+            <button type="button" onClick={onDelete} disabled={!ok || deleting} className="min-h-12 rounded-full bg-aviso px-5 text-base font-bold text-white hover:bg-ink disabled:opacity-40">
               {deleting ? "Eliminando…" : "Sí, eliminar"}
             </button>
-            <button type="button" onClick={() => { setOpen(false); setTyped(""); }} disabled={deleting} className="min-h-12 rounded-full border border-gray-300 bg-white px-5 text-base font-bold text-gray-700 hover:bg-gray-50">
+            <button type="button" onClick={() => { setOpen(false); setTyped(""); }} disabled={deleting} className={buttonClass("secundario")}>
               Cancelar
             </button>
           </div>

@@ -65,13 +65,13 @@ type Item = {
 
 // Guía de estilo: texto de 18 px, campos y botones de al menos 48 px.
 const inputClass =
-  "mt-1.5 min-h-12 w-full rounded-lg border-2 border-[#b9b5aa] bg-white px-3.5 py-2 text-[1.0625rem] text-gray-900 outline-none placeholder:text-gray-400 focus:border-hombre focus:ring-4 focus:ring-hombre/20 aria-[invalid=true]:border-aviso disabled:bg-[#f3f1ec] disabled:text-gray-400";
-const labelClass = "block text-base font-semibold text-gray-800";
-const sectionTitle = "text-xs font-bold uppercase tracking-wider text-gray-500";
+  "mt-1.5 min-h-12 w-full rounded-lg border-2 border-[#8f8a80] bg-white px-3.5 py-2 text-[1.125rem] text-ink outline-none placeholder:text-gris/70 focus:border-ink focus:ring-4 focus:ring-ink/15 aria-[invalid=true]:border-aviso disabled:bg-adobe-2 disabled:text-gris";
+const labelClass = "block text-base font-bold text-ink";
+const sectionTitle = "text-base font-bold uppercase tracking-wide text-gris";
 const textLink = "min-h-11 py-2 text-base font-bold text-ink underline decoration-2 underline-offset-4 hover:text-terra";
 const dangerLink = "min-h-11 shrink-0 px-3 py-2 text-base font-semibold text-aviso underline decoration-2 underline-offset-4 hover:opacity-80";
-const subBox = "flex flex-col gap-4 rounded-xl border border-[#e7e5df] bg-white p-4";
-const outlineBtn = "inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[#d9d7d0] bg-white px-5 py-2 text-base font-medium text-gray-800 transition hover:border-gray-900";
+const subBox = "flex flex-col gap-4 rounded-xl border-2 border-adobe-2 bg-white p-4";
+const outlineBtn = buttonClass("secundario");
 
 /** Una pareja de la persona, para elegir con quién fue un matrimonio nuevo. */
 export type PartnerChoice = { familyId: string; name: string; hasMarriage: boolean };
@@ -188,7 +188,7 @@ function ApproxAgeAtDeath({
           value={age}
           onChange={(e) => apply(e.target.value)}
           placeholder="años"
-          className="min-h-12 w-28 rounded-lg border-2 border-[#8f8a80] bg-white px-3.5 py-2 text-[1.125rem] text-ink outline-none placeholder:text-gris/70 focus:border-hombre focus:ring-4 focus:ring-hombre/20"
+          className="min-h-12 w-28 rounded-lg border-2 border-[#8f8a80] bg-white px-3.5 py-2 text-[1.125rem] text-ink outline-none placeholder:text-gris/70 focus:border-ink focus:ring-4 focus:ring-ink/15"
         />
         {birthYear !== null && <span className="text-base text-gris">→ nacería aprox. en {birthYear}</span>}
         {!deathYear && age && <span className="text-base text-gris">(falta el año de la fecha para estimarlo)</span>}
@@ -381,7 +381,7 @@ function ParticipantRow({
   const field = `${inputClass} mt-0`;
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-[#e7e5df] bg-[#f9f8f5] p-3.5">
+    <div className="flex flex-col gap-3 rounded-xl border-2 border-adobe-2 bg-white p-3.5">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-[11rem_minmax(0,1fr)]">
         <input
           value={value.role}
@@ -400,7 +400,7 @@ function ParticipantRow({
             onFocus={() => setOpen(true)}
             placeholder="Nombre"
             aria-label="Nombre de la persona"
-            className={`${field} ${value.personId ? "border-listo bg-[#e5f1ea]" : ""}`}
+            className={`${field} ${value.personId ? "border-listo bg-parra/10" : ""}`}
           />
           {showDropdown && (
             <ul className="absolute left-0 top-full z-10 mt-1 max-h-60 w-full min-w-[14rem] overflow-auto rounded-xl border-2 border-line bg-white py-1 text-base shadow-lg">
@@ -507,10 +507,10 @@ function OccupationField({
               type="button"
               aria-pressed={on}
               onClick={() => toggle(name)}
-              className={`min-h-9 rounded-full border px-3.5 py-1 text-[0.95rem] transition ${
+              className={`min-h-11 rounded-full border-2 px-4 py-1 text-base transition ${
                 on
-                  ? "border-gray-900 bg-gray-900 font-semibold text-white"
-                  : "border-[#d9d7d0] bg-white text-gray-800 hover:border-gray-900"
+                  ? "border-burdeos bg-burdeos font-bold text-white"
+                  : "border-ink/40 bg-white text-ink hover:border-ink"
               }`}
             >
               {name}
@@ -518,7 +518,7 @@ function OccupationField({
           );
         })}
       </div>
-      <p id={`${id}-help`} className="mt-2.5 text-sm leading-snug text-gray-600">
+      <p id={`${id}-help`} className="mt-2.5 text-base leading-snug text-gris">
         Cada documento anota el oficio de ese momento: alguien puede figurar como peón en un acta y como labrador en otra.
         Agrega un hecho por cada documento, cada uno con su fuente.
       </p>
@@ -535,7 +535,7 @@ function ParticipantsField({
 }) {
   return (
     <fieldset className={subBox}>
-      <legend className="px-1 text-base font-semibold text-gray-800">Personas relacionadas (padrinos, testigos…)</legend>
+      <legend className="px-1 text-base font-semibold text-ink">Personas relacionadas (padrinos, testigos…)</legend>
       {participants.length === 0 && <p className="zb-apoyo">Nadie agregado todavía.</p>}
       {participants.length > 0 && (
         <div className="flex flex-col gap-3">
@@ -591,18 +591,18 @@ function TimelineRow({
     <li ref={rowRef} data-fact={factKey} className="group/item flex gap-3 px-5 sm:gap-4 sm:px-7">
       <div className={`w-[4.5rem] shrink-0 pt-5 text-right ${hideYearOnPhone ? "hidden sm:block" : ""}`}>
         {year ? (
-          <div className="text-xl font-semibold leading-none text-gray-900">
-            {approx && <span className="mr-1 text-xs font-normal text-gray-400">c.</span>}
+          <div className="font-maquina text-xl leading-none text-ink">
+            {approx && <span className="mr-1 font-body text-base font-normal text-gris">c.</span>}
             {year}
           </div>
         ) : (
-          <div className="text-sm leading-[20px] text-gray-400" title="Sin fecha">
+          <div className="font-maquina text-base leading-[20px] text-gris" title="Sin fecha">
             s/f
           </div>
         )}
       </div>
       <div className="relative w-5 shrink-0" aria-hidden="true">
-        <span className="absolute bottom-0 left-1/2 top-0 w-0.5 -translate-x-1/2 bg-[#e3e1da] group-first/item:top-6 group-last/item:bottom-auto group-last/item:h-6" />
+        <span className="absolute bottom-0 left-1/2 top-0 w-0.5 -translate-x-1/2 bg-ink/25 group-first/item:top-6 group-last/item:bottom-auto group-last/item:h-6" />
         <span
           className="absolute left-1/2 top-[1.15rem] h-4 w-4 -translate-x-1/2 rounded-full border-[3px] bg-white"
           style={{ borderColor: dotColor, boxShadow: `0 0 0 3px ${dotColor}22` }}
@@ -673,9 +673,9 @@ function FactCard({
   if (item.removed) {
     const summary = [form.date, form.place].filter(Boolean).join(" · ");
     return (
-      <TimelineRow year={year} approx={approx} dotColor="#c9c6bd" rowRef={rowRef} factKey={item.key}>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-dashed border-aviso/50 bg-[#fbebe8] px-4 py-3">
-          <p className="min-w-0 flex-1 text-base leading-snug text-gray-900">
+      <TimelineRow year={year} approx={approx} dotColor="#8f8a80" rowRef={rowRef} factKey={item.key}>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border-2 border-dashed border-aviso bg-white px-4 py-3">
+          <p className="min-w-0 flex-1 text-base leading-snug text-ink">
             <span className="font-bold uppercase tracking-wide line-through">{typeLabel(form)}</span>
             {summary && <span className="line-through"> · {summary}</span>}
             <span className="block font-semibold text-aviso">Se borrará al guardar.</span>
@@ -696,31 +696,31 @@ function FactCard({
       <TimelineRow year={year} approx={approx} dotColor={dot} rowRef={rowRef} factKey={item.key}>
         <div className="flex flex-col items-start gap-3 sm:flex-row">
           <div className="min-w-0 flex-1">
-            <p className="text-[0.8rem] font-bold uppercase tracking-wide text-gray-900">
+            <p className="text-base font-bold uppercase tracking-wide text-ink">
               {typeLabel(form)}
-              {item.hint && <span className="font-normal normal-case tracking-normal text-gray-500"> · {item.hint}</span>}
+              {item.hint && <span className="font-normal normal-case tracking-normal text-gris"> · {item.hint}</span>}
               {changed && (
-                <span className="ml-2 rounded-full bg-[#fbe9e1] px-2 py-0.5 align-middle text-xs font-bold normal-case tracking-normal text-terra">
+                <span className="ml-2 rounded-full bg-teja/10 px-2 py-0.5 align-middle text-base font-bold normal-case tracking-normal text-teja">
                   Con cambios
                 </span>
               )}
             </p>
-            {detail && <p className="mt-1.5 text-base text-gray-700">{detail}</p>}
-            {form.text.trim() && <p className="mt-1.5 whitespace-pre-line text-base text-gray-700">{form.text}</p>}
+            {detail && <p className="mt-1.5 text-base text-ink">{detail}</p>}
+            {form.text.trim() && <p className="mt-1.5 whitespace-pre-line text-base text-ink">{form.text}</p>}
             {linked.length > 0 && (
-              <ul className="mt-2 flex flex-col gap-1 text-base text-gray-700">
+              <ul className="mt-2 flex flex-col gap-1 text-base text-ink">
                 {linked.map((pt, i) => (
                   <li key={i}>
                     {pt.role ? `${pt.role}: ` : ""}
                     {pt.name}
-                    {pt.personId ? <span className="ml-1 text-listo">✓</span> : <span className="ml-1 text-gray-400">(sin vincular)</span>}
+                    {pt.personId ? <span className="ml-1 text-listo">✓</span> : <span className="ml-1 text-gris">(sin vincular)</span>}
                   </li>
                 ))}
               </ul>
             )}
             {hasSource && (
-              <div className="mt-3 flex max-w-full items-start gap-3 rounded-xl border border-[#e7e5df] bg-[#f9f8f5] px-3.5 py-2.5 text-sm leading-snug text-gray-700">
-                <span className="mt-0.5 shrink-0 rounded-md bg-[#ebe9e3] px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-gray-600">Fuente</span>
+              <div className="mt-3 flex max-w-full items-start gap-3 rounded-xl border-2 border-adobe-2 bg-white px-3.5 py-2.5 text-base leading-snug text-ink">
+                <span className="mt-0.5 shrink-0 rounded-md bg-adobe-2 px-2 py-0.5 text-base font-bold text-ink">Fuente</span>
                 <span className="min-w-0 flex-1 break-words">{form.sourceTitle || form.sourceUrl}</span>
               </div>
             )}
@@ -735,12 +735,12 @@ function FactCard({
 
   return (
     <TimelineRow year={year} approx={approx} dotColor={dot} hideYearOnPhone rowRef={rowRef} factKey={item.key}>
-      <div className="rounded-xl border border-[#e7e5df] bg-[#f9f8f5] p-4">
+      <div className="rounded-xl border-2 border-adobe-2 bg-white p-4">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           {isFamilyFact ? (
             // Un matrimonio (y similares) no cambia de tipo desde una ficha: es
             // de la pareja, se corrige el que ya hay, no se convierte en otro.
-            <span className="text-base font-bold uppercase tracking-wide text-gray-900">{typeLabel(form)}</span>
+            <span className="text-base font-bold uppercase tracking-wide text-ink">{typeLabel(form)}</span>
           ) : (
             <>
               <label htmlFor={`${uid}-type`} className="sr-only">
@@ -752,7 +752,7 @@ function FactCard({
                 onChange={(e) => onChange("type", e.target.value)}
                 aria-invalid={Boolean(errors.type)}
                 aria-describedby={errors.type ? `${uid}-type-error` : undefined}
-                className="min-h-11 min-w-0 max-w-full rounded-lg border-2 border-[#b9b5aa] bg-white py-2 pl-3 pr-9 text-base font-bold text-gray-900 outline-none focus:border-hombre focus:ring-4 focus:ring-hombre/20 aria-[invalid=true]:border-aviso"
+                className="min-h-11 min-w-0 max-w-full rounded-lg border-2 border-[#8f8a80] bg-white py-2 pl-3 pr-9 text-base font-bold text-ink outline-none focus:border-ink focus:ring-4 focus:ring-ink/15 aria-[invalid=true]:border-aviso"
               >
                 {form.type === "" && (
                   <option value="" disabled>
@@ -771,11 +771,11 @@ function FactCard({
               </select>
             </>
           )}
-          {item.hint && <span className="min-w-0 truncate text-base text-gray-500">{item.hint}</span>}
-          {isNew && <span className="rounded-full bg-[#e5f1ea] px-2.5 py-0.5 text-sm font-bold text-listo">Nuevo</span>}
+          {item.hint && <span className="min-w-0 truncate text-base text-gris">{item.hint}</span>}
+          {isNew && <span className="rounded-full bg-parra/10 px-2.5 py-0.5 text-base font-bold text-parra">Nuevo</span>}
           <div className="ml-auto flex items-center">
             {!isNew && !hasErrors && (
-              <button type="button" onClick={() => setOpen(false)} className="min-h-11 px-3 py-2 text-base font-semibold text-gray-800 underline decoration-2 underline-offset-4 hover:text-terra">
+              <button type="button" onClick={() => setOpen(false)} className="min-h-11 px-3 py-2 text-base font-semibold text-ink underline decoration-2 underline-offset-4 hover:text-terra">
                 Cerrar
               </button>
             )}
@@ -858,7 +858,7 @@ function FactCard({
             <div>
               <span className={labelClass}>{isJob ? "¿Cuándo?" : "Fecha"}</span>
               {isJob && (
-                <p className="mt-0.5 text-sm text-gray-600">
+                <p className="mt-0.5 text-base text-gris">
                   El año del documento donde aparece (un acta de matrimonio, un registro civil…) o el período en que lo ejerció.
                 </p>
               )}
@@ -928,7 +928,7 @@ function FactCard({
 
         {sourceOpen ? (
           <fieldset className={subBox}>
-            <legend className="px-1 text-base font-semibold text-gray-800">Fuente (de dónde salió el dato)</legend>
+            <legend className="px-1 text-base font-semibold text-ink">Fuente (de dónde salió el dato)</legend>
             <div>
               <label htmlFor={`${uid}-surl`} className={labelClass}>
                 Enlace
@@ -977,7 +977,7 @@ function FactCard({
         )}
 
         {canReview && (
-          <div className={`rounded-xl border-2 p-4 ${form.review ? "border-[#e08a00] bg-[#fff6e0]" : "border-[#e7e5df] bg-white"}`}>
+          <div className={`rounded-xl border-2 p-4 ${form.review ? "border-teja bg-white" : "border-adobe-2 bg-white"}`}>
             <label htmlFor={`${uid}-review`} className={labelClass}>
               Pendiente
             </label>
@@ -994,7 +994,7 @@ function FactCard({
                 </option>
               ))}
             </select>
-            <p className="mt-1.5 text-sm text-gray-600">
+            <p className="mt-1.5 text-base text-gris">
               {REVIEW_KINDS.find((k) => k.key === form.review)?.hint ??
                 "Si queda marcado, la persona se señala en el árbol y el hecho aparece en la pestaña Pendientes."}
             </p>
@@ -1012,7 +1012,7 @@ function FactCard({
                   placeholder="p. ej. Ver si el acta confirma la edad de los padres"
                   className={inputClass}
                 />
-                <p className="mt-1.5 text-sm text-gray-600">Se muestra en Pendientes y en la ficha, para acordarte qué buscar.</p>
+                <p className="mt-1.5 text-base text-gris">Se muestra en Pendientes y en la ficha, para acordarte qué buscar.</p>
               </div>
             ) : null}
           </div>
@@ -1208,7 +1208,7 @@ export function FichaForm({
   return (
     <form ref={formRef} onSubmit={submit} noValidate className="flex min-h-0 flex-1 flex-col">
       {/* Pestañas, como en la ficha: los datos de la persona y su línea de vida. */}
-      <div role="tablist" className="flex shrink-0 gap-1 overflow-x-auto border-b border-[#e7e5df] bg-white px-4 sm:px-6">
+      <div role="tablist" className="flex shrink-0 gap-1 overflow-x-auto border-b-2 border-adobe-2 bg-adobe px-4 sm:px-6">
         {([["datos", "Datos", null], ["vida", "Línea de vida", items.filter((it) => !it.removed).length]] as const).map(([key, label, n]) => {
           const bad = key === "datos" ? Object.keys(personErrors).length > 0 : Object.keys(eventErrors).length > 0;
           return (
@@ -1218,10 +1218,10 @@ export function FichaForm({
               role="tab"
               aria-selected={tab === key}
               onClick={() => setTab(key)}
-              className={`-mb-px shrink-0 border-b-[3px] px-3 py-3.5 text-lg font-bold transition ${tab === key ? "border-[#1a1917] text-gray-900" : "border-transparent text-gray-500 hover:text-gray-800"}`}
+              className={`-mb-px shrink-0 border-b-[3px] px-3 py-3.5 text-lg font-bold transition ${tab === key ? "border-burdeos text-ink" : "border-transparent text-gris hover:text-ink"}`}
             >
               {label}
-              {n !== null && <span className="ml-1.5 text-base font-normal text-gray-500">{n}</span>}
+              {n !== null && <span className="ml-1.5 text-base font-normal text-gris">{n}</span>}
               {bad && <span aria-label="hay campos por revisar" className="ml-1.5 text-aviso">⚠</span>}
             </button>
           );
@@ -1311,7 +1311,7 @@ export function FichaForm({
         </div>
 
         <div role="tabpanel" hidden={tab !== "vida"} className="pb-4 pt-2">
-          {items.length === 0 && <p className="px-5 pt-4 text-base text-gray-500 sm:px-7">Todavía no tiene hechos. Agrega el primero.</p>}
+          {items.length === 0 && <p className="px-5 pt-4 text-base text-gris sm:px-7">Todavía no tiene hechos. Agrega el primero.</p>}
           <ul>
             {items.map((item) => (
               <FactCard
@@ -1336,8 +1336,8 @@ export function FichaForm({
             </button>
           </div>
         {notEditable.length > 0 && (
-          <div className="mx-5 mb-6 mt-2 rounded-xl border border-[#e7e5df] bg-[#f9f8f5] p-4 text-base leading-relaxed text-gray-600 sm:mx-7">
-            <p className="font-semibold text-gray-800">No se cambian desde aquí</p>
+          <div className="mx-5 mb-6 mt-2 rounded-xl border-2 border-adobe-2 bg-white p-4 text-base leading-relaxed text-gris sm:mx-7">
+            <p className="font-semibold text-ink">No se cambian desde aquí</p>
             <ul className="mt-1.5 list-disc pl-5">
               {notEditable.map((label) => (
                 <li key={label}>{label}</li>
@@ -1349,7 +1349,7 @@ export function FichaForm({
         </div>
       </div>
 
-      <div className="shrink-0 border-t border-[#e7e5df] bg-white px-4 py-3.5 shadow-[0_-6px_16px_rgba(0,0,0,0.05)] sm:px-6">
+      <div className="shrink-0 border-t-2 border-adobe-2 bg-adobe px-4 py-3.5 shadow-[0_-6px_16px_rgba(0,0,0,0.05)] sm:px-6">
         {error && (
           <div className="mb-3">
             <Notice kind="aviso">{error}</Notice>
