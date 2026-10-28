@@ -37,6 +37,8 @@ type ChartDatum = {
 export interface TreeControls {
   zoomBy: (factor: number) => void;
   fit: () => void;
+  /** Centra la vista en la persona del centro del árbol, a una escala que se lee. */
+  centerOnMain: () => void;
 }
 
 interface Props {
@@ -301,11 +303,39 @@ function readableOnPhone(chart: any, container: HTMLElement | null, transitionTi
   // La vista todavía no llega al "ver todo" (la librería la mueve de forma asíncrona): se calcula contra el árbol entero.
   const fitK = Math.min(rect.width / tree.dim.width, rect.height / tree.dim.height, 1);
   if (fitK >= PHONE_MIN_SCALE) return;
-  f3Lib?.handlers.cardToMiddle({
-    datum: { x: main.x, y: main.y },
+  centerView(chart, container, main, PHONE_MIN_SCALE, transitionTime, true);
+}
+
+// En el teléfono la cabecera (dos filas, con su alero) y la barra de abajo tapan parte del lienzo.
+const PHONE_TOP_INSET = 132;
+const PHONE_BOTTOM_INSET = 100;
+
+/**
+ * Centra la vista en `datum` a la escala dada. En el teléfono centra en la franja que se ve (entre la
+ * cabecera y la barra de abajo); con `wholeHeight`, si el árbol alto cabe en esa franja a esa escala,
+ * lo centra de arriba abajo para que entren a la vez los padres y los abuelos.
+ */
+function centerView(chart: any, container: HTMLElement | null, datum: { x: number; y: number }, scale: number, transitionTime: number, wholeHeight = false) {
+  const svg = chart?.svg as any;
+  if (!svg || !f3Lib) return;
+  const rect = svg.getBoundingClientRect();
+  const phone = Boolean(container && container.clientWidth < PHONE_MAX_WIDTH);
+  const bandTop = phone ? Math.max(0, PHONE_TOP_INSET - rect.top) : 0;
+  const bandBottom = phone ? Math.min(rect.height, window.innerHeight - PHONE_BOTTOM_INSET - rect.top) : rect.height;
+  let y = datum.y;
+  const nodes = (chart.store?.getTree?.()?.data ?? []) as { y: number }[];
+  if (wholeHeight && phone && nodes.length) {
+    const ys = nodes.map((n) => n.y);
+    const top = Math.min(...ys);
+    const bottom = Math.max(...ys);
+    // Una tarjeta mide 104 de alto: el árbol ocupa de (top - 52) a (bottom + 52).
+    if ((bottom - top + 104) * scale <= bandBottom - bandTop) y = (top + bottom) / 2;
+  }
+  f3Lib.handlers.cardToMiddle({
+    datum: { x: datum.x, y },
     svg,
-    svg_dim: { width: rect.width, height: rect.height },
-    scale: PHONE_MIN_SCALE,
+    svg_dim: { width: rect.width, height: bandTop + bandBottom },
+    scale,
     transition_time: transitionTime,
   });
 }
@@ -330,13 +360,7 @@ function fitReadable(chart: any, container: HTMLElement | null, transitionTime: 
     chart.updateTree({ tree_position: "fit" });
     return true;
   }
-  f3Lib.handlers.cardToMiddle({
-    datum: { x: main.x, y: main.y },
-    svg,
-    svg_dim: { width: rect.width, height: rect.height },
-    scale: minScale,
-    transition_time: transitionTime,
-  });
+  centerView(chart, container, main, minScale, transitionTime);
   return false;
 }
 
@@ -826,6 +850,13 @@ export default function FamilyTree({ data, mainId, line = null, version, resetKe
         });
       },
       fit: fitView,
+      centerOnMain: () => {
+        const chart = chartRef.current;
+        const main = chart?.store?.getTree?.()?.data?.[0];
+        if (!chart || !main) return;
+        const phone = Boolean(containerRef.current && containerRef.current.clientWidth < PHONE_MAX_WIDTH);
+        centerView(chart, containerRef.current, main, phone ? PHONE_MIN_SCALE : 1, 400, true);
+      },
     };
     return () => {
       controlsRef.current = null;
@@ -841,7 +872,7 @@ export default function FamilyTree({ data, mainId, line = null, version, resetKe
           <div className="absolute bottom-[calc(5.5rem+env(safe-area-inset-bottom))] left-36 right-4 z-10 flex items-center gap-3 rounded-2xl border-2 border-ink bg-adobe px-4 py-3 text-base text-ink sm:bottom-4 sm:left-auto sm:max-w-sm">
             <span>
               {notice === "big"
-                ? "El árbol completo es muy grande para leerlo aquí. Arrastra para ver el resto."
+                ? "El árbol es muy grande para verlo entero y que se lea. Arrástralo para moverte, o toca «Volver a mí»."
                 : "Parte del árbol quedó fuera de la vista."}
             </span>
             <button

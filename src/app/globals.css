@@ -377,7 +377,7 @@ div.f3 div.card-add::after,
 div.f3 div.card-collapse::after {
   content: "";
   position: absolute;
-  inset: -14px; /* en el teléfono el árbol va a 0,8: así sigue pasando de 44 px */
+  inset: -16px; /* en el teléfono el árbol va a 0,8: así sigue pasando de 44 px */
 }
 
 /* Foco con teclado: la tarjeta y sus controles se ven enfocados (anillo de tinta de 3 px, como en el resto de la app). */

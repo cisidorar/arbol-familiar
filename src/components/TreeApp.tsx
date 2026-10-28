@@ -184,6 +184,17 @@ export default function TreeApp({ data, user, homeId, selfId }: { data: any[]; u
         </button>
       </div>
 
+      {/* Volver a la persona de quien mira: si el árbol está centrado en otro, lo recentra; si no, la trae a la vista. */}
+      {viewerId && (
+        <button
+          type="button"
+          onClick={() => (viewerId === mainId ? controls.current?.centerOnMain() : recenter(viewerId))}
+          className="absolute right-4 top-[290px] z-10 flex min-h-12 items-center rounded-full border-2 border-ink bg-adobe px-5 text-[1.125rem] font-bold text-ink hover:bg-adobe-2 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ink sm:top-[262px]"
+        >
+          Volver a mí
+        </button>
+      )}
+
       {/* Ayuda: qué significan los colores y qué hace cada toque. */}
       <button
         type="button"
