@@ -227,7 +227,7 @@ export default function CemeteryGuide({
     const list = [...byRegion.entries()]
       .map(([code, ps]) => ({ code, title: regionName(code), places: ps.sort(byPeople) }))
       .sort((a, b) => sumPeople(b.places) - sumPeople(a.places) || order.indexOf(a.code) - order.indexOf(b.code));
-    if (pending.length) list.push({ code: "pending", title: "Por ubicar", places: pending.sort(byPeople) });
+    if (pending.length) list.push({ code: "pending", title: "Lugares por confirmar", places: pending.sort(byPeople) });
     return list;
   }, [cemeteries, region]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -557,7 +557,7 @@ export default function CemeteryGuide({
           ) : (
             <p className="zb-apoyo min-w-0 flex-1">{p.cremation ? "Fue cremación: no hay tumba que visitar." : NO_ROUTE}</p>
           )}
-          <button type="button" onClick={() => openPerson(b.personId)} className={buttonClass("enlace")} aria-label={`Ver más de ${b.name}`}>
+          <button type="button" onClick={() => openPerson(b.personId)} className={buttonClass("enlace")} tabIndex={-1} aria-hidden="true">
             Ver más →
           </button>
         </div>
@@ -630,7 +630,7 @@ export default function CemeteryGuide({
             <div className="space-y-6">
               <article className="rounded-3xl border-2 border-ink bg-white p-6 sm:p-8">
                 <p className="zb-etiqueta !text-burdeos">{kin ? capFirst(kin) : "Familia"}</p>
-                <h2 className="mt-1 font-slab text-[2.25rem] font-bold leading-[1.1] sm:text-5xl">{b.name}</h2>
+                <h1 className="mt-1 font-slab text-[2.25rem] font-bold leading-[1.1] sm:text-5xl">{b.name}</h1>
                 {rest.length > 0 && <p className="zb-texto mt-2 text-gris">{capFirst(rest.join(", "))}</p>}
                 <dl className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-line">
                   <div className="bg-adobe-2 px-4 py-3">
@@ -713,7 +713,7 @@ export default function CemeteryGuide({
         {/* Primero lo que se necesita: el nombre, dónde queda y cómo llegar. */}
         <div className="lg:col-start-2 lg:row-start-1">
           <p className="zb-texto text-gris">{whereLine(currentPlace)}</p>
-          <h2 className="mt-1 font-slab text-[2.25rem] font-bold leading-[1.1] sm:text-5xl">{siteName(currentPlace)}</h2>
+          <h1 className="mt-1 font-slab text-[2.25rem] font-bold leading-[1.1] sm:text-5xl">{siteName(currentPlace)}</h1>
           <p className="zb-texto mt-3">
             <strong>{plural(currentPlace.people.length, "persona", "personas")}</strong> de la familia {currentPlace.people.length === 1 ? "descansa" : "descansan"} aquí
           </p>
@@ -766,12 +766,17 @@ export default function CemeteryGuide({
         <div className={`${WRAP} pb-10 pt-8 lg:pb-12 lg:pt-12`}>
           <div className="flex flex-wrap items-start justify-between gap-4">
             <h1 className="font-slab text-[2.5rem] font-bold leading-[1.05] sm:text-6xl">Dónde descansan</h1>
-            <button type="button" onClick={() => window.print()} className="inline-flex min-h-12 items-center rounded-full border-2 border-white/60 px-5 text-[1.125rem] font-bold text-white hover:border-white hover:bg-white/10">
+            <button type="button" onClick={() => window.print()} className="inline-flex min-h-12 items-center rounded-full border-2 border-white px-5 text-[1.125rem] font-bold text-white hover:bg-white/15">
               Imprimir lista
             </button>
           </div>
           <p className="mt-4 max-w-3xl text-[1.1875rem] leading-relaxed text-white/90 sm:text-[1.375rem]">
             {plural(total, "persona", "personas")} de la familia en {plural(cemeteries.length, "cementerio", "cementerios")}. Busca a quien quieras y te decimos dónde descansa y cómo llegar.
+          </p>
+          <p className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1 text-[1.125rem] font-bold">
+            <span className="font-normal text-white/80">Ir a:</span>
+            <a href="#cem-personas" className="underline decoration-2 underline-offset-4 hover:text-trigo">Las personas</a>
+            <a href="#cem-lugares" className="underline decoration-2 underline-offset-4 hover:text-trigo">Los cementerios</a>
           </p>
           <div className="mt-6 max-w-3xl">
             <label htmlFor="cem-q" className="block text-[1.25rem] font-bold">
@@ -847,7 +852,7 @@ export default function CemeteryGuide({
           </section>
         ) : (
           <>
-            <section aria-label={rootId ? "Los más cercanos a ti" : "Personas"}>
+            <section id="cem-personas" aria-label={rootId ? "Los más cercanos a ti" : "Personas"} className="scroll-mt-6">
               <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                 <h2 className="al-titulo al-regla">{rootId ? "Los más cercanos a ti" : "Personas"}</h2>
               </div>
@@ -859,7 +864,7 @@ export default function CemeteryGuide({
               )}
             </section>
 
-            <section aria-label="Cementerios">
+            <section id="cem-lugares" aria-label="Cementerios" className="scroll-mt-6">
               <h2 className="al-titulo al-regla">Los cementerios</h2>
               <div className="mt-5 flex flex-wrap gap-3" role="group" aria-label="Región">
                 <button type="button" className={chip(region === null)} aria-pressed={region === null} onClick={() => pickRegion(null)}>
@@ -872,7 +877,7 @@ export default function CemeteryGuide({
                 ))}
                 {pendingCount > 0 && (
                   <button type="button" className={chip(region === "pending")} aria-pressed={region === "pending"} onClick={() => pickRegion(region === "pending" ? null : "pending")}>
-                    Por ubicar <span className="font-normal">({pendingCount})</span>
+                    Por confirmar <span className="font-normal">({pendingCount})</span>
                   </button>
                 )}
               </div>
@@ -885,17 +890,20 @@ export default function CemeteryGuide({
                     </div>
                     <ul className="mt-6 grid gap-x-7 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                       {s.places.map((p) => (
-                        <li key={p.key} className="flex flex-col">
-                          <div className="relative">
-                            {photoSquare(p, false)}
-                            {p.incomplete && <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-white px-3.5 py-1.5 text-base font-bold shadow">Por confirmar</span>}
-                          </div>
-                          <button type="button" onClick={() => openPlace(p.key)} className="mt-4 flex min-h-12 items-start justify-between gap-3 text-left">
+                        <li key={p.key} className={`flex flex-col ${photoOf(p) ? "" : "self-start"}`}>
+                          {photoOf(p) && (
+                            <div className="relative">
+                              {photoSquare(p, false)}
+                              {p.incomplete && <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-white px-3.5 py-1.5 text-base font-bold shadow">Por confirmar</span>}
+                            </div>
+                          )}
+                          <button type="button" onClick={() => openPlace(p.key)} className={`flex min-h-12 items-start justify-between gap-3 text-left ${photoOf(p) ? "mt-4" : "w-full rounded-3xl border-2 border-line bg-white p-5 hover:border-ink"}`}>
                             <span className="min-w-0">
                               <span className="block font-slab text-[1.375rem] font-bold leading-tight">{siteName(p)}</span>
                               <span className="zb-apoyo mt-0.5 block">
                                 {p.locality ?? "Aún no sabemos la comuna"} · {plural(p.people.length, "persona", "personas")}
                               </span>
+                              {!photoOf(p) && p.incomplete && <span className="mt-2 inline-block rounded-full bg-adobe-2 px-3 py-0.5 text-base font-bold">Por confirmar</span>}
                             </span>
                             <span aria-hidden className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-teja text-xl text-white">→</span>
                           </button>

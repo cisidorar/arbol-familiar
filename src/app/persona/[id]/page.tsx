@@ -98,6 +98,15 @@ export default async function PersonaPage({ params }: { params: Promise<{ id: st
   const editor = canEdit(session.role);
   const color = sexColor(me.gender);
 
+  // Dónde descansa: lo primero que quiere saber quien viene a visitar. La sepultura, o la cremación, o un aviso si no se sabe.
+  const burial = detail.timeline.find((e) => e.kind === "BURI" && !e.person && e.place);
+  const cremated = Boolean(burial && /^(cremad[oa]|cremaci[oó]n)\b/i.test(burial.placeInfo?.name ?? burial.place ?? ""));
+  const siteName = (burial?.placeInfo?.name || burial?.place || "").replace(/,\s*Chile$/i, "");
+  const comuna = burial?.placeInfo?.comuna ?? null;
+  const regionText = burial?.placeInfo?.region ? (/^regi[oó]n/i.test(burial.placeInfo.region) ? burial.placeInfo.region : `Región ${burial.placeInfo.region}`) : null;
+  const tomb = burial?.description?.replace(/^ubicaci[oó]n en el cementerio:\s*/i, "").trim() || null;
+  const routeTo = comuna && siteName ? `${siteName.split(",")[0].trim()}, ${comuna}, Chile` : null;
+
   return (
     <div className="zb album min-h-screen text-ink [color-scheme:light]">
       <SectionHeader current="arbol" />
@@ -139,6 +148,43 @@ export default async function PersonaPage({ params }: { params: Promise<{ id: st
             </Link>
           )}
         </div>
+
+        {/* Dónde descansa */}
+        {!me.living && (
+          <section className="mt-8 rounded-3xl border-2 border-ink bg-white p-5 sm:p-6" aria-label="Dónde descansa">
+            <p className="zb-etiqueta !text-burdeos">{cremated ? "Despedida" : "Dónde descansa"}</p>
+            {cremated ? (
+              <p className="mt-1 text-[1.375rem] font-bold text-burdeos">Fue cremado/a</p>
+            ) : burial ? (
+              <>
+                <p className="mt-1 font-slab text-[1.5rem] font-bold leading-snug">{siteName}</p>
+                {(comuna || regionText) && <p className="zb-texto mt-1 text-gris">{[comuna, regionText].filter(Boolean).join(" · ")}</p>}
+                <p className="mt-3 text-[1.125rem]">
+                  <span className="font-bold">Tumba: </span>
+                  {tomb ? <span className="font-bold">{tomb}</span> : <span className="text-gris">aún no sabemos en qué parte. Pregunta a la familia.</span>}
+                </p>
+                <div className="mt-4 flex flex-wrap gap-3 print:hidden">
+                  {routeTo && (
+                    <a
+                      href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(routeTo)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex min-h-12 items-center gap-2 rounded-full border-2 border-ink bg-white px-6 text-[1.125rem] font-bold hover:bg-adobe-2"
+                    >
+                      Cómo llegar <span aria-hidden>↗</span>
+                    </a>
+                  )}
+                  <Link href={`/cementerios?p=${id}`} className="inline-flex min-h-12 items-center rounded-full border-2 border-ink bg-white px-6 text-[1.125rem] font-bold hover:bg-adobe-2">
+                    Ver en la guía de cementerios
+                  </Link>
+                </div>
+                {!routeTo && <p className="zb-apoyo mt-3">Todavía no sabemos la comuna, así que no podemos armar la ruta.</p>}
+              </>
+            ) : (
+              <p className="zb-texto mt-1 text-gris">Todavía no sabemos dónde descansa. Pregunta a la familia.</p>
+            )}
+          </section>
+        )}
 
         {/* Línea de vida */}
         <section className="mt-10" aria-label="Línea de vida">
