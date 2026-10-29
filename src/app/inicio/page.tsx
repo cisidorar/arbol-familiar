@@ -12,6 +12,7 @@ import { getLinkedPersonId } from "@/lib/data/users";
 import { getPersonFacts } from "@/lib/data/origins";
 import { collectAncestors } from "@/lib/origins";
 import { kinshipPhrase, type GraphPerson } from "@/lib/lineage";
+import { niceKin } from "@/lib/cemetery-text";
 
 export const metadata: Metadata = { title: "Inicio · Archivo Zamora Balcázar" };
 export const dynamic = "force-dynamic";
@@ -20,6 +21,11 @@ const randomItem = <T,>(list: T[]): T => list[Math.floor(Math.random() * list.le
 const MONTHS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 const MONTH_FULL = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+/** "Inmaculada Concepción, Maipo, Buin, Maipo, Chile" → "Inmaculada Concepción, Maipo, Buin": sin repetidos y sin el país. */
+const shortPlace = (label: string) => {
+  const parts = [...new Set(label.split(",").map((p) => p.trim()).filter(Boolean))];
+  return (parts.length > 1 ? parts.filter((p) => p.toLowerCase() !== "chile") : parts).join(", ");
+};
 
 function Names({ people }: { people: { id: string; name: string }[] }) {
   return (
@@ -27,7 +33,7 @@ function Names({ people }: { people: { id: string; name: string }[] }) {
       {people.map((p, i) => (
         <span key={p.id}>
           {i > 0 && (i === people.length - 1 ? " y " : ", ")}
-          <Link href={`/persona/${p.id}`} className="underline decoration-2 underline-offset-4 hover:text-teja">
+          <Link href={`/persona/${p.id}`} className="py-3 underline decoration-2 underline-offset-4 hover:text-teja">
             {p.name}
           </Link>
         </span>
@@ -46,7 +52,7 @@ function sentence(it: FamilyDateItem) {
     case "nace":
       return <>{it.years === 0 ? "Hoy nació" : `Hace ${plural(it.years, "año", "años")} nació`} {people}{place}{date}</>;
     case "muere":
-      return <>Hace {plural(it.years, "año", "años")} falleció {people}{place}{date}</>;
+      return <>Recordamos a {people}, que falleció hace {plural(it.years, "año", "años")}{place}{date}</>;
     case "casan":
       return <>Hace {plural(it.years, "año", "años")} se casaron {people}{place}{date}</>;
   }
@@ -128,7 +134,12 @@ export default async function InicioPage() {
   const me = selfId ? byId.get(selfId) : undefined;
 
   const todayItems = items.filter((i) => i.inDays === 0);
-  const soon = items.filter((i) => i.inDays > 0).slice(0, 6);
+  // Entre las fechas que vienen, no más de 2 fallecimientos: seis seguidas con tres muertes pesan.
+  let deaths = 0;
+  const soon = items
+    .filter((i) => i.inDays > 0)
+    .filter((i) => i.kind !== "muere" || ++deaths <= 2)
+    .slice(0, 6);
 
   // Cuántos antepasados directos tienen lugar conocido (comuna o país).
   const direct = me
@@ -137,10 +148,10 @@ export default async function InicioPage() {
   const known = direct.filter((a) => a.origin.kind === "comuna" || a.origin.kind === "abroad").length;
 
   // "Te tocó": los antepasados directos con una frase corta, y uno al azar de partida.
-  const minBirth = Math.min(...direct.map((a) => byId.get(a.id)?.birth ?? Infinity));
+  const minBirth = direct.length ? Math.min(...direct.map((a) => byId.get(a.id)?.birth ?? Infinity)) : Infinity;
   const roulette: RoulettePerson[] = direct.filter((a) => byId.get(a.id)?.birth).map((a) => {
     const p = byId.get(a.id);
-    const place = a.origin.kind === "none" ? null : a.origin.label;
+    const place = a.origin.kind === "none" ? null : shortPlace(a.origin.label);
     const at = place ? ` en ${place}` : "";
     const lived = p?.birth && p?.death && p.death >= p.birth ? ` y vivió ${p.death - p.birth} años` : "";
     const blurb =
@@ -160,16 +171,16 @@ export default async function InicioPage() {
 
   // La nota amarilla: el primer hecho de los próximos días, dicho con su parentesco.
   const graph: GraphPerson[] = chart.map((p) => ({ id: p.id, data: { gender: p.data.gender, label: p.data.label }, rels: p.rels }));
-  const note = items[0];
+  const note = items.find((i) => i.kind !== "muere") ?? items[0];
   const noteYear = note ? Number(today.slice(0, 4)) - note.years : 0;
-  const noteKin = note && me ? kinshipPhrase(me.id, note.people[0].id, graph)?.label.toLowerCase() ?? null : null;
+  const noteKin = note && me ? niceKin(kinshipPhrase(me.id, note.people[0].id, graph)?.label).toLowerCase() || null : null;
   const when = note ? (note.inDays === 0 ? "hoy" : note.inDays === 1 ? "mañana" : `en ${note.inDays} días`) : "";
 
   const knownLabel = `${known} con lugar de origen conocido y ${direct.length - known} sin lugar todavía.`;
 
   return (
     <div className="zb album min-h-screen text-ink [color-scheme:light]">
-      <SectionHeader current="inicio" />
+      <SectionHeader current="inicio" hideSearch />
 
       <header className="relative overflow-hidden">
         <svg aria-hidden="true" viewBox="0 0 120 320" className="pointer-events-none absolute -right-4 top-0 h-72 w-24 text-parra opacity-25 sm:right-4 sm:h-80 sm:w-28">
@@ -249,8 +260,6 @@ export default async function InicioPage() {
           </section>
         )}
 
-        {roulette.length > 1 && <AncestorRoulette people={roulette} initialId={startId} />}
-
         {/* Elige tu camino */}
         <section aria-label="Elige tu camino">
           <h2 className="al-titulo al-regla">Elige tu camino</h2>
@@ -274,9 +283,11 @@ export default async function InicioPage() {
           </ul>
         </section>
 
+        {roulette.length > 1 && <AncestorRoulette people={roulette} initialId={startId} />}
+
         {/* Fechas */}
         {(todayItems.length > 0 || soon.length > 0) && (
-          <section aria-label="Hoy en la familia">
+          <section aria-label={todayItems.length > 0 ? "Hoy en la familia" : "En los próximos días"}>
             <h2 className="al-titulo al-regla">{todayItems.length > 0 ? "Hoy en la familia" : "En los próximos días"}</h2>
             <ul className="mt-5 grid gap-4 md:grid-cols-2">
               {todayItems.map((it, i) => (
@@ -309,7 +320,7 @@ export default async function InicioPage() {
             <p className="zb-apoyo mt-3">Círculo lleno: lugar conocido. Círculo vacío: todavía falta.</p>
             {known < direct.length && (
               <Link href="/pendientes" className="mt-3 inline-flex min-h-12 items-center font-bold underline decoration-2 underline-offset-4 hover:text-teja">
-                Ver lo que falta →
+                Ver dónde faltan datos →
               </Link>
             )}
           </section>

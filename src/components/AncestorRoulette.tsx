@@ -81,7 +81,7 @@ export default function AncestorRoulette({ people, initialId }: { people: Roulet
 
   return (
     <section id="te-toco" aria-label="Te tocó" className="grid items-center gap-6 on-dark tapa rounded-3xl bg-burdeos p-5 text-adobe sm:p-8 md:grid-cols-[minmax(0,22rem)_1fr] md:gap-10">
-      <div className="relative min-h-[11.5rem] [perspective:900px]">
+      <div className="relative [perspective:900px] sm:min-h-[11.5rem]">
         <Link
           href={`/persona/${cur.id}`}
           aria-label={`Ver la ficha de ${cur.name}`}
@@ -93,8 +93,8 @@ export default function AncestorRoulette({ people, initialId }: { people: Roulet
         >
           <span className="esq-a" aria-hidden="true" />
           <span className="esq-b" aria-hidden="true" />
-          <div aria-hidden="true" className={`grid h-32 place-items-center overflow-hidden bg-adobe-2 ${phase === "land" ? "azb-revela" : ""}`}>
-            <span key={shown.id} className={`font-slab text-[5rem] font-bold leading-none text-burdeos/80 ${shuffling ? "azb-reel" : ""}`}>
+          <div aria-hidden="true" className={`grid h-20 place-items-center overflow-hidden bg-adobe-2 sm:h-32 ${phase === "land" ? "azb-revela" : ""}`}>
+            <span key={shown.id} className={`font-slab text-[3.25rem] font-bold leading-none text-burdeos/80 sm:text-[5rem] ${shuffling ? "azb-reel" : ""}`}>
               {shown.name.trim().charAt(0)}
             </span>
           </div>
@@ -108,7 +108,7 @@ export default function AncestorRoulette({ people, initialId }: { people: Roulet
       <div>
         <h2 className="al-titulo al-regla">Te tocó</h2>
         <p aria-live="polite" className={`zb-texto mt-2 sm:text-[1.25rem] ${phase === "land" ? "azb-fade" : ""}`}>
-          {shuffling ? "Sorteando…" : `${cur.name}. ${cur.blurb}`}
+          {shuffling ? "Sorteando…" : (<><span className="sr-only">{cur.name}. </span>{cur.blurb}</>)}
         </p>
         <div className="mt-5 flex flex-wrap items-center gap-3">
           <Link

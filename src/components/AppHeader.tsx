@@ -27,6 +27,7 @@ export default function AppHeader({
   user,
   count,
   floating = false,
+  hideSearch = false,
   onSelectPerson,
 }: {
   current: Section;
@@ -34,6 +35,8 @@ export default function AppHeader({
   /** Personas registradas, para la línea de arriba del título. */
   count: number;
   floating?: boolean;
+  /** Sin el buscador de la cabecera (Inicio tiene uno propio, más grande, a unos pasos). */
+  hideSearch?: boolean;
   /** En el árbol: centra el dibujo en la persona. En las otras páginas se abre el árbol en ella. */
   onSelectPerson?: (id: string) => void;
 }) {
@@ -71,9 +74,11 @@ export default function AppHeader({
         </Link>
 
         {/* En el teléfono, fuera del árbol, el buscador se omite para no alargar el encabezado. */}
-        <div className={`${arbol ? "flex" : "hidden xl:flex"} order-last w-full min-w-0 max-w-md items-center sm:order-none sm:ml-auto sm:w-auto sm:min-w-[12rem] sm:flex-1`}>
-          <SearchBox onSelect={select} />
-        </div>
+        {!hideSearch && (
+          <div className={`${arbol ? "flex" : "hidden xl:flex"} order-last w-full min-w-0 max-w-md items-center sm:order-none sm:ml-auto sm:w-auto sm:min-w-[12rem] sm:flex-1`}>
+            <SearchBox onSelect={select} />
+          </div>
+        )}
 
         <nav aria-label="Secciones" className={`${navClass} order-last w-full min-w-0 items-center justify-between gap-0.5 overflow-x-auto [scrollbar-width:none] sm:gap-1 lg:order-none lg:w-auto lg:justify-start`}>
           {NAV.filter((s) => !s.adminOnly || user.role === "admin").map((s) => {
