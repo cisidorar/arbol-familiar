@@ -131,11 +131,8 @@ export default function Landing({ stats, surnames = [] }: { stats: PublicStats |
         <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 sm:py-20">
           <h2 className="max-w-2xl font-slab text-[1.75rem] font-bold leading-tight sm:text-4xl">¿Tienes algo de la familia?</h2>
           <p className="mt-3 max-w-xl text-lg text-white/80">
-            Fotos, actas, cartas o anécdotas de los abuelos: todo suma. Cuando entres al archivo podrás verlo completo y dejar lo tuyo.
+            Fotos, actas, cartas o anécdotas de los abuelos: todo suma. Cuando tengas acceso podrás ver el archivo completo y dejar lo tuyo.
           </p>
-          <Link href="/login" className={buttonClass("principal", "mt-6 !min-h-14 !border-adobe !bg-adobe !px-9 !text-[1.25rem] !text-ink hover:!border-white hover:!bg-white")}>
-            Entrar al archivo <span aria-hidden="true" className="ml-2">→</span>
-          </Link>
         </div>
       </section>
 
