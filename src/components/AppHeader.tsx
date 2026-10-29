@@ -79,6 +79,24 @@ export default function AppHeader({
             <SearchBox onSelect={select} />
           </div>
         )}
+        {/* Sin buscador propio, el hueco se llena con un atajo al buscador de la página. */}
+        {hideSearch && (
+          <button
+            type="button"
+            onClick={() => {
+              const box = document.querySelector<HTMLInputElement>("main input[role=combobox], #buscador input[role=combobox], input[role=combobox]");
+              box?.scrollIntoView({ block: "center", behavior: "smooth" });
+              box?.focus({ preventScroll: true });
+            }}
+            className="order-last hidden min-h-12 min-w-[12rem] flex-1 items-center gap-2 rounded-full bg-white/15 px-4 text-left text-[1.125rem] text-white/90 hover:bg-white/25 hover:text-white xl:order-none xl:ml-auto xl:flex xl:max-w-md"
+          >
+            <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden>
+              <circle cx="11" cy="11" r="6.5" />
+              <path d="m16 16 4 4" />
+            </svg>
+            Buscar a alguien
+          </button>
+        )}
 
         <nav aria-label="Secciones" className={`${navClass} order-last w-full min-w-0 items-center justify-between gap-0.5 overflow-x-auto [scrollbar-width:none] sm:gap-1 lg:order-none lg:w-auto lg:justify-start`}>
           {NAV.filter((s) => !s.adminOnly || user.role === "admin").map((s) => {
