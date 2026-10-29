@@ -44,7 +44,7 @@ export default function AppHeader({
   const select = onSelectPerson ?? ((id: string) => router.push(`/?persona=${id}`));
   // En el árbol las secciones van solo en pantallas anchas (están también en el menú de la cuenta):
   // así el encabezado del teléfono no cambia de alto y no tapa el dibujo.
-  const arbol = current === "arbol";
+  const arbol = current === "arbol" && floating;
   // Fuera del árbol, en pantallas medianas se omite el buscador para que todo quepa en UNA fila
   // (si la barra de secciones bajaba a una segunda fila, el título quedaba arriba y sobraba fondo oscuro).
   // En el teléfono las secciones van en la barra de abajo (MobileTabBar).
@@ -79,24 +79,8 @@ export default function AppHeader({
             <SearchBox onSelect={select} />
           </div>
         )}
-        {/* Sin buscador propio, el hueco se llena con un atajo al buscador de la página. */}
-        {hideSearch && (
-          <button
-            type="button"
-            onClick={() => {
-              const box = document.querySelector<HTMLInputElement>("main input[role=combobox], #buscador input[role=combobox], input[role=combobox]");
-              box?.scrollIntoView({ block: "center", behavior: "smooth" });
-              box?.focus({ preventScroll: true });
-            }}
-            className="order-last hidden min-h-12 min-w-[12rem] flex-1 items-center gap-2 rounded-full bg-white/15 px-4 text-left text-[1.125rem] text-white/90 hover:bg-white/25 hover:text-white xl:order-none xl:ml-auto xl:flex xl:w-[16rem] xl:flex-none 2xl:w-[26rem]"
-          >
-            <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden>
-              <circle cx="11" cy="11" r="6.5" />
-              <path d="m16 16 4 4" />
-            </svg>
-            Buscar a alguien
-          </button>
-        )}
+        {/* Sin buscador propio (Inicio tiene uno grande en la página), se guarda su sitio para que el menú y los textos no se muevan. */}
+        {hideSearch && <div aria-hidden="true" className="hidden xl:ml-auto xl:block xl:w-[16rem] xl:flex-none 2xl:w-[26rem]" />}
 
         <nav aria-label="Secciones" className={`${navClass} order-last w-full min-w-0 items-center justify-between gap-0.5 overflow-x-auto [scrollbar-width:none] sm:gap-1 lg:order-none lg:w-auto lg:justify-start`}>
           {NAV.filter((s) => !s.adminOnly || user.role === "admin").map((s) => {
