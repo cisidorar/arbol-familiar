@@ -121,7 +121,7 @@ export default function AncestorRoulette({ people, initialId }: { people: Roulet
             type="button"
             onClick={spin}
             disabled={shuffling}
-            className="al-mueve inline-flex min-h-12 items-center rounded-full border-2 border-adobe px-6 py-2 text-[1.125rem] font-bold text-adobe hover:bg-adobe hover:text-burdeos disabled:opacity-60"
+            className="al-mueve inline-flex min-h-12 items-center px-3 py-2 text-[1.125rem] font-bold text-adobe underline decoration-2 underline-offset-4 hover:text-trigo disabled:opacity-60"
           >
             Otro al azar
           </button>

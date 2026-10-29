@@ -13,6 +13,7 @@ import { getPersonFacts } from "@/lib/data/origins";
 import { collectAncestors } from "@/lib/origins";
 import { kinshipPhrase, type GraphPerson } from "@/lib/lineage";
 import { niceKin } from "@/lib/cemetery-text";
+import { buttonClass } from "@/components/ui";
 
 export const metadata: Metadata = { title: "Inicio · Archivo Zamora Balcázar" };
 export const dynamic = "force-dynamic";
@@ -66,8 +67,10 @@ const TILE: Record<FamilyDateItem["kind"], string> = {
 };
 
 function DateRow({ it, today, i }: { it: FamilyDateItem; today: boolean; i: number }) {
+  const when = it.inDays === 0 ? "Hoy" : it.inDays === 1 ? "Mañana" : `En ${it.inDays} días`;
   return (
-    <li className={`flex items-center gap-4 rounded-2xl border-2 bg-white p-4 ${today ? "border-ink" : "border-line"} ${i % 2 ? "rotate-[0.5deg]" : "-rotate-[0.5deg]"}`}>
+    // Una conmemoración (fallecimiento) va derecha y sin giro: se recuerda, no se celebra.
+    <li className={`flex items-center gap-4 rounded-2xl border-2 bg-white p-4 ${today ? "border-ink" : "border-line"} ${it.kind === "muere" ? "" : i % 2 ? "rotate-[0.5deg]" : "-rotate-[0.5deg]"}`}>
       <span
         className={`grid h-[4.5rem] w-[4.5rem] shrink-0 place-items-center rounded-full border-4 border-double border-adobe text-center leading-none ${TILE[it.kind]}`}
         aria-hidden="true"
@@ -77,7 +80,10 @@ function DateRow({ it, today, i }: { it: FamilyDateItem; today: boolean; i: numb
           <span className="block text-base font-bold uppercase">{MONTHS[it.month - 1]}</span>
         </span>
       </span>
-      <p className="zb-texto min-w-0">{today && <strong>Hoy: </strong>}{sentence(it)}</p>
+      <div className="min-w-0">
+        <p className="zb-apoyo font-bold !text-burdeos">{when}</p>
+        <p className="zb-texto">{sentence(it)}</p>
+      </div>
     </li>
   );
 }
@@ -93,7 +99,7 @@ const PATHS: { href: string; title: string; text: string; tone: string; num: str
   },
   {
     href: "/mapa",
-    title: "De dónde vienen",
+    title: "Mapa de orígenes",
     text: "Las comunas donde nacieron tus antepasados.",
     tone: "bg-parra text-adobe",
     num: "N.º 2",
@@ -152,12 +158,10 @@ export default async function InicioPage() {
   const roulette: RoulettePerson[] = direct.filter((a) => byId.get(a.id)?.birth).map((a) => {
     const p = byId.get(a.id);
     const place = a.origin.kind === "none" ? null : shortPlace(a.origin.label);
-    const at = place ? ` en ${place}` : "";
-    const lived = p?.birth && p?.death && p.death >= p.birth ? ` y vivió ${p.death - p.birth} años` : "";
-    const blurb =
-      p?.birth && p.birth === minBirth
-        ? `Es el antepasado más antiguo del archivo. Nació${at} en ${p.birth}${lived}.`
-        : `Nació${at} en ${p?.birth}${lived}.`;
+    const lived = p?.birth && p?.death && p.death > p.birth ? `Vivió ${p.death - p.birth} años.` : "";
+    // El sello ya dice quién es, dónde y cuándo nació: el párrafo suma solo lo que el sello no dice.
+    const oldest = p?.birth && p.birth === minBirth ? "Es el antepasado más antiguo del archivo." : "";
+    const blurb = [oldest, lived].filter(Boolean).join(" ") || "Una persona de tu familia. Conoce su historia.";
     return {
       id: a.id,
       name: a.name,
@@ -176,7 +180,31 @@ export default async function InicioPage() {
   const noteKin = note && me ? niceKin(kinshipPhrase(me.id, note.people[0].id, graph)?.label).toLowerCase() || null : null;
   const when = note ? (note.inDays === 0 ? "hoy" : note.inDays === 1 ? "mañana" : `en ${note.inDays} días`) : "";
 
-  const knownLabel = `${known} con lugar de origen conocido y ${direct.length - known} sin lugar todavía.`;
+  const knownLabel = `Conocemos el lugar de origen de ${known} de tus ${direct.length} antepasados directos.`;
+
+  const noteCard = note ? (
+<aside aria-label="Esta semana en la familia" className="relative w-full max-w-md -rotate-1 rounded-sm bg-white p-6 pt-8 shadow-[0_6px_18px_rgba(30,26,23,0.25)] lg:ml-auto">
+              <span className="cinta" aria-hidden="true" />
+              <h2 className="al-titulo al-regla !text-[1.5rem]">Esta semana en la familia</h2>
+              <p className="zb-texto mt-3">
+                {note.kind === "cumple" ? (
+                  <>
+                    <Names people={note.people} /> cumple {plural(note.years, "año", "años")} {when}
+                  </>
+                ) : (
+                  <>
+                    Un {note.day} de {MONTH_FULL[note.month - 1]} de {noteYear} ({when}) {note.kind === "nace" ? "nació" : note.kind === "muere" ? "falleció" : "se casaron"}{" "}
+                    <Names people={note.people} />
+                    {noteKin ? `, ${noteKin}` : ""}
+                    {note.place ? `, en ${note.place}` : ""}.
+                  </>
+                )}
+              </p>
+              <Link href={`/persona/${note.people[0].id}`} className="mt-3 inline-flex min-h-12 items-center font-bold underline decoration-2 underline-offset-4 hover:text-teja">
+                Ver su ficha →
+              </Link>
+            </aside>
+  ) : null;
 
   return (
     <div className="zb album min-h-screen text-ink [color-scheme:light]">
@@ -220,29 +248,7 @@ export default async function InicioPage() {
             )}
           </div>
 
-          {note && (
-            <aside aria-label="Esta semana en la familia" className="relative w-full max-w-md -rotate-1 rounded-sm bg-white p-6 pt-8 shadow-[0_6px_18px_rgba(30,26,23,0.25)] lg:ml-auto">
-              <span className="cinta" aria-hidden="true" />
-              <h2 className="al-titulo al-regla !text-[1.5rem]">Esta semana en la familia</h2>
-              <p className="zb-texto mt-3">
-                {note.kind === "cumple" ? (
-                  <>
-                    <Names people={note.people} /> cumple {plural(note.years, "año", "años")} {when}
-                  </>
-                ) : (
-                  <>
-                    Un {note.day} de {MONTH_FULL[note.month - 1]} de {noteYear} ({when}) {note.kind === "nace" ? "nació" : note.kind === "muere" ? "falleció" : "se casaron"}{" "}
-                    <Names people={note.people} />
-                    {noteKin ? `, ${noteKin}` : ""}
-                    {note.place ? `, en ${note.place}` : ""}.
-                  </>
-                )}
-              </p>
-              <Link href={`/persona/${note.people[0].id}`} className="mt-3 inline-flex min-h-12 items-center font-bold underline decoration-2 underline-offset-4 hover:text-teja">
-                Ver su ficha →
-              </Link>
-            </aside>
-          )}
+          {note && <div className="hidden lg:block">{noteCard}</div>}
         </div>
       </header>
 
@@ -266,7 +272,7 @@ export default async function InicioPage() {
           <ul className="mt-5 grid gap-5 md:grid-cols-3">
             {PATHS.map((c) => (
               <li key={c.href}>
-                <Link href={c.href} className={`sello al-mueve group flex h-full min-h-48 flex-col justify-between p-7 hover:-translate-y-1 ${c.tone}`}>
+                <Link href={c.href} className={`sello al-mueve group flex h-full min-h-28 flex-col justify-between gap-3 p-5 hover:-translate-y-1 sm:min-h-48 sm:p-7 ${c.tone}`}>
                   <span className="flex items-center justify-between">
                     <svg aria-hidden="true" viewBox="0 0 24 24" className="h-9 w-9 fill-none stroke-current" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                       {c.icon}
@@ -282,6 +288,8 @@ export default async function InicioPage() {
             ))}
           </ul>
         </section>
+
+        {note && <div className="lg:hidden">{noteCard}</div>}
 
         {roulette.length > 1 && <AncestorRoulette people={roulette} initialId={startId} />}
 
@@ -303,9 +311,7 @@ export default async function InicioPage() {
         {/* Qué tanto conocemos */}
         {me && direct.length > 0 && (
           <section aria-label="Tus antepasados" className="rounded-3xl border-2 border-dashed border-ink/50 p-6 sm:p-8">
-            <h2 className="al-titulo al-regla">
-              Ya conocemos {known} de tus {direct.length} antepasados directos
-            </h2>
+            <h2 className="al-titulo al-regla">Tus antepasados</h2>
             <p className="zb-texto mt-2">{knownLabel}</p>
             <ul className="mt-5 flex flex-wrap gap-2" aria-hidden="true">
               {[...direct]
@@ -319,7 +325,7 @@ export default async function InicioPage() {
             </ul>
             <p className="zb-apoyo mt-3">Círculo lleno: lugar conocido. Círculo vacío: todavía falta.</p>
             {known < direct.length && (
-              <Link href="/pendientes" className="mt-3 inline-flex min-h-12 items-center font-bold underline decoration-2 underline-offset-4 hover:text-teja">
+              <Link href="/pendientes" className={buttonClass("secundario", "mt-4")}>
                 Ver dónde faltan datos →
               </Link>
             )}
