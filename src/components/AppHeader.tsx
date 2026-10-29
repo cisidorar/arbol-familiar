@@ -12,9 +12,9 @@ export type Section = "inicio" | "arbol" | "mapa" | "pendientes" | "cementerios"
 const NAV: { key: Exclude<Section, "admin">; href: string; label: string; short?: string; adminOnly?: boolean }[] = [
   { key: "inicio", href: "/inicio", label: "Inicio" },
   { key: "arbol", href: "/", label: "Árbol" },
-  { key: "mapa", href: "/mapa", label: "Mapa de orígenes", short: "Mapa" },
-  { key: "pendientes", href: "/pendientes", label: "Pendientes", adminOnly: true },
-  { key: "cementerios", href: "/cementerios", label: "Dónde descansan", short: "Descansan" },
+  { key: "mapa", href: "/mapa", label: "Mapa" },
+  { key: "pendientes", href: "/pendientes", label: "Tareas", adminOnly: true },
+  { key: "cementerios", href: "/cementerios", label: "Descansan" },
 ];
 
 /**

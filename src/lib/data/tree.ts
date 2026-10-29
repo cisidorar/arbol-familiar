@@ -201,7 +201,13 @@ export async function searchPersons(treeId: string, query: string) {
   const { rows } = await getPool().query(
     `select p.id, n.display_name,
             (select date_from from events e where e.person_id = p.id and e.event_type = 'BIRT' order by e.date_from nulls last, e.id limit 1) as birth_from,
-            p.is_living
+            p.is_living,
+            (select concat_ws(' y ', n1.display_name, n2.display_name)
+             from family_children fc
+             join families f on f.id = fc.family_id
+             left join person_names n1 on n1.person_id = f.partner1_id and n1.is_primary
+             left join person_names n2 on n2.person_id = f.partner2_id and n2.is_primary
+             where fc.child_id = p.id limit 1) as parents
      from persons p
      join person_names n on n.person_id = p.id and n.is_primary
      where p.tree_id = $1 and n.search_key like '%' || $2 || '%'
@@ -214,6 +220,7 @@ export async function searchPersons(treeId: string, query: string) {
     displayName: r.display_name as string,
     birthYear: yearOf(r.birth_from),
     isLiving: r.is_living as boolean,
+    parents: (r.parents as string | null) || null,
   }));
 }
 
