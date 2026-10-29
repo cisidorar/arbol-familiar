@@ -75,7 +75,7 @@ export default function AppHeader({
 
         {/* En el teléfono, fuera del árbol, el buscador se omite para no alargar el encabezado. */}
         {!hideSearch && (
-          <div className={`${arbol ? "flex" : "hidden xl:flex"} order-last w-full min-w-0 max-w-md items-center sm:order-none sm:ml-auto sm:w-auto sm:min-w-[12rem] sm:flex-1`}>
+          <div className={`${arbol ? "flex" : "hidden xl:flex"} order-last w-full min-w-0 max-w-md items-center sm:order-none sm:ml-auto sm:w-auto sm:min-w-[12rem] sm:flex-1 xl:w-[16rem] xl:flex-none 2xl:w-[26rem]`}>
             <SearchBox onSelect={select} />
           </div>
         )}
@@ -88,7 +88,7 @@ export default function AppHeader({
               box?.scrollIntoView({ block: "center", behavior: "smooth" });
               box?.focus({ preventScroll: true });
             }}
-            className="order-last hidden min-h-12 min-w-[12rem] flex-1 items-center gap-2 rounded-full bg-white/15 px-4 text-left text-[1.125rem] text-white/90 hover:bg-white/25 hover:text-white xl:order-none xl:ml-auto xl:flex xl:max-w-md"
+            className="order-last hidden min-h-12 min-w-[12rem] flex-1 items-center gap-2 rounded-full bg-white/15 px-4 text-left text-[1.125rem] text-white/90 hover:bg-white/25 hover:text-white xl:order-none xl:ml-auto xl:flex xl:w-[16rem] xl:flex-none 2xl:w-[26rem]"
           >
             <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden>
               <circle cx="11" cy="11" r="6.5" />
@@ -108,7 +108,7 @@ export default function AppHeader({
                 aria-current={on ? "page" : undefined}
                 className={
                   on
-                    ? "flex min-h-12 shrink-0 items-center rounded-full bg-adobe px-3 text-base font-bold text-ink sm:px-4 sm:text-[1.125rem]"
+                    ? "flex min-h-12 shrink-0 items-center rounded-full bg-adobe px-3 text-base text-ink sm:px-4 sm:text-[1.125rem]"
                     : "flex min-h-12 shrink-0 items-center rounded-full px-3 text-base text-white/90 hover:bg-white/15 hover:text-white sm:px-4 sm:text-[1.125rem]"
                 }
               >
