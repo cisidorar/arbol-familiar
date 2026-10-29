@@ -48,7 +48,7 @@ export default function Landing({ stats, surnames = [] }: { stats: PublicStats |
   return (
     <div className="zb album min-h-screen text-ink">
       {/* Bienvenida */}
-      <section className="on-dark overflow-hidden bg-burdeos text-white">
+      <div className="on-dark overflow-hidden bg-burdeos text-white">
         <header className={`${BRAND_ROW} w-full gap-3`}>
           <SiteBrand />
           <Link
@@ -71,7 +71,7 @@ export default function Landing({ stats, surnames = [] }: { stats: PublicStats |
             <div className="mt-7">
               <Link
                 href="/login"
-                className={buttonClass("principal", "!min-h-14 !border-adobe !bg-adobe !px-9 !text-[1.25rem] !text-ink hover:!border-white hover:!bg-white")}
+                className={buttonClass("principal", "!min-h-14 !border-adobe !bg-adobe !px-9 !text-[1.25rem] !text-ink hover:!border-white hover:!bg-white focus-visible:!outline-white")}
               >
                 Entrar al archivo <span aria-hidden="true">→</span>
               </Link>
@@ -110,7 +110,7 @@ export default function Landing({ stats, surnames = [] }: { stats: PublicStats |
             </article>
           </div>
         </main>
-      </section>
+      </div>
       <div className="alero-tejas [--tj:var(--color-burdeos)]" aria-hidden="true" />
 
       {/* Apellidos */}
