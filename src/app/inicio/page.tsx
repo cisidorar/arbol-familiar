@@ -34,7 +34,7 @@ function Names({ people }: { people: { id: string; name: string }[] }) {
       {people.map((p, i) => (
         <span key={p.id}>
           {i > 0 && (i === people.length - 1 ? " y " : ", ")}
-          <Link href={`/persona/${p.id}`} className="py-3 underline decoration-2 underline-offset-4 hover:text-teja">
+          <Link href={`/persona/${p.id}`} className="relative z-10 py-3 underline decoration-2 underline-offset-4 hover:text-teja">
             {p.name}
           </Link>
         </span>
@@ -70,7 +70,7 @@ function DateRow({ it, today, i }: { it: FamilyDateItem; today: boolean; i: numb
   const when = it.inDays === 0 ? "Hoy" : it.inDays === 1 ? "Mañana" : `En ${it.inDays} días`;
   return (
     // Una conmemoración (fallecimiento) va derecha y sin giro: se recuerda, no se celebra.
-    <li className={`${i >= 3 ? "hidden md:flex" : "flex"} items-center gap-4 rounded-2xl border-2 bg-white p-4 ${today ? "border-ink" : "border-line"} ${it.kind === "muere" ? "" : i % 2 ? "rotate-[0.5deg]" : "-rotate-[0.5deg]"}`}>
+    <li className={`${i >= 3 ? "hidden md:flex" : "flex"} items-center gap-4 relative rounded-2xl border-2 bg-white p-4 hover:border-ink ${today ? "border-ink" : "border-line"} ${it.kind === "muere" ? "" : i % 2 ? "rotate-[0.5deg]" : "-rotate-[0.5deg]"}`}>
       <span
         className={`grid h-[4.5rem] w-[4.5rem] shrink-0 place-items-center rounded-full border-4 border-double border-adobe text-center leading-none ${TILE[it.kind]}`}
         aria-hidden="true"
@@ -80,6 +80,8 @@ function DateRow({ it, today, i }: { it: FamilyDateItem; today: boolean; i: numb
           <span className="block text-base font-bold uppercase">{MONTHS[it.month - 1]}</span>
         </span>
       </span>
+      {/* Toda la tarjeta es tocable; los nombres siguen siendo enlaces propios. */}
+      <Link href={`/persona/${it.people[0].id}`} tabIndex={-1} aria-hidden="true" className="absolute inset-0 rounded-2xl" />
       <div className="min-w-0">
         <p className="zb-apoyo font-bold !text-burdeos">{when}</p>
         <p className="zb-texto">{sentence(it)}</p>
@@ -179,6 +181,8 @@ export default async function InicioPage() {
   // La nota amarilla: el primer hecho de los próximos días, dicho con su parentesco.
   const graph: GraphPerson[] = chart.map((p) => ({ id: p.id, data: { gender: p.data.gender, label: p.data.label }, rels: p.rels }));
   const note = items.find((i) => i.kind !== "muere") ?? items[0];
+  // La nota ya cuenta ese hecho: no se repite en la lista de fechas.
+  const soonRest = soon.filter((i) => i !== note);
   const noteYear = note ? Number(today.slice(0, 4)) - note.years : 0;
   const noteKin = note && me ? niceKin(kinshipPhrase(me.id, note.people[0].id, graph)?.label).toLowerCase() || null : null;
   const when = note ? (note.inDays === 0 ? "hoy" : note.inDays === 1 ? "mañana" : `en ${note.inDays} días`) : "";
@@ -301,14 +305,14 @@ export default async function InicioPage() {
         {roulette.length > 1 && <AncestorRoulette people={roulette} initialId={startId} />}
 
         {/* Fechas */}
-        {(todayItems.length > 0 || soon.length > 0) && (
+        {(todayItems.length > 0 || soonRest.length > 0) && (
           <section aria-label={todayItems.length > 0 ? "Hoy en la familia" : "En los próximos días"}>
             <h2 className="al-titulo al-regla">{todayItems.length > 0 ? "Hoy en la familia" : "En los próximos días"}</h2>
             <ul className="mt-5 grid gap-4 md:grid-cols-2">
               {todayItems.map((it, i) => (
                 <DateRow key={`t${i}`} it={it} today i={i} />
               ))}
-              {soon.map((it, i) => (
+              {soonRest.map((it, i) => (
                 <DateRow key={`s${i}`} it={it} today={false} i={i + todayItems.length} />
               ))}
             </ul>

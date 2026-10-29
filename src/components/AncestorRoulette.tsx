@@ -93,7 +93,7 @@ export default function AncestorRoulette({ people, initialId }: { people: Roulet
         >
           <span className="esq-a" aria-hidden="true" />
           <span className="esq-b" aria-hidden="true" />
-          <div aria-hidden="true" className={`grid h-20 place-items-center overflow-hidden bg-adobe-2 sm:h-32 ${phase === "land" ? "azb-revela" : ""}`}>
+          <div aria-hidden="true" className={`hidden place-items-center overflow-hidden bg-adobe-2 sm:grid sm:h-32 ${phase === "land" ? "azb-revela" : ""}`}>
             <span key={shown.id} className={`font-slab text-[3.25rem] font-bold leading-none text-burdeos/80 sm:text-[5rem] ${shuffling ? "azb-reel" : ""}`}>
               {shown.name.trim().charAt(0)}
             </span>
