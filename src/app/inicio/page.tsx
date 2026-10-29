@@ -70,7 +70,7 @@ function DateRow({ it, today, i }: { it: FamilyDateItem; today: boolean; i: numb
   const when = it.inDays === 0 ? "Hoy" : it.inDays === 1 ? "Mañana" : `En ${it.inDays} días`;
   return (
     // Una conmemoración (fallecimiento) va derecha y sin giro: se recuerda, no se celebra.
-    <li className={`${i >= 4 ? "hidden md:flex" : "flex"} items-center gap-4 rounded-2xl border-2 bg-white p-4 ${today ? "border-ink" : "border-line"} ${it.kind === "muere" ? "" : i % 2 ? "rotate-[0.5deg]" : "-rotate-[0.5deg]"}`}>
+    <li className={`${i >= 3 ? "hidden md:flex" : "flex"} items-center gap-4 rounded-2xl border-2 bg-white p-4 ${today ? "border-ink" : "border-line"} ${it.kind === "muere" ? "" : i % 2 ? "rotate-[0.5deg]" : "-rotate-[0.5deg]"}`}>
       <span
         className={`grid h-[4.5rem] w-[4.5rem] shrink-0 place-items-center rounded-full border-4 border-double border-adobe text-center leading-none ${TILE[it.kind]}`}
         aria-hidden="true"
@@ -236,6 +236,7 @@ export default async function InicioPage() {
           <div>
             <p className="zb-etiqueta !text-burdeos capitalize">{dateLabel}</p>
             <h1 className="mt-2 font-slab text-[2.75rem] font-bold leading-[1.05] sm:text-6xl">Hola, {first}.</h1>
+            <p className="zb-texto mt-2 max-w-xl text-gris">Este es el archivo de tu familia. Busca a alguien, recorre el árbol o mira dónde descansan.</p>
 
             <Link
               href="/"
@@ -277,7 +278,7 @@ export default async function InicioPage() {
           <h2 className="al-titulo al-regla">Elige tu camino</h2>
           <ul className="mt-5 grid gap-5 md:grid-cols-3">
             {PATHS.map((c) => (
-              <li key={c.href}>
+              <li key={c.href} className={c.href === "/" ? "hidden md:block" : ""}>
                 <Link href={c.href} className={`sello al-mueve group flex h-full min-h-24 flex-row items-center gap-4 p-5 hover:-translate-y-1 sm:min-h-48 sm:flex-col sm:items-stretch sm:justify-between sm:gap-3 sm:p-7 ${c.tone}`}>
                   <span className="flex items-center justify-between">
                     <svg aria-hidden="true" viewBox="0 0 24 24" className="h-9 w-9 fill-none stroke-current" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
