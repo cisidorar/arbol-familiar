@@ -1,5 +1,5 @@
 // Fichas de archivo "tiradas en el suelo" de la portada: se amontonan unas sobre
-// otras, cada una algo girada. Al pasar el mouse (o tocar una, en el teléfono) la
+// otras, cada una algo girada. Al pasar el mouse (en el teléfono no se muestran) la
 // ficha se endereza, sube al frente y se agranda para poder leerla.
 //
 // Son registros de antepasados nacidos hasta 1901 (todos fallecidos); los años y

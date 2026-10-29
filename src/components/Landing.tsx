@@ -77,7 +77,7 @@ export default function Landing({ stats, surnames = [] }: { stats: PublicStats |
               >
                 Entrar al archivo <span aria-hidden="true">→</span>
               </Link>
-              <p className="mt-4 max-w-md text-base text-white/85">¿Aún no tienes acceso? Pídeselo a quien te habló del archivo.</p>
+              <p className="mt-4 max-w-md text-base text-white/85">Entra con el correo con el que te invitaron. ¿Aún no tienes acceso? Pídeselo a quien te habló del archivo y te llegará una invitación por correo.</p>
             </div>
             {items.length > 0 && (
               <div className="mt-10 grid max-w-md grid-cols-3 gap-4 border-t border-white/15 pt-6">
@@ -133,12 +133,16 @@ export default function Landing({ stats, surnames = [] }: { stats: PublicStats |
           <p className="mt-3 max-w-xl text-lg text-white/80">
             Fotos, actas, cartas o anécdotas de los abuelos: todo suma. Cuando entres al archivo podrás verlo completo y dejar lo tuyo.
           </p>
+          <Link href="/login" className={buttonClass("principal", "mt-6 !min-h-14 !border-adobe !bg-adobe !px-9 !text-[1.25rem] !text-ink hover:!border-white hover:!bg-white")}>
+            Entrar al archivo <span aria-hidden="true" className="ml-2">→</span>
+          </Link>
         </div>
       </section>
 
       <footer className="on-dark bg-burdeos">
         <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 border-t border-white/15 px-4 py-5 text-base text-white/85 sm:px-6">
           <p>Archivo Zamora Balcázar · Solo para la familia</p>
+          <p>¿Perdiste la invitación? Pídele a quien te habló del archivo que te la reenvíe.</p>
         </div>
       </footer>
     </div>
