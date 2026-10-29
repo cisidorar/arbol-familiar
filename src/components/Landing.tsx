@@ -4,7 +4,6 @@
 // hace mucho y cifras generales; para ver el árbol hay que entrar con invitación.
 
 import Link from "next/link";
-import ScatteredCards from "./ScatteredCards";
 import SiteBrand, { BRAND_ROW } from "./SiteBrand";
 import { buttonClass } from "./ui";
 import { PORTADA } from "@/lib/portada-contenido";
@@ -62,14 +61,13 @@ export default function Landing({ stats, surnames = [] }: { stats: PublicStats |
 
         <main className="mx-auto grid w-full max-w-6xl gap-12 px-4 pb-16 pt-8 sm:px-6 sm:pt-12 lg:grid-cols-2 lg:items-center lg:gap-10 lg:pb-20">
           <div>
-            <p className="text-base font-bold uppercase tracking-[0.14em] text-white/85">
+            <p className="inline-block rounded-full bg-trigo px-4 py-1.5 text-base font-bold text-ink">
               Actualizado el {PORTADA.actualizado}
             </p>
-            <h1 className="mt-4 font-slab text-[2.75rem] font-bold leading-[1.05] sm:text-6xl">Hola, familia.</h1>
-            <div className="mt-6 max-w-xl space-y-4 text-[1.1875rem] leading-relaxed text-white/85">
-              <p>Aquí vamos juntando lo que hemos encontrado de nuestros antepasados: nombres, fechas, lugares y alguna que otra historia.</p>
-              <p>Entra a ver cómo va la investigación. Si tienes una foto, un recuerdo o un nombre que falta, podrás sumarlo.</p>
-            </div>
+            <h1 className="mt-5 font-slab text-[3.25rem] font-bold leading-[1.02] sm:text-7xl">Hola, familia.</h1>
+            <p className="mt-5 max-w-xl text-[1.1875rem] leading-relaxed text-white/90">
+              Aquí vamos juntando lo que hemos encontrado de nuestros antepasados: nombres, fechas, lugares y alguna que otra historia.
+            </p>
             <div className="mt-7">
               <Link
                 href="/login"
@@ -77,7 +75,14 @@ export default function Landing({ stats, surnames = [] }: { stats: PublicStats |
               >
                 Entrar al archivo <span aria-hidden="true">→</span>
               </Link>
-              <p className="mt-4 max-w-md text-base text-white/85">Entra con el correo con el que te invitaron. ¿Aún no tienes acceso? Pídeselo a quien te habló del archivo y te llegará una invitación por correo.</p>
+              <p className="mt-4 flex max-w-md items-start gap-2 text-base font-bold text-white">
+                <svg viewBox="0 0 24 24" className="mt-0.5 h-5 w-5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="5" y="11" width="14" height="9" rx="2" />
+                  <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+                </svg>
+                Archivo privado: solo entra la familia, con invitación.
+              </p>
+              <p className="mt-2 max-w-md text-base text-white/85">Entra con el correo con el que te invitaron. ¿Aún no tienes acceso? Pídeselo a quien te habló del archivo y te llegará una invitación por correo.</p>
             </div>
             {items.length > 0 && (
               <div className="mt-10 grid max-w-md grid-cols-3 gap-4 border-t border-white/15 pt-6">
@@ -88,8 +93,22 @@ export default function Landing({ stats, surnames = [] }: { stats: PublicStats |
             )}
           </div>
 
-          {/* Fichas tiradas en el suelo: de antepasados fallecidos; al pasar el mouse se agrandan */}
-          <ScatteredCards className="mx-auto hidden h-[31rem] w-full max-w-[32rem] sm:block" />
+          {/* Una ficha grande y legible con un hallazgo; detrás, otras dos asoman como un montón. */}
+          <div className="relative mx-auto w-full max-w-[26rem] pb-4 pt-6" aria-label={`${PORTADA.destacado.tipo}: ${PORTADA.destacado.nombre}`} role="group">
+            <div aria-hidden="true" className="absolute inset-x-6 top-0 h-[92%] rotate-[5deg] rounded-md bg-[#eae3d2] shadow-[0_10px_24px_-10px_rgba(0,0,0,0.6)]" />
+            <div aria-hidden="true" className="absolute inset-x-3 top-2 h-[92%] -rotate-[4deg] rounded-md bg-[#efe8d9] shadow-[0_10px_24px_-10px_rgba(0,0,0,0.6)]" />
+            <article className="relative -rotate-[1.5deg] rounded-md bg-[#f7f4ed] p-6 pb-7 text-ink shadow-[0_28px_44px_-14px_rgba(0,0,0,0.8)] sm:p-8">
+              <span aria-hidden="true" className="absolute -top-3 left-1/2 h-7 w-28 -translate-x-1/2 rotate-[-2deg] bg-trigo/90" />
+              <p className="flex items-center justify-between font-maquina text-base uppercase tracking-[0.1em] text-gris">
+                <span>{PORTADA.destacado.tipo}</span>
+                <span>{PORTADA.destacado.lugar}</span>
+              </p>
+              <div className="mt-2 h-px bg-terra" aria-hidden="true" />
+              <h2 className="mt-4 font-maquina text-[1.875rem] leading-tight sm:text-[2.25rem]">{PORTADA.destacado.nombre}</h2>
+              <p className="mt-3 text-[1.1875rem] leading-relaxed">{PORTADA.destacado.frase}</p>
+              <p className="mt-4 text-base text-gris">Así de difícil es a veces encontrar a nuestros antepasados.</p>
+            </article>
+          </div>
         </main>
       </section>
       <div className="alero-tejas [--tj:var(--color-burdeos)]" aria-hidden="true" />
@@ -114,15 +133,21 @@ export default function Landing({ stats, surnames = [] }: { stats: PublicStats |
         <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 sm:py-20">
           <h2 className="al-titulo al-regla !text-[1.75rem] sm:!text-4xl">Lo último que encontramos</h2>
           <p className="mt-3 max-w-2xl text-lg text-gris">Algunas historias que fueron apareciendo en los registros.</p>
-          <ul className="mt-10 grid gap-5 md:grid-cols-2">
+          <ol className="relative ml-3 mt-10 space-y-10 border-l-2 border-terra/40 md:ml-4">
             {PORTADA.hallazgos.map((h) => (
-              <li key={h.titulo} className="rounded-2xl bg-white p-6 shadow-[0_6px_18px_-12px_rgba(0,0,0,0.4)] ring-1 ring-black/5">
-                <p className="text-base font-bold uppercase tracking-[0.1em] text-teja">{h.cuando}</p>
-                <h3 className="mt-2 text-[1.25rem] font-bold leading-snug">{h.titulo}</h3>
-                <p className="mt-2 text-[1.0625rem] leading-relaxed text-gris">{h.texto}</p>
+              <li key={h.titulo} className="relative pl-8 md:pl-10">
+                <span aria-hidden="true" className="absolute -left-[0.6875rem] top-2 h-5 w-5 rounded-full bg-trigo ring-4 ring-adobe-2" />
+                <div className="grid gap-x-8 gap-y-1 md:grid-cols-[7rem_1fr] md:items-baseline">
+                  <p className="font-maquina text-[2.25rem] leading-none text-terra">{h.anio}</p>
+                  <div className="max-w-3xl rounded-2xl bg-white p-6 shadow-[0_6px_18px_-12px_rgba(0,0,0,0.4)] ring-1 ring-black/5">
+                    <h3 className="text-[1.25rem] font-bold leading-snug">{h.titulo}</h3>
+                    <p className="mt-2 text-[1.0625rem] leading-relaxed text-gris">{h.texto}</p>
+                    <p className="mt-3 text-base font-bold text-teja">Encontrado en {h.cuando.toLowerCase()}</p>
+                  </div>
+                </div>
               </li>
             ))}
-          </ul>
+          </ol>
         </div>
       </section>
 

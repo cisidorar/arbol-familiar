@@ -5,27 +5,32 @@ export const PORTADA = {
   /** Fecha de la última vez que se tocó esta lista (texto libre). */
   actualizado: "21 de octubre de 2026",
 
-  /** "Lo último que encontramos": cada entrada es una historia corta. */
+  /** La ficha grande de la portada: un hallazgo contado en pocas líneas (sin personas vivas). */
+  destacado: {
+    tipo: "Hallazgo",
+    nombre: "Dominga Bravo",
+    lugar: "Registros de Maipo",
+    frase: "La escribieron de tres maneras: «Domingo Bravo», «Dominga Urabo» y «Dominga Brabo».",
+  },
+
+  /** "Lo último que encontramos": cada entrada (ordenadas por el año del hecho; `cuando` es cuándo lo encontramos) es una historia corta. */
   hallazgos: [
     {
+      anio: "1849",
       cuando: "Octubre 2026",
       titulo: "Pabla Araya, la madre de Juan",
       texto:
         "En el matrimonio de 1849 con Isidoro Balcázar, a Pabla (nacida hacia 1829) solo se le nombra a su madre, Anastacia. Su hijo Juan Balcázar Araya nació en Maipo en 1868. Seguimos buscando de dónde venía.",
     },
     {
+      anio: "1888",
       cuando: "Octubre 2026",
       titulo: "Los padrinos de Manuel Zamora",
       texto:
         "Manuel Zamora Galdames nació en San Esteban en 1888. Sus padrinos fueron David Saavedra y Margarita Zamora, parientes de su papá: ese detalle ayudó a confirmar que estábamos siguiendo a la familia correcta.",
     },
     {
-      cuando: "Octubre 2026",
-      titulo: "Dominga Bravo, con tres nombres",
-      texto:
-        "En los registros de Maipo a Dominga Bravo la escribieron como “Domingo Bravo”, “Dominga Urabo” y “Dominga Brabo”. Así de difícil es a veces encontrar a nuestros antepasados.",
-    },
-    {
+      anio: "1924",
       cuando: "Septiembre 2026",
       titulo: "La zapatería de Celedonio Morales",
       texto:
