@@ -80,7 +80,7 @@ export default function AncestorRoulette({ people, initialId }: { people: Roulet
   const shuffling = phase === "shuffle";
 
   return (
-    <section id="te-toco" aria-label="Te tocó" className="grid items-center gap-6 on-dark tapa rounded-3xl bg-burdeos p-5 text-adobe sm:p-8 md:grid-cols-[minmax(0,22rem)_1fr] md:gap-10">
+    <section id="te-toco" aria-label="Te tocó" className="grid items-center gap-6 on-dark tapa rounded-3xl bg-burdeos p-5 text-adobe sm:p-8 md:min-h-[29rem] md:grid-cols-[minmax(0,22rem)_1fr] md:gap-10">
       <div className="relative [perspective:900px] sm:min-h-[11.5rem]">
         <Link
           href={`/persona/${cur.id}`}
@@ -113,15 +113,15 @@ export default function AncestorRoulette({ people, initialId }: { people: Roulet
         <div className="mt-5 flex flex-wrap items-center gap-3">
           <Link
             href={`/persona/${cur.id}`}
-            className="al-mueve inline-flex min-h-12 items-center rounded-full bg-trigo px-7 py-2 text-[1.125rem] font-bold text-ink hover:bg-white"
+            className="al-mueve inline-flex min-h-12 items-center rounded-full border-2 border-adobe px-7 py-2 text-[1.125rem] font-bold text-adobe hover:bg-adobe hover:text-burdeos"
           >
             Conocer su historia
           </Link>
           <button
             type="button"
             onClick={spin}
-            disabled={shuffling}
-            className="al-mueve inline-flex min-h-12 items-center px-3 py-2 text-[1.125rem] font-bold text-adobe underline decoration-2 underline-offset-4 hover:text-trigo disabled:opacity-60"
+            aria-disabled={shuffling}
+            className="al-mueve inline-flex min-h-12 items-center px-3 py-2 text-[1.125rem] font-bold text-adobe underline decoration-2 underline-offset-4 hover:text-trigo aria-disabled:opacity-60"
           >
             Otro al azar
           </button>

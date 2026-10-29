@@ -70,7 +70,7 @@ function DateRow({ it, today, i }: { it: FamilyDateItem; today: boolean; i: numb
   const when = it.inDays === 0 ? "Hoy" : it.inDays === 1 ? "Mañana" : `En ${it.inDays} días`;
   return (
     // Una conmemoración (fallecimiento) va derecha y sin giro: se recuerda, no se celebra.
-    <li className={`flex items-center gap-4 rounded-2xl border-2 bg-white p-4 ${today ? "border-ink" : "border-line"} ${it.kind === "muere" ? "" : i % 2 ? "rotate-[0.5deg]" : "-rotate-[0.5deg]"}`}>
+    <li className={`${i >= 4 ? "hidden md:flex" : "flex"} items-center gap-4 rounded-2xl border-2 bg-white p-4 ${today ? "border-ink" : "border-line"} ${it.kind === "muere" ? "" : i % 2 ? "rotate-[0.5deg]" : "-rotate-[0.5deg]"}`}>
       <span
         className={`grid h-[4.5rem] w-[4.5rem] shrink-0 place-items-center rounded-full border-4 border-double border-adobe text-center leading-none ${TILE[it.kind]}`}
         aria-hidden="true"
@@ -93,7 +93,7 @@ const PATHS: { href: string; title: string; text: string; tone: string; num: str
     href: "/",
     title: "Árbol",
     text: "Recorre a la familia, generación por generación.",
-    tone: "bg-teja text-adobe",
+    tone: "bg-trigo text-ink",
     num: "N.º 1",
     icon: <path d="M12 21V9m0 4-5-4m5 1 5-4M12 9V3m0 0-3 3m3-3 3 3" />,
   },
@@ -210,7 +210,9 @@ export default async function InicioPage() {
     <div className="zb album min-h-screen text-ink [color-scheme:light]">
       <SectionHeader current="inicio" hideSearch />
 
-      <header className="relative overflow-hidden">
+      <header className="relative">
+        {/* Las decoraciones (parra y sello) van en su propia capa recortada: el desplegable del buscador no debe cortarse. */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
         <svg aria-hidden="true" viewBox="0 0 120 320" className="pointer-events-none absolute -right-4 top-0 h-72 w-24 text-parra opacity-25 sm:right-4 sm:h-80 sm:w-28">
           <path d="M60 320C60 240 30 220 50 150S90 80 60 0" fill="none" stroke="currentColor" strokeWidth="4" />
           {[40, 90, 140, 190, 240].map((y, i) => (
@@ -226,6 +228,7 @@ export default async function InicioPage() {
           <circle cx="50" cy="50" r="38" fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3 3" />
           <path d="M50 72V46m0 6-10-8m10 5 10-8M50 46V30m0 0-6 6m6-6 6 6" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
+        </div>
         <div className="relative mx-auto grid max-w-6xl gap-10 px-4 pb-10 pt-8 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:pb-14 lg:pt-10">
           <div>
             <p className="zb-etiqueta !text-burdeos capitalize">{dateLabel}</p>
@@ -238,12 +241,12 @@ export default async function InicioPage() {
               Ir al árbol <span aria-hidden="true" className="transition-transform duration-200 group-hover:translate-x-1">→</span>
             </Link>
 
-            <div className="mt-6 max-w-xl rounded-2xl bg-trigo p-4">
+            <div className="relative z-20 mt-6 max-w-xl rounded-2xl bg-trigo p-4">
               <InicioSearch />
             </div>
             {me && (
               <Link href={`/persona/${me.id}`} className="mt-3 inline-flex min-h-12 items-center px-1 py-2 text-[1.125rem] font-bold underline decoration-2 underline-offset-4 hover:text-teja">
-                Mi ficha
+                Ver mi ficha
               </Link>
             )}
           </div>
@@ -272,12 +275,12 @@ export default async function InicioPage() {
           <ul className="mt-5 grid gap-5 md:grid-cols-3">
             {PATHS.map((c) => (
               <li key={c.href}>
-                <Link href={c.href} className={`sello al-mueve group flex h-full min-h-28 flex-col justify-between gap-3 p-5 hover:-translate-y-1 sm:min-h-48 sm:p-7 ${c.tone}`}>
+                <Link href={c.href} className={`sello al-mueve group flex h-full min-h-24 flex-row items-center gap-4 p-5 hover:-translate-y-1 sm:min-h-48 sm:flex-col sm:items-stretch sm:justify-between sm:gap-3 sm:p-7 ${c.tone}`}>
                   <span className="flex items-center justify-between">
                     <svg aria-hidden="true" viewBox="0 0 24 24" className="h-9 w-9 fill-none stroke-current" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                       {c.icon}
                     </svg>
-                    <span className="font-maquina text-[1.125rem]">{c.num}</span>
+                    <span className="hidden font-maquina text-[1.125rem] sm:inline">{c.num}</span>
                   </span>
                   <span>
                     <span className="block font-slab text-[1.625rem] font-bold leading-tight">{c.title}</span>

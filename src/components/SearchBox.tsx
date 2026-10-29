@@ -32,6 +32,8 @@ export default function SearchBox({
   const [searched, setSearched] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+  const listId = `${id}-lista`;
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -65,20 +67,39 @@ export default function SearchBox({
         {label ?? "Buscar:"}
       </label>
       <div className="relative min-w-0 flex-1">
+        {/* Lo que pasó con la búsqueda, dicho para el lector de pantalla. */}
+        <p role="status" className="sr-only">
+          {searched ? (results.length ? `${results.length} ${results.length === 1 ? "resultado" : "resultados"}` : "No encontramos a nadie") : ""}
+        </p>
         <input
           id={id}
           type="search"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           onFocus={() => setOpen(true)}
+          role="combobox"
+          aria-expanded={open && searched && results.length > 0}
+          aria-controls={listId}
+          aria-autocomplete="list"
           onKeyDown={(e) => {
             if (e.key === "Escape") {
               setOpen(false);
               (e.target as HTMLInputElement).blur();
             }
+            // Enter elige al primero de la lista; la flecha hacia abajo entra a la lista.
+            if (e.key === "Enter" && open && searched && results[0]) {
+              e.preventDefault();
+              onSelect(results[0].id);
+              setOpen(false);
+              setQ(results[0].displayName);
+            }
+            if (e.key === "ArrowDown" && open && results.length) {
+              e.preventDefault();
+              listRef.current?.querySelector<HTMLButtonElement>("button")?.focus();
+            }
           }}
           placeholder={placeholder}
-          className={`min-h-12 w-full rounded-lg border-2 ${inputClassName} bg-white py-2 pl-3.5 pr-12 text-[1.125rem] text-ink outline-none placeholder:text-gris/70 focus:border-hombre [&::-webkit-search-cancel-button]:hidden`}
+          className={`min-h-12 w-full rounded-lg border-2 ${inputClassName} bg-white py-2 pl-3.5 pr-12 text-[1.125rem] text-ink outline-none placeholder:text-gris/70 focus:border-ink [&::-webkit-search-cancel-button]:hidden`}
         />
         {q && (
           <button
@@ -95,11 +116,33 @@ export default function SearchBox({
         )}
 
         {open && searched && (
-          <ul className="absolute left-0 top-full z-10 mt-2 max-h-80 w-full min-w-[18rem] overflow-auto rounded-xl border-2 border-line bg-white py-1 text-ink shadow-[0_12px_30px_rgba(0,0,0,0.3)]">
+          <ul
+            ref={listRef}
+            id={listId}
+            role="listbox"
+            aria-label="Resultados"
+            onKeyDown={(e) => {
+              const buttons = [...(listRef.current?.querySelectorAll<HTMLButtonElement>("button") ?? [])];
+              const at = buttons.indexOf(document.activeElement as HTMLButtonElement);
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                buttons[Math.min(at + 1, buttons.length - 1)]?.focus();
+              } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                if (at <= 0) (containerRef.current?.querySelector("input") as HTMLInputElement | null)?.focus();
+                else buttons[at - 1]?.focus();
+              } else if (e.key === "Escape") {
+                setOpen(false);
+                (containerRef.current?.querySelector("input") as HTMLInputElement | null)?.focus();
+              }
+            }}
+            className="absolute left-0 top-full z-30 mt-2 max-h-80 w-full min-w-[18rem] overflow-auto rounded-xl border-2 border-line bg-white py-1 text-ink shadow-[0_12px_30px_rgba(0,0,0,0.3)]">
             {results.length > 0 ? (
               results.map((r) => (
-                <li key={r.id}>
+                <li key={r.id} role="presentation">
                   <button
+                    role="option"
+                    aria-selected={false}
                     className="flex min-h-12 w-full items-center justify-between gap-3 px-4 py-2 text-left text-[1.125rem] hover:bg-paper"
                     onClick={() => {
                       onSelect(r.id);
@@ -116,7 +159,7 @@ export default function SearchBox({
               ))
             ) : (
               <li className="px-4 py-3 text-[1.125rem] text-gris">
-                No encontramos a nadie con &laquo;{q}&raquo;. Prueba con solo el apellido.
+                No encontramos a nadie con &laquo;{q}&raquo;. Prueba con solo el apellido o con menos letras.
               </li>
             )}
           </ul>
