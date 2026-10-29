@@ -80,7 +80,7 @@ export default function AncestorRoulette({ people, initialId }: { people: Roulet
   const shuffling = phase === "shuffle";
 
   return (
-    <section id="te-toco" aria-label="Te tocó" className="grid items-center gap-6 on-dark tapa rounded-3xl bg-burdeos p-5 text-adobe sm:p-8 md:min-h-[26rem] md:grid-cols-[minmax(0,22rem)_1fr] md:gap-10">
+    <section id="te-toco" aria-label="Te tocó" className="grid items-center gap-4 on-dark tapa rounded-3xl bg-burdeos p-4 text-adobe sm:gap-6 sm:p-8 md:min-h-[26rem] md:grid-cols-[minmax(0,22rem)_1fr] md:gap-10">
       <div className="relative [perspective:900px] sm:min-h-[11.5rem]">
         <Link
           href={`/persona/${cur.id}`}
@@ -98,9 +98,9 @@ export default function AncestorRoulette({ people, initialId }: { people: Roulet
               {shown.name.trim().charAt(0)}
             </span>
           </div>
-          <div className="mt-3 min-h-[3.25rem] border-b-2 border-teja pb-2 zb-etiqueta !text-ink">{shown.rel}</div>
-          <p key={shown.id} className={`mt-3 min-h-[4.5rem] font-slab text-[1.75rem] font-bold leading-tight ${shuffling ? "azb-reel" : ""}`}>{shown.name}</p>
-          <p className="zb-texto mt-2 min-h-[3.25rem]">{shown.place}</p>
+          <div className="mt-3 min-h-[2.75rem] border-b-2 sm:min-h-[3.25rem] border-teja pb-2 zb-etiqueta !text-ink">{shown.rel}</div>
+          <p key={shown.id} className={`mt-2 min-h-[4rem] font-slab text-[1.5rem] sm:mt-3 sm:min-h-[4.5rem] sm:text-[1.75rem] font-bold leading-tight ${shuffling ? "azb-reel" : ""}`}>{shown.name}</p>
+          <p className="zb-texto mt-1 min-h-[3.25rem] sm:mt-2">{shown.place}</p>
           <p className="mt-3 font-maquina text-[1.125rem] text-gris">{shown.years}</p>
         </Link>
       </div>

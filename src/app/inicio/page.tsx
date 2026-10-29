@@ -101,7 +101,7 @@ const PATHS: { href: string; title: string; text: string; tone: string; num: str
   },
   {
     href: "/mapa",
-    title: "Mapa de orígenes",
+    title: "Mapa",
     text: "Las comunas donde nacieron tus antepasados.",
     tone: "bg-parra text-adobe",
     num: "N.º 2",
@@ -109,7 +109,7 @@ const PATHS: { href: string; title: string; text: string; tone: string; num: str
   },
   {
     href: "/cementerios",
-    title: "Dónde descansan",
+    title: "Descansan",
     text: "Cementerios, tumbas y cómo llegar.",
     tone: "bg-burdeos text-adobe",
     num: "N.º 3",

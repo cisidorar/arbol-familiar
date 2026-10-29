@@ -181,7 +181,7 @@ export default function SearchBox({
                   >
                     <span className="min-w-0">
                       {r.displayName}
-                      {r.parents && <span className="block truncate text-base text-gris">Padres: {r.parents}</span>}
+                      {r.parents && <span className="block text-base leading-snug text-gris">Padres: {r.parents}</span>}
                     </span>
                     <span className="shrink-0 text-base text-gris">
                       {r.birthYear ?? "año desconocido"} {!r.isLiving && (<><span aria-hidden="true">†</span><span className="sr-only">fallecido</span></>)}

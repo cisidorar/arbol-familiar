@@ -13,8 +13,8 @@ const NAV: { key: Exclude<Section, "admin">; href: string; label: string; short?
   { key: "inicio", href: "/inicio", label: "Inicio" },
   { key: "arbol", href: "/", label: "Árbol" },
   { key: "mapa", href: "/mapa", label: "Mapa" },
-  { key: "pendientes", href: "/pendientes", label: "Tareas", adminOnly: true },
   { key: "cementerios", href: "/cementerios", label: "Descansan" },
+  { key: "pendientes", href: "/pendientes", label: "Tareas", adminOnly: true },
 ];
 
 /**
