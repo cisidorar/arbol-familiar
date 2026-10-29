@@ -9,6 +9,13 @@ interface Result {
   isLiving: boolean;
 }
 
+const normText = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+/** 0: el nombre empieza con lo escrito; 1: alguna palabra del nombre empieza así; 2: lo demás. */
+const rankOf = (name: string, needle: string) => {
+  const n = normText(name);
+  return n.startsWith(needle) ? 0 : n.split(/\s+/).some((w) => w.startsWith(needle)) ? 1 : 2;
+};
+
 export default function SearchBox({
   onSelect,
   placeholder = "Buscar persona o lugar",
@@ -45,7 +52,9 @@ export default function SearchBox({
     debounceRef.current = setTimeout(async () => {
       const res = await fetch(`/api/persons/search?q=${encodeURIComponent(q)}`);
       const json = await res.json();
-      setResults(json.results);
+      // Primero los que empiezan con lo escrito (o tienen una palabra que empieza así): Enter abre el más probable, no el primero del abecedario.
+      const needle = normText(q.trim());
+      setResults([...(json.results as Result[])].sort((a, b) => rankOf(a.displayName, needle) - rankOf(b.displayName, needle)));
       setSearched(true);
       setOpen(true);
     }, 200);
@@ -76,7 +85,10 @@ export default function SearchBox({
           type="search"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          onFocus={() => setOpen(true)}
+          onFocus={() => {
+            setOpen(true);
+            if (window.innerWidth < 640) containerRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+          }}
           role="combobox"
           aria-expanded={open && searched && results.length > 0}
           aria-controls={listId}
@@ -86,12 +98,20 @@ export default function SearchBox({
               setOpen(false);
               (e.target as HTMLInputElement).blur();
             }
-            // Enter elige al primero de la lista; la flecha hacia abajo entra a la lista.
+            // Enter abre el resultado si es uno solo y claro; si no, entra a la lista. La flecha hacia abajo también entra.
             if (e.key === "Enter" && open && searched && results[0]) {
               e.preventDefault();
-              onSelect(results[0].id);
-              setOpen(false);
-              setQ(results[0].displayName);
+              const needle = normText(q.trim());
+              const best = results.filter((r) => rankOf(r.displayName, needle) === 0);
+              // Un solo resultado claro: se abre. Con varios parecidos (un apellido repetido), se pasa a la lista para elegir.
+              if (results.length === 1 || best.length === 1) {
+                const pick = results.length === 1 ? results[0] : best[0];
+                onSelect(pick.id);
+                setOpen(false);
+                setQ(pick.displayName);
+              } else {
+                listRef.current?.querySelector<HTMLButtonElement>("button")?.focus();
+              }
             }
             if (e.key === "ArrowDown" && open && results.length) {
               e.preventDefault();
@@ -136,7 +156,7 @@ export default function SearchBox({
                 (containerRef.current?.querySelector("input") as HTMLInputElement | null)?.focus();
               }
             }}
-            className="absolute left-0 top-full z-30 mt-2 max-h-80 w-full min-w-[18rem] overflow-auto rounded-xl border-2 border-line bg-white py-1 text-ink shadow-[0_12px_30px_rgba(0,0,0,0.3)]">
+            className="absolute left-0 top-full z-30 mt-2 max-h-[min(20rem,42dvh)] w-full min-w-[18rem] overflow-auto rounded-xl border-2 border-line bg-white py-1 text-ink shadow-[0_12px_30px_rgba(0,0,0,0.3)]">
             {results.length > 0 ? (
               results.map((r) => (
                 <li key={r.id} role="presentation">
@@ -152,7 +172,7 @@ export default function SearchBox({
                   >
                     <span>{r.displayName}</span>
                     <span className="shrink-0 text-base text-gris">
-                      {r.birthYear ?? "sin año"} {!r.isLiving && "†"}
+                      {r.birthYear ?? "sin año"} {!r.isLiving && (<><span aria-hidden="true">†</span><span className="sr-only">fallecido</span></>)}
                     </span>
                   </button>
                 </li>

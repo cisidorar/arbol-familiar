@@ -46,7 +46,7 @@ function Names({ people }: { people: { id: string; name: string }[] }) {
 function sentence(it: FamilyDateItem) {
   const date = <span className="sr-only"> (el {it.day} de {MONTH_FULL[it.month - 1]})</span>;
   const people = <Names people={it.people} />;
-  const place = it.place ? ` en ${it.place}` : "";
+  const place = it.place ? ` en ${shortPlace(it.place)}` : "";
   switch (it.kind) {
     case "cumple":
       return <>{people} cumple {plural(it.years, "año", "años")}{date}</>;
@@ -159,9 +159,11 @@ export default async function InicioPage() {
     const p = byId.get(a.id);
     const place = a.origin.kind === "none" ? null : shortPlace(a.origin.label);
     const lived = p?.birth && p?.death && p.death > p.birth ? `Vivió ${p.death - p.birth} años.` : "";
+    const kids = byId.get(a.id)?.rels.children.length ?? 0;
+    const kidsText = kids > 0 ? `Tuvo ${kids === 1 ? "1 hijo/a" : `${kids} hijos`}.` : "";
     // El sello ya dice quién es, dónde y cuándo nació: el párrafo suma solo lo que el sello no dice.
     const oldest = p?.birth && p.birth === minBirth ? "Es el antepasado más antiguo del archivo." : "";
-    const blurb = [oldest, lived].filter(Boolean).join(" ") || "Una persona de tu familia. Conoce su historia.";
+    const blurb = [oldest, lived, kidsText].filter(Boolean).join(" ") || "Una persona de tu familia. Conoce su historia.";
     return {
       id: a.id,
       name: a.name,
