@@ -98,9 +98,9 @@ export default function AncestorRoulette({ people, initialId }: { people: Roulet
               {shown.name.trim().charAt(0)}
             </span>
           </div>
-          <div className="mt-3 border-b-2 border-teja pb-2 zb-etiqueta !text-ink">{shown.rel}</div>
-          <p key={shown.id} className={`mt-3 min-h-[3.5rem] font-slab text-[1.75rem] font-bold leading-tight ${shuffling ? "azb-reel" : ""}`}>{shown.name}</p>
-          {shown.place && <p className="zb-texto mt-2">{shown.place}</p>}
+          <div className="mt-3 min-h-[3.25rem] border-b-2 border-teja pb-2 zb-etiqueta !text-ink">{shown.rel}</div>
+          <p key={shown.id} className={`mt-3 min-h-[4.5rem] font-slab text-[1.75rem] font-bold leading-tight ${shuffling ? "azb-reel" : ""}`}>{shown.name}</p>
+          <p className="zb-texto mt-2 min-h-[3.25rem]">{shown.place}</p>
           <p className="mt-3 font-maquina text-[1.125rem] text-gris">{shown.years}</p>
         </Link>
       </div>

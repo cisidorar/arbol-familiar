@@ -15,7 +15,7 @@ const normText = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLow
 /** 0: el nombre empieza con lo escrito; 1: alguna palabra del nombre empieza así; 2: lo demás. */
 const rankOf = (name: string, needle: string) => {
   const n = normText(name);
-  return n.startsWith(needle) ? 0 : n.split(/\s+/).some((w) => w.startsWith(needle)) ? 1 : 2;
+  return n.startsWith(needle) || (needle.includes(" ") && n.includes(needle)) ? 0 : n.split(/\s+/).some((w) => w.startsWith(needle)) ? 1 : 2;
 };
 
 export default function SearchBox({
