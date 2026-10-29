@@ -133,6 +133,26 @@ export default function Landing({ stats, surnames = [] }: { stats: PublicStats |
         </section>
       )}
 
+      {/* Cómo entrar */}
+      <section id="como-entrar" className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 sm:py-20">
+        <h2 className="al-titulo al-regla !text-[1.75rem] sm:!text-4xl">¿Cómo entro?</h2>
+        <ol className="mt-8 grid gap-4 md:grid-cols-3">
+          {[
+            ["1", "Pide la invitación", "A quien te habló del archivo. Si la perdiste, que te la reenvíe."],
+            ["2", "Revisa tu correo", "Te llega un mensaje con el enlace para crear tu cuenta. Si no aparece, mira en spam."],
+            ["3", "Entra con ese correo", "Siempre con el mismo con el que te invitaron: con otro correo no funciona."],
+          ].map(([n, t, d]) => (
+            <li key={n} className="flex gap-4 rounded-2xl bg-white p-5 shadow-[0_6px_18px_-12px_rgba(0,0,0,0.4)] ring-1 ring-black/5">
+              <span aria-hidden="true" className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-burdeos font-maquina text-2xl text-adobe">{n}</span>
+              <div>
+                <h3 className="text-[1.25rem] font-bold leading-snug">{t}</h3>
+                <p className="mt-1 text-[1.0625rem] leading-relaxed text-gris">{d}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </section>
+
       {/* Lo último que encontramos */}
       <section className="bg-adobe-2">
         <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 sm:py-20">
@@ -154,26 +174,6 @@ export default function Landing({ stats, surnames = [] }: { stats: PublicStats |
             ))}
           </ol>
         </div>
-      </section>
-
-      {/* Cómo entrar */}
-      <section id="como-entrar" className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 sm:py-20">
-        <h2 className="al-titulo al-regla !text-[1.75rem] sm:!text-4xl">¿Cómo entro?</h2>
-        <ol className="mt-8 grid gap-4 md:grid-cols-3">
-          {[
-            ["1", "Pide la invitación", "A quien te habló del archivo. Si la perdiste, que te la reenvíe."],
-            ["2", "Revisa tu correo", "Te llega un mensaje con el enlace para crear tu cuenta."],
-            ["3", "Entra con ese correo", "Siempre con el mismo con el que te invitaron."],
-          ].map(([n, t, d]) => (
-            <li key={n} className="flex gap-4 rounded-2xl bg-white p-5 shadow-[0_6px_18px_-12px_rgba(0,0,0,0.4)] ring-1 ring-black/5">
-              <span aria-hidden="true" className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-burdeos font-maquina text-2xl text-adobe">{n}</span>
-              <div>
-                <h3 className="text-[1.25rem] font-bold leading-snug">{t}</h3>
-                <p className="mt-1 text-[1.0625rem] leading-relaxed text-gris">{d}</p>
-              </div>
-            </li>
-          ))}
-        </ol>
       </section>
 
       {/* Aportar */}
