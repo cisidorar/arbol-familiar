@@ -110,7 +110,7 @@ const PATHS: { href: string; title: string; text: string; tone: string; num: str
   {
     href: "/cementerios",
     title: "Descansan",
-    text: "Cementerios, tumbas y cómo llegar.",
+    text: "Dónde descansan: cementerios, tumbas y cómo llegar.",
     tone: "bg-burdeos text-adobe",
     num: "N.º 3",
     icon: <path d="M6 21V9a6 6 0 0 1 12 0v12M3 21h18M12 8v6m-2.5-3.5h5" />,
