@@ -59,7 +59,7 @@ export default function Landing({ stats, surnames = [] }: { stats: PublicStats |
           </Link>
         </header>
 
-        <main className="mx-auto grid w-full max-w-6xl gap-8 px-4 pb-16 pt-8 sm:px-6 sm:pt-12 lg:grid-cols-2 lg:items-center lg:gap-10 lg:pb-20">
+        <main className="mx-auto grid w-full max-w-6xl gap-8 px-4 pb-14 pt-8 sm:px-6 sm:pt-12 lg:grid-cols-2 lg:items-center lg:gap-x-10 lg:gap-y-8 lg:pb-20">
           <div>
             <p className="inline-block rounded-full bg-trigo px-4 py-1.5 text-base font-bold text-ink">
               Actualizado el {PORTADA.actualizado}
@@ -82,20 +82,17 @@ export default function Landing({ stats, surnames = [] }: { stats: PublicStats |
                 </svg>
                 Archivo privado: solo entra la familia, con invitación.
               </p>
-              <p className="mt-2 max-w-md text-base text-white/90">Entra con el correo con el que te invitaron.</p>
-              <p className="mt-1 max-w-md text-base text-white/90">¿Aún no tienes acceso? Pídeselo a quien te habló del archivo.</p>
+              <p className="mt-2 max-w-md text-base text-white/90">
+                Entra con el correo con el que te invitaron.{" "}
+                <a href="#como-entrar" className="inline-flex min-h-12 items-center font-bold text-white underline decoration-2 underline-offset-4 hover:text-trigo">
+                  ¿Aún no tienes acceso?
+                </a>
+              </p>
             </div>
-            {items.length > 0 && (
-              <div className="mt-10 grid max-w-md grid-cols-3 gap-4 border-t border-white/15 pt-6">
-                {items.map((s) => (
-                  <Stat key={s.label} {...s} />
-                ))}
-              </div>
-            )}
           </div>
 
           {/* Una ficha grande y legible con un hallazgo; detrás, otras dos asoman como un montón. */}
-          <div className="relative mx-auto w-full max-w-[26rem] pb-4 pt-6" aria-label={`${PORTADA.destacado.tipo}: ${PORTADA.destacado.nombre}`} role="group">
+          <div className="relative mx-auto w-full max-w-[26rem] pb-4 pt-6 lg:col-start-2 lg:row-span-2 lg:row-start-1" aria-label={`${PORTADA.destacado.tipo}: ${PORTADA.destacado.nombre}`} role="group">
             <div aria-hidden="true" className="absolute inset-x-6 top-0 h-[92%] rotate-[5deg] rounded-md bg-[#eae3d2] shadow-[0_10px_24px_-10px_rgba(0,0,0,0.6)]" />
             <div aria-hidden="true" className="absolute inset-x-3 top-2 h-[92%] -rotate-[4deg] rounded-md bg-[#efe8d9] shadow-[0_10px_24px_-10px_rgba(0,0,0,0.6)]" />
             <article className="relative -rotate-[1.5deg] rounded-md bg-[#f7f4ed] p-6 pb-7 text-ink shadow-[0_28px_44px_-14px_rgba(0,0,0,0.8)] sm:p-8">
@@ -110,6 +107,13 @@ export default function Landing({ stats, surnames = [] }: { stats: PublicStats |
               <p className="mt-4 text-base text-gris">Así de difícil es a veces encontrar a nuestros antepasados.</p>
             </article>
           </div>
+            {items.length > 0 && (
+              <div className="grid max-w-md grid-cols-3 gap-4 border-t border-white/15 pt-6 lg:col-start-1 lg:row-start-2">
+                {items.map((s) => (
+                  <Stat key={s.label} {...s} />
+                ))}
+              </div>
+            )}
         </main>
       </div>
       <div className="alero-tejas [--tj:var(--color-burdeos)]" aria-hidden="true" />
@@ -152,20 +156,45 @@ export default function Landing({ stats, surnames = [] }: { stats: PublicStats |
         </div>
       </section>
 
+      {/* Cómo entrar */}
+      <section id="como-entrar" className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 sm:py-20">
+        <h2 className="al-titulo al-regla !text-[1.75rem] sm:!text-4xl">¿Cómo entro?</h2>
+        <ol className="mt-8 grid gap-4 md:grid-cols-3">
+          {[
+            ["1", "Pide la invitación", "A quien te habló del archivo. Si la perdiste, que te la reenvíe."],
+            ["2", "Revisa tu correo", "Te llega un mensaje con el enlace para crear tu cuenta."],
+            ["3", "Entra con ese correo", "Siempre con el mismo con el que te invitaron."],
+          ].map(([n, t, d]) => (
+            <li key={n} className="flex gap-4 rounded-2xl bg-white p-5 shadow-[0_6px_18px_-12px_rgba(0,0,0,0.4)] ring-1 ring-black/5">
+              <span aria-hidden="true" className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-burdeos font-maquina text-2xl text-adobe">{n}</span>
+              <div>
+                <h3 className="text-[1.25rem] font-bold leading-snug">{t}</h3>
+                <p className="mt-1 text-[1.0625rem] leading-relaxed text-gris">{d}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </section>
+
       {/* Aportar */}
       <section className="on-dark bg-parra text-white">
         <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 sm:py-20">
           <h2 className="max-w-2xl font-slab text-[1.75rem] font-bold leading-tight sm:text-4xl">¿Tienes algo de la familia?</h2>
           <p className="mt-3 max-w-xl text-lg text-white/90">
-            Fotos, actas, cartas o anécdotas de los abuelos: todo suma. Cuando tengas acceso podrás ver el archivo completo y dejar lo tuyo.
+            Cuando tengas acceso podrás ver el archivo completo y dejar lo tuyo. Todo suma:
           </p>
+          <ul className="mt-6 flex flex-wrap gap-3">
+            {["Fotos", "Actas", "Cartas", "Anécdotas de los abuelos", "Un nombre que falta"].map((t) => (
+              <li key={t} className="rounded-full border-2 border-white/60 px-5 py-2 text-[1.0625rem] font-bold">{t}</li>
+            ))}
+          </ul>
         </div>
       </section>
 
       <footer className="on-dark bg-burdeos">
         <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 border-t border-white/15 px-4 py-5 text-base text-white/85 sm:px-6">
           <p>Archivo Zamora Balcázar · Solo para la familia</p>
-          <p>¿Perdiste la invitación? Pídele a quien te habló del archivo que te la reenvíe.</p>
+          <a href="#como-entrar" className="inline-flex min-h-12 items-center underline decoration-2 underline-offset-4 hover:text-white">¿Perdiste la invitación? Mira cómo entrar</a>
         </div>
       </footer>
     </div>
