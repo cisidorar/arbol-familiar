@@ -59,7 +59,7 @@ export default function Landing({ stats, surnames = [] }: { stats: PublicStats |
           </Link>
         </header>
 
-        <main className="mx-auto grid w-full max-w-6xl gap-12 px-4 pb-16 pt-8 sm:px-6 sm:pt-12 lg:grid-cols-2 lg:items-center lg:gap-10 lg:pb-20">
+        <main className="mx-auto grid w-full max-w-6xl gap-8 px-4 pb-16 pt-8 sm:px-6 sm:pt-12 lg:grid-cols-2 lg:items-center lg:gap-10 lg:pb-20">
           <div>
             <p className="inline-block rounded-full bg-trigo px-4 py-1.5 text-base font-bold text-ink">
               Actualizado el {PORTADA.actualizado}
@@ -82,7 +82,8 @@ export default function Landing({ stats, surnames = [] }: { stats: PublicStats |
                 </svg>
                 Archivo privado: solo entra la familia, con invitación.
               </p>
-              <p className="mt-2 max-w-md text-base text-white/85">Entra con el correo con el que te invitaron. ¿Aún no tienes acceso? Pídeselo a quien te habló del archivo y te llegará una invitación por correo.</p>
+              <p className="mt-2 max-w-md text-base text-white/90">Entra con el correo con el que te invitaron.</p>
+              <p className="mt-1 max-w-md text-base text-white/90">¿Aún no tienes acceso? Pídeselo a quien te habló del archivo.</p>
             </div>
             {items.length > 0 && (
               <div className="mt-10 grid max-w-md grid-cols-3 gap-4 border-t border-white/15 pt-6">
@@ -155,7 +156,7 @@ export default function Landing({ stats, surnames = [] }: { stats: PublicStats |
       <section className="on-dark bg-parra text-white">
         <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 sm:py-20">
           <h2 className="max-w-2xl font-slab text-[1.75rem] font-bold leading-tight sm:text-4xl">¿Tienes algo de la familia?</h2>
-          <p className="mt-3 max-w-xl text-lg text-white/80">
+          <p className="mt-3 max-w-xl text-lg text-white/90">
             Fotos, actas, cartas o anécdotas de los abuelos: todo suma. Cuando tengas acceso podrás ver el archivo completo y dejar lo tuyo.
           </p>
         </div>

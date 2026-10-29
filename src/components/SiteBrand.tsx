@@ -15,7 +15,7 @@ export default function SiteBrand({ light = false }: { light?: boolean }) {
       aria-label="Archivo Zamora Balcázar, ir al inicio"
     >
       <Logo size={48} variant={light ? "principal" : "oscuro"} className="shrink-0" />
-      <span className="hidden font-maquina text-sm uppercase leading-tight tracking-[0.06em] min-[360px]:block sm:truncate sm:text-lg">
+      <span className="hidden font-maquina text-base uppercase leading-tight tracking-[0.06em] min-[360px]:block sm:truncate sm:text-lg">
         Archivo Zamora Balcázar
       </span>
     </Link>
