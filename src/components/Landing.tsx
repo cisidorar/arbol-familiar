@@ -31,7 +31,7 @@ function SurnameCard({ s, i }: { s: PublicSurname; i: number }) {
         <p className="shrink-0 font-maquina text-[1.2rem] leading-none text-terra sm:text-[1.625rem]">{s.people}</p>
       </div>
       <div className="mt-2 h-px bg-terra" aria-hidden="true" />
-      <p className="mt-2 text-[0.9375rem] leading-snug text-gris sm:text-base">
+      <p className="mt-2 text-base leading-snug text-gris">
         {s.people === 1 ? "persona" : "personas"} · desde {s.since}
         {s.place ? ` · ${s.place}` : ""}
       </p>
@@ -60,7 +60,7 @@ export default function Landing({ stats, surnames = [] }: { stats: PublicStats |
           </Link>
         </header>
 
-        <div className="mx-auto grid w-full max-w-6xl gap-12 px-4 pb-16 pt-8 sm:px-6 sm:pt-12 lg:grid-cols-2 lg:items-center lg:gap-10 lg:pb-20">
+        <main className="mx-auto grid w-full max-w-6xl gap-12 px-4 pb-16 pt-8 sm:px-6 sm:pt-12 lg:grid-cols-2 lg:items-center lg:gap-10 lg:pb-20">
           <div>
             <p className="text-base font-bold uppercase tracking-[0.14em] text-white/85">
               Actualizado el {PORTADA.actualizado}
@@ -68,7 +68,7 @@ export default function Landing({ stats, surnames = [] }: { stats: PublicStats |
             <h1 className="mt-4 font-slab text-[2.75rem] font-bold leading-[1.05] sm:text-6xl">Hola, familia.</h1>
             <div className="mt-6 max-w-xl space-y-4 text-[1.1875rem] leading-relaxed text-white/85">
               <p>Aquí vamos juntando lo que hemos encontrado de nuestros antepasados: nombres, fechas, lugares y alguna que otra historia.</p>
-              <p>Pasa a mirar cómo va la investigación y, si tienes algo, súmalo: una foto, un recuerdo, un nombre que falta.</p>
+              <p>Entra a ver cómo va la investigación. Si tienes una foto, un recuerdo o un nombre que falta, podrás sumarlo.</p>
             </div>
             <div className="mt-7">
               <Link
@@ -77,6 +77,7 @@ export default function Landing({ stats, surnames = [] }: { stats: PublicStats |
               >
                 Entrar al archivo <span aria-hidden="true">→</span>
               </Link>
+              <p className="mt-4 max-w-md text-base text-white/85">¿Aún no tienes acceso? Pídeselo a quien te habló del archivo.</p>
             </div>
             {items.length > 0 && (
               <div className="mt-10 grid max-w-md grid-cols-3 gap-4 border-t border-white/15 pt-6">
@@ -88,14 +89,14 @@ export default function Landing({ stats, surnames = [] }: { stats: PublicStats |
           </div>
 
           {/* Fichas tiradas en el suelo: de antepasados fallecidos; al pasar el mouse se agrandan */}
-          <ScatteredCards className="mx-auto h-[26rem] w-full max-w-[32rem] sm:h-[31rem]" />
-        </div>
+          <ScatteredCards className="mx-auto hidden h-[31rem] w-full max-w-[32rem] sm:block" />
+        </main>
       </section>
       <div className="alero-tejas [--tj:var(--color-burdeos)]" aria-hidden="true" />
 
       {/* Apellidos */}
       {surnames.length > 0 && (
-        <section className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
+        <section className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 sm:py-20">
           <h2 className="al-titulo al-regla !text-[1.75rem] sm:!text-4xl">Nuestros apellidos</h2>
           <p className="mt-3 max-w-2xl text-lg text-gris">Las ramas que vamos siguiendo y cuántas personas tiene cada una en el archivo.</p>
           <ul className="mt-10 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
@@ -110,7 +111,7 @@ export default function Landing({ stats, surnames = [] }: { stats: PublicStats |
 
       {/* Lo último que encontramos */}
       <section className="bg-adobe-2">
-        <div className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
+        <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 sm:py-20">
           <h2 className="al-titulo al-regla !text-[1.75rem] sm:!text-4xl">Lo último que encontramos</h2>
           <p className="mt-3 max-w-2xl text-lg text-gris">Algunas historias que fueron apareciendo en los registros.</p>
           <ul className="mt-10 grid gap-5 md:grid-cols-2">
@@ -127,12 +128,11 @@ export default function Landing({ stats, surnames = [] }: { stats: PublicStats |
 
       {/* Aportar */}
       <section className="on-dark bg-parra text-white">
-        <div className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
+        <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 sm:py-20">
           <h2 className="max-w-2xl font-slab text-[1.75rem] font-bold leading-tight sm:text-4xl">¿Tienes algo de la familia?</h2>
           <p className="mt-3 max-w-xl text-lg text-white/80">
             Fotos, actas, cartas o anécdotas de los abuelos: todo suma. Cuando entres al archivo podrás verlo completo y dejar lo tuyo.
           </p>
-          <p className="mt-5 max-w-xl text-base text-white/85">¿Aún no tienes acceso? Pídeselo a quien te habló del archivo.</p>
         </div>
       </section>
 

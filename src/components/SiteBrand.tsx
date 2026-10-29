@@ -14,8 +14,8 @@ export default function SiteBrand({ light = false }: { light?: boolean }) {
       className={`flex min-w-0 items-center gap-2.5 ${light ? "text-ink" : "text-white"}`}
       aria-label="Archivo Zamora Balcázar, ir al inicio"
     >
-      <Logo size={44} variant={light ? "principal" : "oscuro"} className="shrink-0" />
-      <span className="hidden truncate font-maquina text-sm uppercase tracking-[0.06em] min-[420px]:block sm:text-lg">
+      <Logo size={48} variant={light ? "principal" : "oscuro"} className="shrink-0" />
+      <span className="hidden font-maquina text-sm uppercase leading-tight tracking-[0.06em] min-[360px]:block sm:truncate sm:text-lg">
         Archivo Zamora Balcázar
       </span>
     </Link>

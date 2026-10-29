@@ -89,13 +89,13 @@ function Sheet({ card }: { card: Card }) {
         } as React.CSSProperties
       }
     >
-      <div className="flex items-center justify-between font-maquina text-[0.55rem] uppercase tracking-[0.14em] text-gris sm:text-[0.6rem]">
+      <div className="flex items-center justify-between font-maquina text-[0.7rem] uppercase tracking-[0.1em] text-gris sm:text-[0.72rem]">
         <span>{card.kind}</span>
         <span>N.º {card.number}</span>
       </div>
       <div className="mt-0.5 h-px bg-terra" aria-hidden="true" />
-      <p className="mt-1.5 font-maquina text-[0.8rem] leading-tight sm:text-[0.9rem]">{card.name}</p>
-      <p className="mt-1.5 font-maquina text-[0.62rem] text-gris sm:text-[0.7rem]">
+      <p className="mt-1.5 font-maquina text-[0.9rem] leading-tight sm:text-[1rem]">{card.name}</p>
+      <p className="mt-1.5 font-maquina text-[0.75rem] text-gris sm:text-[0.8rem]">
         {card.year}
         {card.place ? ` · ${card.place}` : ""}
       </p>
