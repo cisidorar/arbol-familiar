@@ -54,7 +54,9 @@ export default function SearchBox({
       const json = await res.json();
       // Primero los que empiezan con lo escrito (o tienen una palabra que empieza así): Enter abre el más probable, no el primero del abecedario.
       const needle = normText(q.trim());
-      setResults([...(json.results as Result[])].sort((a, b) => rankOf(a.displayName, needle) - rankOf(b.displayName, needle)));
+      const found = json.results as Result[];
+      const good = found.filter((r) => rankOf(r.displayName, needle) < 2);
+      setResults([...(good.length ? good : found)].sort((a, b) => rankOf(a.displayName, needle) - rankOf(b.displayName, needle)));
       setSearched(true);
       setOpen(true);
     }, 200);
@@ -157,13 +159,18 @@ export default function SearchBox({
               }
             }}
             className="absolute left-0 top-full z-30 mt-2 max-h-[min(20rem,42dvh)] w-full min-w-[18rem] overflow-auto rounded-xl border-2 border-line bg-white py-1 text-ink shadow-[0_12px_30px_rgba(0,0,0,0.3)]">
+            {results.length > 0 && (
+              <li role="presentation" aria-hidden="true" className="px-4 pb-1 pt-2 text-base font-bold text-gris">
+                {results.length} {results.length === 1 ? "resultado" : "resultados"}
+              </li>
+            )}
             {results.length > 0 ? (
               results.map((r) => (
                 <li key={r.id} role="presentation">
                   <button
                     role="option"
                     aria-selected={false}
-                    className="flex min-h-12 w-full items-center justify-between gap-3 px-4 py-2 text-left text-[1.125rem] hover:bg-paper"
+                    className="flex min-h-12 w-full items-center justify-between gap-3 px-4 py-2 text-left text-[1.125rem] hover:bg-paper focus-visible:bg-paper focus-visible:outline-offset-[-3px]"
                     onClick={() => {
                       onSelect(r.id);
                       setOpen(false);
@@ -172,7 +179,7 @@ export default function SearchBox({
                   >
                     <span>{r.displayName}</span>
                     <span className="shrink-0 text-base text-gris">
-                      {r.birthYear ?? "sin año"} {!r.isLiving && (<><span aria-hidden="true">†</span><span className="sr-only">fallecido</span></>)}
+                      {r.birthYear ?? "año desconocido"} {!r.isLiving && (<><span aria-hidden="true">†</span><span className="sr-only">fallecido</span></>)}
                     </span>
                   </button>
                 </li>

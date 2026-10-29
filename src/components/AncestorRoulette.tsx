@@ -80,7 +80,7 @@ export default function AncestorRoulette({ people, initialId }: { people: Roulet
   const shuffling = phase === "shuffle";
 
   return (
-    <section id="te-toco" aria-label="Te tocó" className="grid items-center gap-6 on-dark tapa rounded-3xl bg-burdeos p-5 text-adobe sm:p-8 md:min-h-[29rem] md:grid-cols-[minmax(0,22rem)_1fr] md:gap-10">
+    <section id="te-toco" aria-label="Te tocó" className="grid items-center gap-6 on-dark tapa rounded-3xl bg-burdeos p-5 text-adobe sm:p-8 md:min-h-[26rem] md:grid-cols-[minmax(0,22rem)_1fr] md:gap-10">
       <div className="relative [perspective:900px] sm:min-h-[11.5rem]">
         <Link
           href={`/persona/${cur.id}`}

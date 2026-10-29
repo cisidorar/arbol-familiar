@@ -160,7 +160,8 @@ export default async function InicioPage() {
     const place = a.origin.kind === "none" ? null : shortPlace(a.origin.label);
     const lived = p?.birth && p?.death && p.death > p.birth ? `Vivió ${p.death - p.birth} años.` : "";
     const kids = byId.get(a.id)?.rels.children.length ?? 0;
-    const kidsText = kids > 0 ? `Tuvo ${kids === 1 ? "1 hijo/a" : `${kids} hijos`}.` : "";
+    const onlyChild = kids === 1 ? byId.get(byId.get(a.id)!.rels.children[0])?.gender : null;
+    const kidsText = kids > 1 ? `Tuvo ${kids} hijos.` : kids === 1 ? `Tuvo ${onlyChild === "F" ? "una hija" : onlyChild === "M" ? "un hijo" : "un hijo o una hija"}.` : "";
     // El sello ya dice quién es, dónde y cuándo nació: el párrafo suma solo lo que el sello no dice.
     const oldest = p?.birth && p.birth === minBirth ? "Es el antepasado más antiguo del archivo." : "";
     const blurb = [oldest, lived, kidsText].filter(Boolean).join(" ") || "Una persona de tu familia. Conoce su historia.";
