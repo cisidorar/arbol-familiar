@@ -95,7 +95,7 @@ export default function TreeApp({ data, user, homeId, selfId }: { data: any[]; u
   };
 
   // Sube cada vez que se toca el título: el árbol vuelve a su vista de partida.
-  const [resetKey] = useState(0);
+  const [resetKey, setResetKey] = useState(0);
   const [mainId, setMainId] = useState<string | null>(
     (homeId && data.some((d) => d.id === homeId) ? homeId : null) ?? data[0]?.id ?? null,
   );
@@ -117,6 +117,15 @@ export default function TreeApp({ data, user, homeId, selfId }: { data: any[]; u
     // `version` cambia cuando se agregan o quitan personas (los datos se mutan en el lugar).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, mainId, viewerId, version]);
+
+  // Tocar «Árbol» estando ya en el árbol: vuelve a como se veía al entrar, con quien eres al centro y sus padres.
+  const startId = [selfId, homeId].find((id) => id && data.some((d) => d.id === id)) ?? data[0]?.id ?? null;
+  const resetTree = () => {
+    setSelectedId(null);
+    setTrail([]);
+    setMainId(startId);
+    setResetKey((k) => k + 1);
+  };
 
   const previousId = trail[trail.length - 1] ?? null;
   const previous = previousId ? data.find((d) => d.id === previousId) : null;
@@ -141,6 +150,7 @@ export default function TreeApp({ data, user, homeId, selfId }: { data: any[]; u
         user={user}
         count={data.length}
         floating
+        onResetTree={resetTree}
         onSelectPerson={(id) => {
           // Buscar a alguien es partir de nuevo: no deja un "Volver a…" atrás.
           setSelectedId(id);

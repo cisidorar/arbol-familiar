@@ -29,6 +29,7 @@ export default function AppHeader({
   floating = false,
   hideSearch = false,
   onSelectPerson,
+  onResetTree,
 }: {
   current: Section;
   user: CurrentUser;
@@ -39,6 +40,8 @@ export default function AppHeader({
   hideSearch?: boolean;
   /** En el árbol: centra el dibujo en la persona. En las otras páginas se abre el árbol en ella. */
   onSelectPerson?: (id: string) => void;
+  /** En el árbol: tocar «Árbol» estando ya en él vuelve a la vista de partida (la persona al centro, con sus padres). */
+  onResetTree?: () => void;
 }) {
   const router = useRouter();
   const select = onSelectPerson ?? ((id: string) => router.push(`/?persona=${id}`));
@@ -90,6 +93,14 @@ export default function AppHeader({
                 key={s.key}
                 href={s.href}
                 aria-current={on ? "page" : undefined}
+                onClick={
+                  on && s.key === "arbol" && onResetTree
+                    ? (e) => {
+                        e.preventDefault();
+                        onResetTree();
+                      }
+                    : undefined
+                }
                 className={
                   on
                     ? "flex min-h-12 shrink-0 items-center rounded-full bg-adobe px-3 text-base text-ink sm:px-4 sm:text-[1.125rem]"
@@ -115,7 +126,7 @@ export default function AppHeader({
       </div>
       <div className="alero-tejas pointer-events-none absolute inset-x-0 top-full [--tj:var(--color-burdeos)]" aria-hidden="true" />
     </header>
-    <MobileTabBar current={current} isAdmin={user.role === "admin"} pad={!floating} />
+    <MobileTabBar current={current} isAdmin={user.role === "admin"} pad={!floating} onResetTree={onResetTree} />
     </>
   );
 }

@@ -79,7 +79,18 @@ const TABS: Tab[] = [
  * En el teléfono, las secciones van abajo, siempre a mano (como en las apps).
  * `pad`: la página deja espacio abajo para que la barra no tape el final; el árbol no lo necesita.
  */
-export default function MobileTabBar({ current, isAdmin, pad = true }: { current: Section; isAdmin: boolean; pad?: boolean }) {
+export default function MobileTabBar({
+  current,
+  isAdmin,
+  pad = true,
+  onResetTree,
+}: {
+  current: Section;
+  isAdmin: boolean;
+  pad?: boolean;
+  /** Tocar «Árbol» estando ya en el árbol: vuelve a la vista de partida. */
+  onResetTree?: () => void;
+}) {
   return (
     <nav
       aria-label="Secciones"
@@ -95,6 +106,14 @@ export default function MobileTabBar({ current, isAdmin, pad = true }: { current
                 href={t.href}
                 aria-current={on ? "page" : undefined}
                 aria-label={t.full}
+                onClick={
+                  on && t.key === "arbol" && onResetTree
+                    ? (e) => {
+                        e.preventDefault();
+                        onResetTree();
+                      }
+                    : undefined
+                }
                 className={`flex min-h-[4.5rem] flex-col items-center justify-center gap-1 text-base font-bold leading-none ${on ? "text-white" : "text-white/85"}`}
               >
                 <span className={`grid h-8 w-12 place-items-center rounded-full ${on ? "bg-adobe text-ink" : ""}`}>{t.icon}</span>
