@@ -196,7 +196,7 @@ export async function getPersonCard(treeId: string, personId: string) {
   return rows[0] ? cardData(rows[0], showReview) : null;
 }
 
-export async function searchPersons(treeId: string, query: string) {
+export async function searchPersons(treeId: string, query: string, limit = 30) {
   const normalized = query
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
@@ -215,8 +215,8 @@ export async function searchPersons(treeId: string, query: string) {
      join person_names n on n.person_id = p.id and n.is_primary
      where p.tree_id = $1 and n.search_key like '%' || $2 || '%'
      order by n.display_name
-     limit 30`,
-    [treeId, normalized],
+     limit $3`,
+    [treeId, normalized, limit],
   );
   return rows.map((r) => ({
     id: r.id as string,
@@ -664,4 +664,34 @@ export async function getPersonDetail(treeId: string, personId: string) {
     familiesAsPartner: families,
     parents: asChild[0] ?? null,
   }, viewerEdits);
+}
+
+/**
+ * Solo los vínculos (padres, hijos, parejas) de todas las personas, sin tarjetas ni fechas: lo justo para
+ * calcular cercanías (closeness.ts) rápido, por ejemplo en cada tecla del buscador.
+ */
+export async function getRelationGraph(treeId: string): Promise<{ id: string; rels: { parents: string[]; children: string[]; spouses: string[] } }[]> {
+  const pool = getPool();
+  const { rows: persons } = await pool.query(`select id from persons where tree_id = $1`, [treeId]);
+  const { rows: fams } = await pool.query(
+    `select f.partner1_id, f.partner2_id, coalesce(array_agg(fc.child_id) filter (where fc.child_id is not null), '{}') as kids
+     from families f left join family_children fc on fc.family_id = f.id
+     where f.tree_id = $1 group by f.id`,
+    [treeId],
+  );
+  const map = new Map<string, { id: string; rels: { parents: string[]; children: string[]; spouses: string[] } }>(
+    persons.map((r) => [r.id as string, { id: r.id as string, rels: { parents: [], children: [], spouses: [] } }]),
+  );
+  for (const f of fams) {
+    const partners = [f.partner1_id, f.partner2_id].filter((x): x is string => Boolean(x) && map.has(x));
+    for (const a of partners) {
+      for (const b of partners) if (a !== b && !map.get(a)!.rels.spouses.includes(b)) map.get(a)!.rels.spouses.push(b);
+      for (const k of f.kids as string[]) {
+        if (!map.has(k)) continue;
+        if (!map.get(a)!.rels.children.includes(k)) map.get(a)!.rels.children.push(k);
+        if (!map.get(k)!.rels.parents.includes(a)) map.get(k)!.rels.parents.push(a);
+      }
+    }
+  }
+  return [...map.values()];
 }

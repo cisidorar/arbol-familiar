@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { REVIEW_KINDS, type EventForm, type PersonForm } from "@/lib/edit";
 import { describeRelationship } from "@/lib/relationship";
+import { kinshipPhrase } from "@/lib/lineage";
 import { TOMB_UNKNOWN, cremadoText, isCremationPlace } from "@/lib/cemetery-text";
 import { buttonClass } from "./ui";
 import {
@@ -588,7 +589,18 @@ export default function PersonPanel({
   // actual del árbol (que cambia al navegar o centrar en alguien más).
   const relationshipFocusId = homeId ?? mainId;
   const relationship = useMemo(
-    () => (personId ? relationLabel?.(personId) ?? describeRelationship(data, relationshipFocusId, personId) : null),
+    // Un solo motor de parentesco (lineage.ts), como en la página de la ficha. Solo si no encuentra lazo
+    // (por ejemplo, el cónyuge de un pariente) se cae al de relationship.ts, que sí nombra cuñados y yernos.
+    () => {
+      if (!personId) return null;
+      const custom = relationLabel?.(personId);
+      if (custom) return custom;
+      if (!relationshipFocusId || relationshipFocusId === personId) return null;
+      const graph = data.map((d: any) => ({ id: d.id as string, data: { gender: d.data?.gender, label: d.data?.label }, rels: d.rels }));
+      const k = kinshipPhrase(relationshipFocusId, personId, graph, !homeId);
+      if (k && !/^Pariente \(/.test(k.label)) return k.label;
+      return describeRelationship(data, relationshipFocusId, personId) ?? k?.label ?? null;
+    },
     [data, relationshipFocusId, personId, relationLabel],
   );
 

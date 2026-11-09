@@ -6,6 +6,7 @@ import { getCemeteries } from "@/lib/data/cemeteries";
 import { listUploadedPhotos } from "@/lib/data/cemetery-photos";
 import { canEdit } from "@/lib/auth/roles";
 import { uploadedPhotoUrl } from "@/lib/geo/cemetery-photos";
+import { closeness } from "@/lib/closeness";
 import { getFamilyChartData } from "@/lib/data/tree";
 import { getLinkedPersonId } from "@/lib/data/users";
 import { REGIONES, comunasOfRegion } from "@/lib/geo";
@@ -26,27 +27,12 @@ export default async function CementeriosPage() {
   const graph: GraphPerson[] = people.map((p) => ({ id: p.id, data: { gender: p.data.gender, label: p.data.label }, rels: p.rels }));
   const byId = new Map(graph.map((p) => [p.id, p]));
 
-  // La familia de quien mira: sus antepasados y todos los descendientes de cada uno de ellos (hermanos,
-  // tíos, primos, los primos de sus abuelos y de sus tatarabuelos…), con sus parejas. No entran los
-  // antepasados de esas parejas (por ejemplo, el papá de la esposa de un primo): no son de su sangre.
+  // La familia de quien mira: toda persona con un lazo de sangre con ella (y las parejas de esas personas),
+  // según la misma regla que usa el resto de la app (closeness.ts).
   let blood: Set<string> | null = null;
   if (selfId && byId.has(selfId)) {
-    const up = new Set<string>();
-    let frontier = [selfId];
-    while (frontier.length) {
-      const next: string[] = [];
-      for (const id of frontier) for (const par of byId.get(id)?.rels.parents ?? []) if (!up.has(par)) { up.add(par); next.push(par); }
-      frontier = next;
-    }
-    const family = new Set<string>([selfId, ...up]);
-    frontier = [...family];
-    while (frontier.length) {
-      const next: string[] = [];
-      for (const id of frontier) for (const ch of byId.get(id)?.rels.children ?? []) if (!family.has(ch)) { family.add(ch); next.push(ch); }
-      frontier = next;
-    }
-    blood = new Set(family);
-    for (const id of family) for (const sp of byId.get(id)?.rels.spouses ?? []) blood.add(sp);
+    const rel = new Map(people.map((p) => [p.id, { id: p.id, rels: { parents: p.rels.parents ?? [], children: p.rels.children ?? [], spouses: p.rels.spouses ?? [] } }]));
+    blood = new Set(people.filter((p) => closeness(rel, selfId, p.id) != null).map((p) => p.id));
   }
 
   const places: GuidePlace[] = groups.map((g) => ({ ...g, people: blood ? g.people.filter((b) => blood!.has(b.personId)) : g.people })).filter((g) => g.people.length).map((g) => {

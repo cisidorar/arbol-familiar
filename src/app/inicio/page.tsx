@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import LinkSelf from "@/components/LinkSelf";
@@ -13,6 +12,7 @@ import { getLinkedPersonId } from "@/lib/data/users";
 import { getPersonFacts } from "@/lib/data/origins";
 import { collectAncestors } from "@/lib/origins";
 import { kinshipPhrase, type GraphPerson } from "@/lib/lineage";
+import { closeness } from "@/lib/closeness";
 import { niceKin } from "@/lib/cemetery-text";
 import { buttonClass } from "@/components/ui";
 
@@ -91,38 +91,11 @@ function DateRow({ it, today, i }: { it: FamilyDateItem; today: boolean; i: numb
   );
 }
 
-const PATHS: { href: string; title: string; text: string; tone: string; num: string; icon: ReactNode }[] = [
-  {
-    href: "/",
-    title: "Árbol",
-    text: "Recorre a la familia, generación por generación.",
-    tone: "bg-trigo text-ink",
-    num: "N.º 1",
-    icon: <path d="M12 21V9m0 4-5-4m5 1 5-4M12 9V3m0 0-3 3m3-3 3 3" />,
-  },
-  {
-    href: "/mapa",
-    title: "Mapa",
-    text: "Las comunas donde nacieron tus antepasados.",
-    tone: "bg-parra text-adobe",
-    num: "N.º 2",
-    icon: <path d="M12 21s-6-5.5-6-11a6 6 0 1 1 12 0c0 5.5-6 11-6 11Zm0-8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />,
-  },
-  {
-    href: "/cementerios",
-    title: "Descansan",
-    text: "Dónde descansan: cementerios, tumbas y cómo llegar.",
-    tone: "bg-burdeos text-adobe",
-    num: "N.º 3",
-    icon: <path d="M6 21V9a6 6 0 0 1 12 0v12M3 21h18M12 8v6m-2.5-3.5h5" />,
-  },
-];
-
 export default async function InicioPage() {
   const session = await requireSession();
   const treeId = session.treeId;
   const today = todayInChile();
-  const [chart, selfId, items, facts] = await Promise.all([
+  const [chart, selfId, allItems, facts] = await Promise.all([
     getFamilyChartData(treeId),
     getLinkedPersonId(session.user.id),
     getFamilyOnDates(treeId, today, 14),
@@ -142,6 +115,17 @@ export default async function InicioPage() {
   );
   const me = selfId ? byId.get(selfId) : undefined;
 
+  // Con 400 personas, las fechas parten por la familia cercana: línea directa y parientes cercanos de quien mira.
+  // Sin vínculo con el árbol (todavía no dice quién es), se muestran todas.
+  const closePeople = selfId
+    ? new Map(chart.map((c) => [c.id, { id: c.id, rels: { parents: c.rels.parents ?? [], children: c.rels.children ?? [], spouses: c.rels.spouses ?? [] } }]))
+    : null;
+  const isClose = (it: FamilyDateItem) =>
+    !closePeople || !selfId || it.people.some((p) => {
+      const c = closeness(closePeople, selfId, p.id);
+      return c != null && c.level !== "otro";
+    });
+  const items = allItems.filter(isClose);
   const todayItems = items.filter((i) => i.inDays === 0);
   // Entre las fechas que vienen, no más de 2 fallecimientos: seis seguidas con tres muertes pesan.
   let deaths = 0;
@@ -277,29 +261,6 @@ export default async function InicioPage() {
             </div>
           </section>
         )}
-
-        {/* Elige tu camino */}
-        <section aria-label="Elige tu camino">
-          <h2 className="al-titulo al-regla">Elige tu camino</h2>
-          <ul className="mt-5 grid gap-5 md:grid-cols-3">
-            {PATHS.map((c) => (
-              <li key={c.href} className={c.href === "/" ? "hidden md:block" : ""}>
-                <Link href={c.href} className={`sello al-mueve group flex h-full min-h-24 flex-row items-center gap-4 p-5 hover:-translate-y-1 sm:min-h-48 sm:flex-col sm:items-stretch sm:justify-between sm:gap-3 sm:p-7 ${c.tone}`}>
-                  <span className="flex items-center justify-between">
-                    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-9 w-9 fill-none stroke-current" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      {c.icon}
-                    </svg>
-                    <span className="hidden font-maquina text-[1.125rem] sm:inline">{c.num}</span>
-                  </span>
-                  <span>
-                    <span className="block font-slab text-[1.625rem] font-bold leading-tight">{c.title}</span>
-                    <span className="mt-1 block text-[1.125rem] leading-snug">{c.text}</span>
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
 
         {note && <div className="lg:hidden">{noteCard}</div>}
 
