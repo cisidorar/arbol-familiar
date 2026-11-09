@@ -67,7 +67,7 @@ function DateRow({ it, today, i, far = false }: { it: FamilyDateItem; today: boo
   const when = it.inDays === 0 ? "Hoy" : it.inDays === 1 ? "Mañana" : `En ${it.inDays} días`;
   return (
     // Una conmemoración (fallecimiento) va derecha y sin giro: se recuerda, no se celebra.
-    <li className={`${i >= 3 ? "hidden md:flex" : "flex"} items-center gap-4 relative rounded-2xl border-2 bg-white p-4 hover:border-ink ${today ? "border-ink" : "border-line"} ${it.kind === "muere" ? "" : i % 2 ? "rotate-[0.5deg]" : "-rotate-[0.5deg]"}`}>
+    <li className={`${i >= 4 ? "hidden md:flex" : "flex"} items-center gap-4 relative rounded-2xl border-2 bg-white p-4 hover:border-ink ${today ? "border-ink" : "border-line"} ${it.kind === "muere" ? "" : i % 2 ? "rotate-[0.5deg]" : "-rotate-[0.5deg]"}`}>
       <span
         className={`grid h-[4.5rem] w-[4.5rem] shrink-0 place-items-center rounded-full border-4 border-double border-adobe text-center leading-none ${TILE[it.kind]}`}
         aria-hidden="true"
@@ -125,10 +125,10 @@ export default async function InicioPage() {
       return c != null && c.level !== "otro";
     });
   // La familia cercana tiene pocas fechas exactas (unas 2 cada dos semanas): se mira un mes adelante y, si
-  // quedan menos de 3, se completa con familia extendida de las próximas dos semanas. Los cumpleaños de
+  // quedan menos de 3, se completa con familia extendida de las próximas cuatro semanas. Los cumpleaños de
   // personas vivas son solo de la familia cercana.
   const close = allItems.filter(isClose);
-  const far = close.length >= 3 ? [] : allItems.filter((i) => !isClose(i) && i.kind !== "cumple" && i.inDays < 14).slice(0, 3 - close.length);
+  const far = close.length >= 3 ? [] : allItems.filter((i) => !isClose(i) && i.kind !== "cumple" && i.inDays < 30).slice(0, 3 - close.length);
   const farSet = new Set(far);
   const items = [...close, ...far].sort((a, b) => a.inDays - b.inDays);
   const todayItems = items.filter((i) => i.inDays === 0);
@@ -137,7 +137,7 @@ export default async function InicioPage() {
   const soon = items
     .filter((i) => i.inDays > 0)
     .filter((i) => i.kind !== "muere" || ++deaths <= 2)
-    .slice(0, 6);
+    .slice(0, 12);
 
   // Tus cuatro ramas: por cada abuelo/a, cuánto conocemos hacia atrás.
   type Rama = { id: string; name: string; count: number; gens: number; oldest: { name: string; year: number; place: string | null } | null };
@@ -283,8 +283,8 @@ export default async function InicioPage() {
 
         {/* Fechas */}
         {(todayItems.length > 0 || soon.length > 0) && (
-          <section aria-label={todayItems.length > 0 ? "Hoy en la familia" : "Este mes en la familia"}>
-            <h2 className="al-titulo al-regla">{todayItems.length > 0 ? "Hoy en la familia" : "Este mes en la familia"}</h2>
+          <section aria-label={todayItems.length > 0 ? "Hoy en la familia" : "Próximos 30 días en la familia"}>
+            <h2 className="al-titulo al-regla">{todayItems.length > 0 ? "Hoy en la familia" : "Próximos 30 días en la familia"}</h2>
             <ul className="mt-5 grid gap-4 md:grid-cols-2">
               {todayItems.map((it, i) => (
                 <DateRow key={`t${i}`} it={it} today i={i} far={farSet.has(it)} />
