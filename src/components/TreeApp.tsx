@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { lineToViewer } from "@/lib/tree-nav";
+import { closeness } from "@/lib/closeness";
 import { canEdit } from "@/lib/auth/roles";
 import AppHeader from "./AppHeader";
 import type { CurrentUser } from "./UserMenu";
@@ -118,6 +119,41 @@ export default function TreeApp({ data, user, homeId, selfId }: { data: any[]; u
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, mainId, viewerId, version]);
 
+  // «Mi familia»: solo línea directa y parientes cercanos de quien mira. Con 400 personas el árbol
+  // completo abruma; «Todo el árbol» muestra a todos. Se arma una vez por cambio (las tarjetas
+  // comparten `data` con el original, así que editar a alguien sigue funcionando).
+  const [onlyMine, setOnlyMine] = useState(Boolean(viewerId));
+  const [filterRev, setFilterRev] = useState(0);
+  const filtered = useMemo(() => {
+    if (!onlyMine || !viewerId) return null;
+    const people = new Map<string, { id: string; rels: { parents: string[]; children: string[]; spouses: string[] } }>(
+      data.map((d) => [d.id as string, { id: d.id as string, rels: { parents: d.rels.parents ?? [], children: d.rels.children ?? [], spouses: d.rels.spouses ?? [] } }]),
+    );
+    const keep = new Set<string>();
+    for (const id of people.keys()) {
+      const c = closeness(people, viewerId, id);
+      if (c && c.level !== "otro") keep.add(id);
+    }
+    const only = (ids: string[] | undefined) => (ids ?? []).filter((x) => keep.has(x));
+    const list = data
+      .filter((d) => keep.has(d.id))
+      .map((d) => ({ ...d, rels: { ...d.rels, parents: only(d.rels.parents), children: only(d.rels.children), spouses: only(d.rels.spouses) } }));
+    return { list, keep };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onlyMine, viewerId, filterRev, data]);
+  // Si el centro cae fuera de «Mi familia» (se buscó a alguien lejano), se muestra todo el árbol.
+  useEffect(() => {
+    if (filtered && mainId && !filtered.keep.has(mainId)) setOnlyMine(false);
+  }, [filtered, mainId]);
+  // Se agregó o quitó a alguien: «Mi familia» se vuelve a armar.
+  const lastCount = useRef(data.length);
+  useEffect(() => {
+    if (lastCount.current === data.length) return;
+    lastCount.current = data.length;
+    if (onlyMine) setFilterRev((r) => r + 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.length]);
+
   // Tocar «Árbol» estando ya en el árbol: vuelve a como se veía al entrar, con quien eres al centro y sus padres.
   const startId = [selfId, homeId].find((id) => id && data.some((d) => d.id === id)) ?? data[0]?.id ?? null;
   const resetTree = () => {
@@ -161,7 +197,8 @@ export default function TreeApp({ data, user, homeId, selfId }: { data: any[]; u
 
       <main aria-label="Árbol genealógico" className="h-full w-full pb-[calc(8.5rem+env(safe-area-inset-bottom))] sm:pb-0">
         <FamilyTree
-          data={data}
+          key={filtered ? `mine-${filterRev}` : "all"}
+          data={filtered ? filtered.list : data}
           mainId={mainId}
           line={line}
           version={version}
@@ -214,6 +251,16 @@ export default function TreeApp({ data, user, homeId, selfId }: { data: any[]; u
           </button>
         </div>
 
+        {viewerId && (
+          <button
+            type="button"
+            onClick={() => setOnlyMine((v) => !v)}
+            aria-pressed={onlyMine}
+            className={buttonClass("secundario")}
+          >
+            {onlyMine ? "Ver todo el árbol" : "Solo mi familia"}
+          </button>
+        )}
         {/* Volver a la persona de quien mira: si el árbol está centrado en otro, lo recentra; si no, la trae a la vista. */}
         {viewerId && (
           <button
@@ -237,6 +284,11 @@ export default function TreeApp({ data, user, homeId, selfId }: { data: any[]; u
         >
           {legendOpen ? "× Cerrar" : "? Ayuda"}
         </button>
+        {viewerId && (
+          <button type="button" onClick={() => setOnlyMine((v) => !v)} aria-pressed={onlyMine} className={buttonClass("secundario", "whitespace-nowrap px-3")}>
+            {onlyMine ? "Todo" : "Mi familia"}
+          </button>
+        )}
         {viewerId && (
           <button
             type="button"
