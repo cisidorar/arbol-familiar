@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { closeness, grandparentsOf, sortByCloseness, type ClosenessPerson } from "../closeness";
+import { closeness, closenessLabel, grandparentsOf, sortByCloseness, type ClosenessPerson } from "../closeness";
 
 function fam(spec: Record<string, { p?: string[]; s?: string[] }>): ClosenessPerson[] {
   const kids: Record<string, string[]> = {};
@@ -57,5 +57,10 @@ describe("closeness", () => {
     expect(closeness(withStranger, "yo", "ajeno")).toBeNull();
     const order = sortByCloseness(withStranger, "yo", [{ id: "ajeno" }, { id: "prima" }, { id: "mama" }]);
     expect(order.map((o) => o.id)).toEqual(["mama", "prima", "ajeno"]);
+  });
+  it("arma el texto de la ficha", () => {
+    expect(closenessLabel(closeness(people, "yo", "prima"), "Ana")).toBe("Pariente cercano · rama de Ana");
+    expect(closenessLabel(closeness(people, "yo", "yo"))).toBeNull();
+    expect(closenessLabel(null)).toBeNull();
   });
 });

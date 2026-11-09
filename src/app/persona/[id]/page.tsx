@@ -8,6 +8,7 @@ import { canEdit } from "@/lib/auth/roles";
 import { requireSession } from "@/lib/auth/session";
 import { getFamilyChartData, getPersonDetail } from "@/lib/data/tree";
 import { getLinkedPersonId } from "@/lib/data/users";
+import { closeness, closenessLabel } from "@/lib/closeness";
 import { kinshipPhrase, type GraphPerson } from "@/lib/lineage";
 import { TOMB_UNKNOWN, cremadoText, fallecidoText, isCremationPlace, niceKin } from "@/lib/cemetery-text";
 
@@ -92,6 +93,9 @@ export default async function PersonaPage({ params }: { params: Promise<{ id: st
   const graph: GraphPerson[] = chart.map((p) => ({ id: p.id, data: { gender: p.data.gender, label: p.data.label }, rels: p.rels }));
   const kin = selfId && selfId !== id ? niceKin(kinshipPhrase(selfId, id, graph)?.label) || null : selfId === id ? "Eres tú" : null;
 
+  const near = selfId && selfId !== id ? closeness(chart.map((c) => ({ id: c.id, rels: c.rels })), selfId, id) : null;
+  const nearText = closenessLabel(near, near?.rama ? byId.get(near.rama)?.label : null);
+
   const age = me.birth && me.death ? me.death - me.birth : null;
   const status = me.living ? "Vive" : fallecidoText(me.gender);
   // Primero los hechos con fecha; los que no la tienen van al final.
@@ -127,6 +131,7 @@ export default async function PersonaPage({ params }: { params: Promise<{ id: st
           </span>
           <div className="min-w-0">
             {kin && <p className="font-bold" style={{ color }}>{kin}</p>}
+            {nearText && <p className="zb-apoyo mt-0.5">{nearText}</p>}
             <h1 className="zb-titulo mt-1">{detail.displayName}</h1>
             <p className="zb-texto mt-2 text-gris">
               {[years(me), status, age != null && age >= 0 ? `${age} años` : null].filter(Boolean).join(" · ")}

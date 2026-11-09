@@ -1,5 +1,6 @@
 "use client";
 
+import { closeness, closenessLabel } from "@/lib/closeness";
 import AddParticipant, { type NewParticipantPayload } from "./AddParticipant";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -591,6 +592,17 @@ export default function PersonPanel({
     [data, relationshipFocusId, personId, relationLabel],
   );
 
+  const nearText = useMemo(() => {
+    if (!personId || !homeId || personId === homeId) return null;
+    const c = closeness(
+      data.map((d: any) => ({ id: d.id as string, rels: { parents: d.rels.parents ?? [], children: d.rels.children ?? [], spouses: d.rels.spouses ?? [] } })),
+      homeId,
+      personId,
+    );
+    const ramaName = c?.rama ? (data.find((d: any) => d.id === c.rama) as any)?.data?.label : null;
+    return closenessLabel(c, ramaName);
+  }, [data, homeId, personId]);
+
   const open = Boolean(personId);
   // Escape: cierra primero "Más"; si se está editando, pregunta antes de descartar (requestClose); si no, cierra la ficha.
   const moreOpenRef = useRef(false);
@@ -818,6 +830,7 @@ export default function PersonPanel({
                       {relationship}
                     </p>
                   )}
+                  {nearText && <p className="mt-0.5 text-base text-gris">{nearText}</p>}
                   {person && (
                     <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
                       <span className={`inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-base font-medium ${person.isLiving ? "bg-parra/10 text-parra" : "bg-burdeos/10 text-burdeos"}`}>

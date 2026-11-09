@@ -118,3 +118,10 @@ export function sortByCloseness<T extends { id: string }>(
   const score = (id: string) => closeness(map, viewerId, id)?.score ?? Infinity;
   return [...items].sort((a, b) => score(a.id) - score(b.id));
 }
+
+/** Texto corto para la ficha: "Línea directa · rama de Bartola Galdames". */
+export function closenessLabel(c: Closeness | null, ramaName?: string | null): string | null {
+  if (!c || c.score === 0) return null;
+  const base = c.level === "directo" ? "Línea directa" : c.level === "cercano" ? "Pariente cercano" : "Familia extendida";
+  return ramaName ? `${base} · rama de ${ramaName}` : base;
+}
