@@ -87,12 +87,14 @@ export async function upsertUserWithRole(opts: {
   return userId;
 }
 
-export type Member = { id: string; name: string; email: string; role: Role; since: string };
+export type Member = { id: string; name: string; email: string; role: Role; since: string; personId: string | null; personName: string | null };
 
 export async function listMembers(treeId: string): Promise<Member[]> {
   const { rows } = await getPool().query(
-    `select u.id, u.name, u.email, m.role, to_char(m.invited_at, 'YYYY-MM-DD') as since
+    `select u.id, u.name, u.email, m.role, to_char(m.invited_at, 'YYYY-MM-DD') as since,
+            u.person_id as "personId", pn.display_name as "personName"
      from tree_members m join users u on u.id = m.user_id
+     left join person_names pn on pn.person_id = u.person_id and pn.is_primary
      where m.tree_id = $1
      order by m.invited_at`,
     [treeId],
@@ -100,14 +102,15 @@ export async function listMembers(treeId: string): Promise<Member[]> {
   return rows as Member[];
 }
 
-export type PendingInvitation = { id: string; kind: "invite" | "reset"; email: string; role: Role; expires: string };
+export type PendingInvitation = { id: string; kind: "invite" | "reset"; email: string; role: Role; expires: string; personName: string | null };
 
 export async function listPendingInvitations(treeId: string): Promise<PendingInvitation[]> {
   const { rows } = await getPool().query(
-    `select id, kind, email, role, to_char(expires_at, 'YYYY-MM-DD') as expires
-     from invitations
-     where tree_id = $1 and used_at is null and expires_at > now()
-     order by created_at desc`,
+    `select i.id, i.kind, i.email, i.role, to_char(i.expires_at, 'YYYY-MM-DD') as expires, pn.display_name as "personName"
+     from invitations i
+     left join person_names pn on pn.person_id = i.person_id and pn.is_primary
+     where i.tree_id = $1 and i.used_at is null and i.expires_at > now()
+     order by i.created_at desc`,
     [treeId],
   );
   return rows as PendingInvitation[];
@@ -121,6 +124,8 @@ export async function createInvitation(opts: {
   email: string;
   role: Role;
   invitedBy: string | null;
+  /** Persona del árbol que será esta cuenta (opcional). */
+  personId?: string | null;
 }): Promise<InviteResult> {
   const pool = getPool();
   const { rows: members } = await pool.query(
@@ -137,9 +142,9 @@ export async function createInvitation(opts: {
   );
   const token = newToken();
   await pool.query(
-    `insert into invitations (tree_id, kind, email, role, token_hash, invited_by, expires_at)
-     values ($1, 'invite', $2, $3, $4, $5, now() + make_interval(days => $6))`,
-    [opts.treeId, opts.email, opts.role, hashToken(token), opts.invitedBy, INVITE_DAYS],
+    `insert into invitations (tree_id, kind, email, role, token_hash, invited_by, expires_at, person_id)
+     values ($1, 'invite', $2, $3, $4, $5, now() + make_interval(days => $6), $7)`,
+    [opts.treeId, opts.email, opts.role, hashToken(token), opts.invitedBy, INVITE_DAYS, opts.personId ?? null],
   );
   return { ok: true, token };
 }
@@ -195,7 +200,7 @@ export async function acceptInvitation(token: string, name: string, password: st
     await client.query("begin");
     // "for update": dos pestañas con el mismo enlace no pueden usarlo a la vez.
     const { rows } = await client.query(
-      `select id, tree_id, kind, email, role from invitations
+      `select id, tree_id, kind, email, role, person_id from invitations
        where token_hash = $1 and used_at is null and expires_at > now()
        for update`,
       [hashToken(token)],
@@ -233,6 +238,10 @@ export async function acceptInvitation(token: string, name: string, password: st
          on conflict (tree_id, user_id) do update set role = excluded.role`,
         [inv.tree_id, userId, inv.role],
       );
+      // La invitación ya decía quién es: queda vinculada (sin pisar un vínculo que ya tuviera).
+      if (inv.person_id) {
+        await client.query(`update users set person_id = $2 where id = $1 and person_id is null`, [userId, inv.person_id]);
+      }
     }
     await client.query(`update invitations set used_at = now() where id = $1`, [inv.id]);
     await client.query("commit");

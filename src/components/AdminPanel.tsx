@@ -9,11 +9,13 @@ import {
   cancelInvitation,
   changeRole,
   invite,
+  linkMember,
   passwordResetLink,
   removeAccess,
   type AdminState,
 } from "@/app/actions/admin";
 import { ROLES, ROLE_HELP, ROLE_LABELS, type Role } from "@/lib/auth/roles";
+import PersonPicker, { type PersonRef } from "./PersonPicker";
 import { Button, Field, Initial, Notice, buttonClass } from "./ui";
 
 const selectClass =
@@ -61,6 +63,7 @@ function LinkBox({ state, note }: { state: AdminState; note: string }) {
 export function InviteForm() {
   const [state, action, pending] = useActionState(invite, undefined);
   const [role, setRole] = useState<Role>("editor");
+  const [person, setPerson] = useState<PersonRef | null>(null);
   return (
     <div className="flex flex-col gap-4">
       {/* Se envía a mano (no con action=) para que el formulario no se vacíe solo al terminar. */}
@@ -73,6 +76,12 @@ export function InviteForm() {
         className="flex flex-col gap-4"
       >
         <Field id="invite-email" name="email" type="email" required label="Correo de la persona" placeholder="nombre@correo.com" />
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[1.125rem] font-bold">¿Quién es en el árbol? (opcional)</span>
+          <PersonPicker value={person} onChange={setPerson} placeholder="Escribe su nombre" />
+          <input type="hidden" name="personId" value={person?.id ?? ""} />
+          <p className="zb-apoyo">Si lo eliges, al entrar verá el archivo desde su propia persona, sin tener que buscarse.</p>
+        </div>
         <div className="flex flex-col gap-1.5">
           <label htmlFor="invite-role" className="text-[1.125rem] font-bold">
             Qué podrá hacer
@@ -107,12 +116,25 @@ export function MemberRow({
   member,
   isSelf,
 }: {
-  member: { id: string; name: string; email: string; role: Role; since: string };
+  member: { id: string; name: string; email: string; role: Role; since: string; personId: string | null; personName: string | null };
   isSelf: boolean;
 }) {
   const [roleState, roleAction, rolePending] = useActionState(changeRole, undefined);
   const [resetState, resetAction, resetPending] = useActionState(passwordResetLink, undefined);
   const [removeState, removeAction, removePending] = useActionState(removeAccess, undefined);
+  const [linkState, linkAction, linkPending] = useActionState(linkMember, undefined);
+  const [changingLink, setChangingLink] = useState(false);
+  const [newPerson, setNewPerson] = useState<PersonRef | null>(null);
+  const saveLink = (personId: string) => {
+    const formData = new FormData();
+    formData.set("userId", member.id);
+    formData.set("personId", personId);
+    startTransition(() => {
+      linkAction(formData);
+      setChangingLink(false);
+      setNewPerson(null);
+    });
+  };
   const [confirmRemove, setConfirmRemove] = useState(false);
   // Mientras se guarda se muestra el rol elegido; después, el que diga el
   // servidor (si rechazó el cambio, el selector vuelve solo al rol real).
@@ -156,6 +178,32 @@ export function MemberRow({
         )}
       </div>
 
+      <div className="flex flex-col gap-2">
+        <p className="zb-apoyo">
+          En el árbol: <span className="font-bold text-ink">{member.personName ?? "sin vincular"}</span>{" "}
+          <button type="button" onClick={() => setChangingLink((o) => !o)} className={buttonClass("enlace")}>
+            {changingLink ? "Cancelar" : member.personName ? "Cambiar" : "Vincular"}
+          </button>
+        </p>
+        {changingLink && (
+          <div className="flex flex-col gap-2">
+            <PersonPicker value={newPerson} onChange={setNewPerson} placeholder="Escribe su nombre" />
+            <div className="flex flex-wrap gap-2">
+              {newPerson && (
+                <Button type="button" disabled={linkPending} onClick={() => saveLink(newPerson.id)}>
+                  Vincular con {newPerson.name}
+                </Button>
+              )}
+              {member.personName && (
+                <button type="button" disabled={linkPending} onClick={() => saveLink("")} className={buttonClass("secundario")}>
+                  Quitar el vínculo
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <form action={resetAction}>
           <input type="hidden" name="userId" value={member.id} />
@@ -190,6 +238,7 @@ export function MemberRow({
       <ErrorText state={roleState} />
       <ErrorText state={resetState} />
       <ErrorText state={removeState} />
+      <ErrorText state={linkState} />
       <LinkBox
         state={resetState}
         note="Con este enlace elige una contraseña nueva. Sirve una sola vez, vence en 48 horas y no se vuelve a mostrar."
@@ -201,7 +250,7 @@ export function MemberRow({
 export function InvitationRow({
   invitation,
 }: {
-  invitation: { id: string; kind: "invite" | "reset"; email: string; role: Role; expires: string };
+  invitation: { id: string; kind: "invite" | "reset"; email: string; role: Role; expires: string; personName: string | null };
 }) {
   const [, action, pending] = useActionState(cancelInvitation, undefined);
   return (
@@ -209,7 +258,7 @@ export function InvitationRow({
       <div className="min-w-0 flex-1">
         <p className="zb-nombre break-all">{invitation.email}</p>
         <p className="zb-apoyo">
-          {invitation.kind === "reset" ? "Cambio de contraseña" : `Invitación como ${ROLE_LABELS[invitation.role].toLowerCase()}`} · vence el{" "}
+          {invitation.kind === "reset" ? "Cambio de contraseña" : `Invitación como ${ROLE_LABELS[invitation.role].toLowerCase()}${invitation.personName ? ` · será ${invitation.personName}` : ""}`} · vence el{" "}
           {invitation.expires.split("-").reverse().join("/")}
         </p>
       </div>
