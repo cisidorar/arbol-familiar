@@ -52,7 +52,9 @@ export async function invite(_prev: AdminState, formData: FormData): Promise<Adm
   if (!email) return { error: "Ese correo no parece válido." };
   if (!isRole(role)) return { error: "Elige un rol." };
 
+  // Solo se invita a quien ya existe en el árbol: si no está, primero se agrega.
   const personId = await treePersonId(session.treeId, formData.get("personId"));
+  if (personId === null) return { error: "Elige quién es en el árbol. Si todavía no está, agrégalo primero." };
   if (personId === "invalid") return { error: "No encontré a ese familiar en el árbol." };
 
   const result = await createInvitation({ treeId: session.treeId, email, role, invitedBy: session.user.id, personId });
