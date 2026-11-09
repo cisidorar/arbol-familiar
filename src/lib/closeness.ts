@@ -3,8 +3,8 @@
 // y qué plegar. Trabaja con el grafo en memoria (parents/children/spouses).
 //
 //  - directo: él mismo, su pareja, sus ancestros y sus descendientes.
-//  - cercano: hermanos, tíos y tíos abuelos, sobrinos, primos hermanos
-//    (y las parejas de todos ellos).
+//  - cercano: hermanos, tíos y tíos abuelos, sobrinos, primos hermanos y los
+//    hijos de los tíos abuelos (primos de los padres), y las parejas de todos ellos.
 //  - otro: el resto de la familia.
 //
 // `rama` es el abuelo/a de quien mira por cuya línea se llega a la persona
@@ -78,7 +78,9 @@ function blood(
     if (!best || a + b < best.a + best.b) best = { a, b, via: anc };
   }
   if (!best) return null;
-  const cercano = best.a <= 3 && best.b <= 3 && best.a + best.b <= 4;
+  // a = generaciones que sube quien mira hasta el ancestro común, b = las que baja hasta la persona.
+  // Hasta 4 pasos (hermanos, tíos, primos, tíos abuelos, sobrinos) más los hijos de los tíos abuelos (3 + 2).
+  const cercano = best.a <= 3 && best.b <= 3 && (best.a + best.b <= 4 || (best.a === 3 && best.b === 2));
   const rama =
     grandparents.find((g) => g === best!.via || ancestorDistances(map, g).has(best!.via)) ?? null;
   return { level: cercano ? "cercano" : "otro", score: best.a + best.b + 1, rama };
@@ -124,4 +126,14 @@ export function closenessLabel(c: Closeness | null, ramaName?: string | null): s
   if (!c || c.score === 0) return null;
   const base = c.level === "directo" ? "Línea directa" : c.level === "cercano" ? "Pariente cercano" : "Familia extendida";
   return ramaName ? `${base} · rama de ${ramaName}` : base;
+}
+
+/**
+ * La línea de cercanía solo suma cuando el parentesco no lo dice ya: familia extendida, o una rama
+ * que el parentesco no nombra ("Tu prima" sin "por parte de…"). Con "Tu abuela, por parte de tu mamá" sobra.
+ */
+export function showClosenessLine(c: Closeness | null, kinText: string | null | undefined): boolean {
+  if (!c || c.score === 0) return false;
+  if (c.level === "otro") return true;
+  return Boolean(c.rama) && !/por parte de/i.test(kinText ?? "");
 }

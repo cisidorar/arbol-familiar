@@ -1,6 +1,6 @@
 "use client";
 
-import { closeness, closenessLabel } from "@/lib/closeness";
+import { closeness, closenessLabel, showClosenessLine } from "@/lib/closeness";
 import AddParticipant, { type NewParticipantPayload } from "./AddParticipant";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -611,9 +611,10 @@ export default function PersonPanel({
       homeId,
       personId,
     );
+    if (!showClosenessLine(c, relationship)) return null;
     const ramaName = c?.rama ? (data.find((d: any) => d.id === c.rama) as any)?.data?.label : null;
     return closenessLabel(c, ramaName);
-  }, [data, homeId, personId]);
+  }, [data, homeId, personId, relationship]);
 
   const open = Boolean(personId);
   // Escape: cierra primero "Más"; si se está editando, pregunta antes de descartar (requestClose); si no, cierra la ficha.

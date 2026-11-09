@@ -138,7 +138,14 @@ export default function TreeApp({ data, user, homeId, selfId }: { data: any[]; u
     const list = data
       .filter((d) => keep.has(d.id))
       .map((d) => ({ ...d, rels: { ...d.rels, parents: only(d.rels.parents), children: only(d.rels.children), spouses: only(d.rels.spouses) } }));
-    return { list, keep };
+    // Cuántos familiares directos (padres, parejas, hijos) de cada persona quedaron fuera.
+    const hidden = new Map<string, number>();
+    for (const d of data) {
+      if (!keep.has(d.id)) continue;
+      const n = [...(d.rels.parents ?? []), ...(d.rels.spouses ?? []), ...(d.rels.children ?? [])].filter((x: string) => !keep.has(x)).length;
+      if (n) hidden.set(d.id, n);
+    }
+    return { list, keep, hidden };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onlyMine, viewerId, filterRev, data]);
   // Si el centro cae fuera de «Mi familia» (se buscó a alguien lejano), se muestra todo el árbol.
@@ -160,6 +167,8 @@ export default function TreeApp({ data, user, homeId, selfId }: { data: any[]; u
     setSelectedId(null);
     setTrail([]);
     setMainId(startId);
+    // La vista de partida es «Solo mi familia».
+    setOnlyMine(Boolean(viewerId));
     setResetKey((k) => k + 1);
   };
 
@@ -199,6 +208,11 @@ export default function TreeApp({ data, user, homeId, selfId }: { data: any[]; u
         <FamilyTree
           key={filtered ? `mine-${filterRev}` : "all"}
           data={filtered ? filtered.list : data}
+          hiddenRelatives={filtered?.hidden ?? null}
+          onShowAll={(id) => {
+            setOnlyMine(false);
+            if (id) recenter(id);
+          }}
           mainId={mainId}
           line={line}
           version={version}

@@ -8,7 +8,7 @@ import { canEdit } from "@/lib/auth/roles";
 import { requireSession } from "@/lib/auth/session";
 import { getFamilyChartData, getPersonDetail } from "@/lib/data/tree";
 import { getLinkedPersonId } from "@/lib/data/users";
-import { closeness, closenessLabel } from "@/lib/closeness";
+import { closeness, closenessLabel, showClosenessLine } from "@/lib/closeness";
 import { kinshipPhrase, type GraphPerson } from "@/lib/lineage";
 import { TOMB_UNKNOWN, cremadoText, fallecidoText, isCremationPlace, niceKin } from "@/lib/cemetery-text";
 
@@ -94,7 +94,7 @@ export default async function PersonaPage({ params }: { params: Promise<{ id: st
   const kin = selfId && selfId !== id ? niceKin(kinshipPhrase(selfId, id, graph)?.label) || null : selfId === id ? "Eres tú" : null;
 
   const near = selfId && selfId !== id ? closeness(chart.map((c) => ({ id: c.id, rels: c.rels })), selfId, id) : null;
-  const nearText = closenessLabel(near, near?.rama ? byId.get(near.rama)?.label : null);
+  const nearText = showClosenessLine(near, kin) ? closenessLabel(near, near?.rama ? byId.get(near.rama)?.label : null) : null;
 
   const age = me.birth && me.death ? me.death - me.birth : null;
   const status = me.living ? "Vive" : fallecidoText(me.gender);

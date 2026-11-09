@@ -67,7 +67,7 @@ const TILE: Record<FamilyDateItem["kind"], string> = {
   casan: "bg-teja text-adobe",
 };
 
-function DateRow({ it, today, i }: { it: FamilyDateItem; today: boolean; i: number }) {
+function DateRow({ it, today, i, far = false }: { it: FamilyDateItem; today: boolean; i: number; far?: boolean }) {
   const when = it.inDays === 0 ? "Hoy" : it.inDays === 1 ? "Mañana" : `En ${it.inDays} días`;
   return (
     // Una conmemoración (fallecimiento) va derecha y sin giro: se recuerda, no se celebra.
@@ -84,7 +84,10 @@ function DateRow({ it, today, i }: { it: FamilyDateItem; today: boolean; i: numb
       {/* Toda la tarjeta es tocable; los nombres siguen siendo enlaces propios. */}
       <Link href={`/persona/${it.people[0].id}`} tabIndex={-1} aria-hidden="true" className="absolute inset-0 rounded-2xl" />
       <div className="min-w-0">
-        <p className="zb-apoyo font-bold !text-burdeos">{when}</p>
+        <p className="zb-apoyo font-bold !text-burdeos">
+          {when}
+          {far && <span className="font-normal !text-gris"> · familia extendida</span>}
+        </p>
         <p className="zb-texto">{sentence(it)}</p>
       </div>
     </li>
@@ -98,7 +101,7 @@ export default async function InicioPage() {
   const [chart, selfId, allItems, facts] = await Promise.all([
     getFamilyChartData(treeId),
     getLinkedPersonId(session.user.id),
-    getFamilyOnDates(treeId, today, 14),
+    getFamilyOnDates(treeId, today, 30),
     getPersonFacts(treeId),
   ]);
 
@@ -125,7 +128,13 @@ export default async function InicioPage() {
       const c = closeness(closePeople, selfId, p.id);
       return c != null && c.level !== "otro";
     });
-  const items = allItems.filter(isClose);
+  // La familia cercana tiene pocas fechas exactas (unas 2 cada dos semanas): se mira un mes adelante y, si
+  // quedan menos de 3, se completa con familia extendida de las próximas dos semanas. Los cumpleaños de
+  // personas vivas son solo de la familia cercana.
+  const close = allItems.filter(isClose);
+  const far = close.length >= 3 ? [] : allItems.filter((i) => !isClose(i) && i.kind !== "cumple" && i.inDays < 14).slice(0, 3 - close.length);
+  const farSet = new Set(far);
+  const items = [...close, ...far].sort((a, b) => a.inDays - b.inDays);
   const todayItems = items.filter((i) => i.inDays === 0);
   // Entre las fechas que vienen, no más de 2 fallecimientos: seis seguidas con tres muertes pesan.
   let deaths = 0;
@@ -165,7 +174,7 @@ export default async function InicioPage() {
 
   // La nota amarilla: el primer hecho de los próximos días, dicho con su parentesco.
   const graph: GraphPerson[] = chart.map((p) => ({ id: p.id, data: { gender: p.data.gender, label: p.data.label }, rels: p.rels }));
-  const note = items.find((i) => i.kind !== "muere") ?? items[0];
+  const note = items.find((i) => i.kind !== "muere" && !farSet.has(i)) ?? close[0];
   // La nota ya cuenta ese hecho: no se repite en la lista de fechas.
   const soonRest = soon.filter((i) => i !== note);
   const noteYear = note ? Number(today.slice(0, 4)) - note.years : 0;
@@ -174,10 +183,11 @@ export default async function InicioPage() {
 
   const knownLabel = `Conocemos el lugar de origen de ${known} de tus ${direct.length} antepasados directos.`;
 
+  const noteTitle = note && note.inDays > 7 ? "Este mes en la familia" : "Esta semana en la familia";
   const noteCard = note ? (
-<aside aria-label="Esta semana en la familia" className="relative w-full max-w-md -rotate-1 rounded-sm bg-white p-6 pt-8 shadow-[0_6px_18px_rgba(30,26,23,0.25)] lg:ml-auto">
+<aside aria-label={noteTitle} className="relative w-full max-w-md -rotate-1 rounded-sm bg-white p-6 pt-8 shadow-[0_6px_18px_rgba(30,26,23,0.25)] lg:ml-auto">
               <span className="cinta" aria-hidden="true" />
-              <h2 className="al-titulo al-regla !text-[1.5rem]">Esta semana en la familia</h2>
+              <h2 className="al-titulo al-regla !text-[1.5rem]">{noteTitle}</h2>
               <p className="zb-texto mt-3">
                 {note.kind === "cumple" ? (
                   <>
@@ -272,10 +282,10 @@ export default async function InicioPage() {
             <h2 className="al-titulo al-regla">{todayItems.length > 0 ? "Hoy en la familia" : "En los próximos días"}</h2>
             <ul className="mt-5 grid gap-4 md:grid-cols-2">
               {todayItems.map((it, i) => (
-                <DateRow key={`t${i}`} it={it} today i={i} />
+                <DateRow key={`t${i}`} it={it} today i={i} far={farSet.has(it)} />
               ))}
               {soonRest.map((it, i) => (
-                <DateRow key={`s${i}`} it={it} today={false} i={i + todayItems.length} />
+                <DateRow key={`s${i}`} it={it} today={false} i={i + todayItems.length} far={farSet.has(it)} />
               ))}
             </ul>
           </section>

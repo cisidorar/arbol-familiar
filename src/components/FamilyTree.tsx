@@ -50,6 +50,10 @@ interface Props {
   line?: string[] | null;
   /** Cambia cuando se editó una persona: hay que redibujar las tarjetas. */
   version: number;
+  /** En «Solo mi familia»: cuántos familiares (hijos, padres, parejas) de cada persona quedaron fuera.
+   *  La tarjeta lo dice con un botón que abre el árbol completo centrado en ella. */
+  hiddenRelatives?: ReadonlyMap<string, number> | null;
+  onShowAll?: (id: string) => void;
   /** Sube para volver el árbol a su vista de partida: ramas cerradas y encuadre completo. */
   resetKey?: number;
   /** Recibe los controles para acercar, alejar y ver todo el árbol (botones de quien lo usa). */
@@ -383,7 +387,7 @@ function fitReadable(chart: any, container: HTMLElement | null, transitionTime: 
   return false;
 }
 
-export default function FamilyTree({ data, mainId, line = null, version, resetKey = 0, controlsRef, onSelectPerson, selectedId = null, onCenterVisibility, onRecenter, onAddRelative }: Props) {
+export default function FamilyTree({ data, mainId, line = null, version, resetKey = 0, controlsRef, onSelectPerson, selectedId = null, onCenterVisibility, onRecenter, onAddRelative, hiddenRelatives = null, onShowAll }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<any>(null);
   const lineRef = useRef<string[] | null>(line);
@@ -396,6 +400,10 @@ export default function FamilyTree({ data, mainId, line = null, version, resetKe
   selectedRef.current = selectedId;
   const onRecenterRef = useRef(onRecenter);
   onRecenterRef.current = onRecenter;
+  const hiddenRef = useRef(hiddenRelatives);
+  hiddenRef.current = hiddenRelatives;
+  const onShowAllRef = useRef(onShowAll);
+  onShowAllRef.current = onShowAll;
   const onAddRelativeRef = useRef(onAddRelative);
   onAddRelativeRef.current = onAddRelative;
   // Abrir una rama puede dejar fuera de la vista a la persona central: se reencuadra o se avisa.
@@ -751,6 +759,37 @@ export default function FamilyTree({ data, mainId, line = null, version, resetKe
               el.appendChild(flag);
             } else if (!review) {
               flag?.remove();
+            }
+          }
+
+          // «Solo mi familia»: esta persona tiene familiares fuera de la vista. Un botón lo dice y abre el
+          // árbol completo centrado en ella (si no, un primo parecería no tener hijos).
+          {
+            const el = this.querySelector(".card");
+            const n = hiddenRef.current?.get(d.data.id) ?? 0;
+            let more = el?.querySelector<HTMLElement>(".card-more") ?? null;
+            if (el && n > 0) {
+              if (!more) {
+                more = document.createElement("div");
+                more.className = "card-more";
+                more.setAttribute("role", "button");
+                more.setAttribute("tabindex", "0");
+                const open = (ev: Event) => {
+                  ev.stopPropagation();
+                  ev.preventDefault();
+                  onShowAllRef.current?.(more!.dataset.id ?? "");
+                };
+                more.addEventListener("click", open);
+                more.addEventListener("keydown", (ev) => {
+                  if ((ev as KeyboardEvent).key === "Enter" || (ev as KeyboardEvent).key === " ") open(ev);
+                });
+                el.appendChild(more);
+              }
+              more.dataset.id = d.data.id;
+              more.textContent = `+${n} en todo el árbol`;
+              more.setAttribute("aria-label", `${d.data.data.label} tiene ${n} familiares más. Ver el árbol completo`);
+            } else {
+              more?.remove();
             }
           }
 
