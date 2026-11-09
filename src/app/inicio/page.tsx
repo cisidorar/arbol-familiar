@@ -6,6 +6,7 @@ import InicioSearch from "@/components/InicioSearch";
 import AncestorRoulette, { type RoulettePerson } from "@/components/AncestorRoulette";
 import SectionHeader from "@/components/SectionHeader";
 import { requireSession } from "@/lib/auth/session";
+import { canAdmin } from "@/lib/auth/roles";
 import { getFamilyChartData } from "@/lib/data/tree";
 import { getFamilyOnDates, todayInChile, type FamilyDateItem } from "@/lib/data/today";
 import { getLinkedPersonId } from "@/lib/data/users";
@@ -335,7 +336,7 @@ export default async function InicioPage() {
                 ))}
             </ul>
             <p className="zb-apoyo mt-3">Círculo lleno: lugar conocido. Círculo vacío: todavía falta.</p>
-            {known < direct.length && (
+            {known < direct.length && canAdmin(session.role) && (
               <Link href="/pendientes" className={buttonClass("secundario", "mt-4")}>
                 Ver dónde faltan datos →
               </Link>

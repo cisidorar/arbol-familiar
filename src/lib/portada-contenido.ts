@@ -50,13 +50,6 @@ export const PORTADA = {
       texto:
         "Manuel Zamora Galdames nació en San Esteban en 1888. Sus padrinos fueron David Saavedra y Margarita Zamora, parientes de su papá: ese detalle ayudó a confirmar que estábamos siguiendo a la familia correcta.",
     },
-    {
-      anio: "1891",
-      cuando: "Noviembre 2026",
-      titulo: "Petronila Ruz, tejedora de El Boldo",
-      texto:
-        "Petronila Ruz murió en El Boldo, Curicó, el 25 de marzo de 1891: soltera, tejedora, de 50 años. El acta no nombra a sus padres, pero quien declaró su muerte, Isaías Valdivia, era probablemente su hijo. Buscamos si era parienta de Francisca Ruz.",
-    },
   ],
 
 };

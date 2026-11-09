@@ -1,4 +1,7 @@
 import { viewerCanReview } from "./review";
+import { limitLiving } from "../privacy";
+import { getSession } from "../auth/session";
+import { canEdit as roleCanEdit } from "../auth/roles";
 import { COMUNAS } from "../geo/places";
 import { canonicalCemetery } from "../geo/cemeteries";
 import { REGION_NAMES } from "../geo/regions-light";
@@ -631,7 +634,17 @@ export async function getPersonDetail(treeId: string, personId: string) {
     editForm: researchFactForm,
   });
 
-  return {
+  // Quien solo lee no ve los datos de las personas vivas (ver privacy.ts).
+  const viewerEdits = await (async () => {
+    try {
+      const session = await getSession();
+      return !!session && roleCanEdit(session.role);
+    } catch {
+      return false;
+    }
+  })();
+
+  return limitLiving({
     id: person.id,
     displayName: person.display_name,
     sex: person.sex,
@@ -650,5 +663,5 @@ export async function getPersonDetail(treeId: string, personId: string) {
     media,
     familiesAsPartner: families,
     parents: asChild[0] ?? null,
-  };
+  }, viewerEdits);
 }
