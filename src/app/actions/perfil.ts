@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth/session";
 import { getLinkedPersonId, linkUserToPerson } from "@/lib/data/users";
 import { getPool } from "@/lib/db/pool";
+import { logSecurity } from "@/lib/data/security-log";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -19,6 +20,7 @@ export async function linkMyself(personId: string): Promise<{ ok: boolean; error
   const { rows } = await getPool().query(`select 1 from persons where id = $1 and tree_id = $2`, [personId, session.treeId]);
   if (!rows.length) return { ok: false, error: "No encontré a esa persona en el árbol." };
   await linkUserToPerson(session.user.id, personId);
+  await logSecurity("vinculo_cambiado", { userId: session.user.id, detail: { para: session.user.id, personId } });
   revalidatePath("/", "layout");
   return { ok: true };
 }

@@ -8,6 +8,7 @@ import { revalidatePath } from "next/cache";
 import { canAdmin, isRole, normalizeEmail } from "@/lib/auth/roles";
 import { getSession } from "@/lib/auth/session";
 import { getPool } from "@/lib/db/pool";
+import { logSecurity } from "@/lib/data/security-log";
 import {
   createInvitation,
   createPasswordReset,
@@ -59,6 +60,7 @@ export async function invite(_prev: AdminState, formData: FormData): Promise<Adm
 
   const result = await createInvitation({ treeId: session.treeId, email, role, invitedBy: session.user.id, personId });
   if (!result.ok) return { error: result.error };
+  await logSecurity("invitacion_creada", { userId: session.user.id, email, detail: { role, personId } });
   revalidatePath("/admin");
   return { link: await linkFor(result.token), linkFor: email };
 }
@@ -69,6 +71,7 @@ export async function passwordResetLink(_prev: AdminState, formData: FormData): 
   const userId = String(formData.get("userId") ?? "");
   const result = await createPasswordReset({ treeId: session.treeId, userId, invitedBy: session.user.id });
   if (!result.ok) return { error: result.error };
+  await logSecurity("enlace_contrasena_creado", { userId: session.user.id, detail: { para: userId } });
   revalidatePath("/admin");
   return { link: await linkFor(result.token), linkFor: String(formData.get("label") ?? "") };
 }
@@ -81,6 +84,7 @@ export async function changeRole(_prev: AdminState, formData: FormData): Promise
   if (!isRole(role)) return { error: "Elige un rol." };
   if (userId === session.user.id) return { error: "No puedes cambiar tu propio rol." };
   const error = await setMemberRole(session.treeId, userId, role);
+  if (!error) await logSecurity("rol_cambiado", { userId: session.user.id, detail: { para: userId, role } });
   revalidatePath("/admin");
   return error ? { error } : undefined;
 }
@@ -91,6 +95,7 @@ export async function removeAccess(_prev: AdminState, formData: FormData): Promi
   const userId = String(formData.get("userId") ?? "");
   if (userId === session.user.id) return { error: "No puedes quitarte el acceso a ti misma/o." };
   const error = await removeMember(session.treeId, userId);
+  if (!error) await logSecurity("acceso_quitado", { userId: session.user.id, detail: { para: userId } });
   revalidatePath("/admin");
   return error ? { error } : undefined;
 }
@@ -98,7 +103,9 @@ export async function removeAccess(_prev: AdminState, formData: FormData): Promi
 export async function cancelInvitation(_prev: AdminState, formData: FormData): Promise<AdminState> {
   const session = await adminSession();
   if (!session) return NOT_ALLOWED;
-  await revokeInvitation(session.treeId, String(formData.get("invitationId") ?? ""));
+  const invitationId = String(formData.get("invitationId") ?? "");
+  await revokeInvitation(session.treeId, invitationId);
+  await logSecurity("invitacion_cancelada", { userId: session.user.id, detail: { invitationId } });
   revalidatePath("/admin");
   return undefined;
 }
@@ -113,6 +120,7 @@ export async function linkMember(_prev: AdminState, formData: FormData): Promise
   const personId = await treePersonId(session.treeId, formData.get("personId"));
   if (personId === "invalid") return { error: "No encontré a ese familiar en el árbol." };
   await linkUserToPerson(userId, personId);
+  await logSecurity("vinculo_cambiado", { userId: session.user.id, detail: { para: userId, personId } });
   revalidatePath("/admin");
   revalidatePath("/", "layout");
   return undefined;

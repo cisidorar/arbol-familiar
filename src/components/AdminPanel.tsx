@@ -62,7 +62,7 @@ function LinkBox({ state, note }: { state: AdminState; note: string }) {
 
 export function InviteForm() {
   const [state, action, pending] = useActionState(invite, undefined);
-  const [role, setRole] = useState<Role>("editor");
+  const [role, setRole] = useState<Role>("lector");
   const [person, setPerson] = useState<PersonRef | null>(null);
   return (
     <div className="flex flex-col gap-4">
@@ -106,7 +106,7 @@ export function InviteForm() {
       <ErrorText state={state} />
       <LinkBox
         state={state}
-        note="Mándaselo por WhatsApp o correo. Sirve una sola vez, vence en 14 días y no se vuelve a mostrar: cópialo ahora."
+        note="Mándaselo por WhatsApp o correo. Sirve una sola vez, vence en 7 días y no se vuelve a mostrar: cópialo ahora."
       />
     </div>
   );

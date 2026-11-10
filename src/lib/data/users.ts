@@ -8,7 +8,7 @@ import type { Role } from "../auth/roles";
 
 const MAX_FAILED_LOGINS = 8;
 const LOCK_MINUTES = 15;
-const INVITE_DAYS = 14;
+const INVITE_DAYS = 7;
 const RESET_HOURS = 48;
 
 // Hash de relleno: cuando el correo no existe igual se calcula un hash, para
@@ -30,7 +30,7 @@ export async function getSetupState(): Promise<"needs-migration" | "needs-admin"
 
 export type LoginResult =
   | { ok: true; userId: string }
-  | { ok: false; reason: "invalid" | "locked" };
+  | { ok: false; reason: "invalid" | "locked"; userId?: string };
 
 export async function attemptLogin(email: string, password: string): Promise<LoginResult> {
   const pool = getPool();
@@ -44,17 +44,24 @@ export async function attemptLogin(email: string, password: string): Promise<Log
     await verifyPassword(password, await dummyHash);
     return { ok: false, reason: "invalid" };
   }
-  if (user.locked) return { ok: false, reason: "locked" };
+  // Se verifica la contraseña aunque la cuenta esté bloqueada: así la respuesta tarda lo mismo
+  // y no delata qué cuentas existen ni cuáles están bloqueadas.
+  const valid = await verifyPassword(password, user.password_hash);
+  if (user.locked) return { ok: false, reason: "locked", userId: user.id };
 
-  if (!(await verifyPassword(password, user.password_hash))) {
+  if (!valid) {
+    // Si un bloqueo anterior ya venció, el conteo parte de nuevo (antes, un solo error volvía a bloquear).
     await pool.query(
       `update users set
-         failed_logins = failed_logins + 1,
-         locked_until = case when failed_logins + 1 >= $2 then now() + make_interval(mins => $3) else locked_until end
+         failed_logins = case when locked_until <= now() then 1 else failed_logins + 1 end,
+         locked_until = case
+           when (case when locked_until <= now() then 1 else failed_logins + 1 end) >= $2 then now() + make_interval(mins => $3)
+           when locked_until <= now() then null
+           else locked_until end
        where id = $1`,
       [user.id, MAX_FAILED_LOGINS, LOCK_MINUTES],
     );
-    return { ok: false, reason: "invalid" };
+    return { ok: false, reason: "invalid", userId: user.id };
   }
 
   await pool.query(`update users set failed_logins = 0, locked_until = null where id = $1`, [user.id]);
@@ -190,7 +197,7 @@ export async function getInvitation(token: string): Promise<InvitationInfo | nul
   return r ? { kind: r.kind, email: r.email, role: r.role, userName: r.user_name } : null;
 }
 
-export type AcceptResult = { ok: true; userId: string } | { ok: false; error: string };
+export type AcceptResult = { ok: true; userId: string; kind: "invite" | "reset"; email: string } | { ok: false; error: string };
 
 /** Usa el enlace: crea la cuenta (invitación) o cambia la contraseña (reset). Una sola vez. */
 export async function acceptInvitation(token: string, name: string, password: string): Promise<AcceptResult> {
@@ -233,6 +240,8 @@ export async function acceptInvitation(token: string, name: string, password: st
         [inv.email, name, passwordHash],
       );
       userId = res.rows[0].id;
+      // Si el correo ya tenía cuenta, su contraseña acaba de cambiar: se cierran sus sesiones abiertas.
+      await client.query(`delete from sessions where user_id = $1`, [userId]);
       await client.query(
         `insert into tree_members (tree_id, user_id, role) values ($1, $2, $3)
          on conflict (tree_id, user_id) do update set role = excluded.role`,
@@ -245,7 +254,7 @@ export async function acceptInvitation(token: string, name: string, password: st
     }
     await client.query(`update invitations set used_at = now() where id = $1`, [inv.id]);
     await client.query("commit");
-    return { ok: true, userId };
+    return { ok: true, userId, kind: inv.kind, email: inv.email };
   } catch (err) {
     await client.query("rollback");
     throw err;

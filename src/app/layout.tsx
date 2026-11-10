@@ -37,6 +37,7 @@ const atkinson = Atkinson_Hyperlegible({
 export const metadata: Metadata = {
   title: "Archivo Zamora Balcázar",
   description: "Archivo genealógico de la familia Zamora Balcázar",
+  robots: { index: false, follow: false },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

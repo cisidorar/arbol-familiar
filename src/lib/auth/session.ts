@@ -111,11 +111,13 @@ export async function apiSession(need: "read" | "edit" = "read"): Promise<ApiAut
 /**
  * Un pedido que modifica datos debe venir de la propia app. La cookie ya es
  * SameSite=Lax (otro sitio no puede mandarla en un POST), y además se exige
- * que el Origin, cuando viene, sea el mismo host.
+ * el Origin del mismo host. Los navegadores lo mandan siempre en POST, PUT,
+ * PATCH y DELETE; sin Origin solo se acepta si el navegador declara que el
+ * pedido viene del mismo sitio (Sec-Fetch-Site).
  */
 export function sameOrigin(request: Request): boolean {
   const origin = request.headers.get("origin");
-  if (!origin) return true;
+  if (!origin) return request.headers.get("sec-fetch-site") === "same-origin";
   const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
   try {
     return new URL(origin).host === host;
