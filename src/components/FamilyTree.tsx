@@ -263,10 +263,12 @@ const FAMILY_GAP = 30;
 const ROW_PITCH = 184;
 
 /** Palabra corta que se ve junto a la flecha (la que va arriba o abajo de la tarjeta). */
-function miniTreeLabel(action: ExpandAction): string {
+function miniTreeLabel(action: ExpandAction, selfId: string): string {
   if (action.kind === "up" || action.kind === "spouse-up") return "Padres";
   if (action.kind === "down" || action.kind === "kids") return "Hijos";
-  if (action.kind === "siblings") return "Hermanos";
+  // Debajo de un ancestro, «Hermanos» se leía como los hermanos de ESE ancestro, pero abre sus otros hijos
+  // (los hermanos de quien está en la línea). Solo es «Hermanos» cuando son los de la propia tarjeta.
+  if (action.kind === "siblings") return action.of === selfId ? "Hermanos" : "Otros hijos";
   if (action.kind === "partners") return "Pareja";
   if (action.kind === "recenter") {
     // Un control sin palabra es un ícono mudo: se dice qué hay detrás.
@@ -281,10 +283,10 @@ function miniTreeLabel(action: ExpandAction): string {
 }
 
 /** Lo que se anuncia (a quien usa lector de pantalla) cuando se abre una rama. */
-function openedText(action: ExpandAction, name: string): string {
+function openedText(action: ExpandAction, name: string, selfId?: string): string {
   if (action.kind === "up" || action.kind === "spouse-up") return `Se mostraron los padres de ${name}.`;
   if (action.kind === "down" || action.kind === "kids") return `Se mostraron los hijos de ${name}.`;
-  if (action.kind === "siblings") return `Se mostraron los hermanos de ${name}.`;
+  if (action.kind === "siblings") return action.of === selfId || selfId === undefined ? `Se mostraron los hermanos de ${name}.` : `Se mostraron los otros hijos de ${name}.`;
   if (action.kind === "partners") return `Se mostró la pareja de ${name}.`;
   return "";
 }
@@ -807,7 +809,7 @@ export default function FamilyTree({ data, mainId, line = null, version, resetKe
           } else if (action.kind === "siblings" && onMiniTree) {
             // Los otros hijos de un ancestro: aparecen al lado del hijo que
             // ya estaba en pantalla.
-            setAnnouncement(openedText(action, d.data.data.label));
+            setAnnouncement(openedText(action, d.data.data.label, d.data.id));
             expanded.sibs.add(action.of);
             updateKeepingInPlace(d);
           } else if (action.kind === "recenter" && onMiniTree) {
@@ -946,7 +948,7 @@ export default function FamilyTree({ data, mainId, line = null, version, resetKe
             word.setAttribute("aria-hidden", "true");
             mini.appendChild(word);
           }
-          word.textContent = miniTreeLabel(action);
+          word.textContent = miniTreeLabel(action, d.data.id);
         });
 
       setYearLabels(data);
