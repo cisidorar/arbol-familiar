@@ -1,6 +1,7 @@
 // Usuarios, invitaciones y accesos. No depende de Next (lo usa también el
 // script scripts/usuarios.ts), solo de la base.
 
+import { nameSearchPatterns } from "@/lib/name-search";
 import { getPool } from "../db/pool";
 import { hashPassword, verifyPassword } from "../auth/password";
 import { hashToken, newToken } from "../auth/tokens";
@@ -443,15 +444,16 @@ export type PersonMatch = { id: string; displayName: string; birth: string | nul
 
 /** Personas del árbol cuyo nombre contiene el texto (sin tildes ni mayúsculas). */
 export async function findPersonsByName(treeId: string, text: string): Promise<PersonMatch[]> {
-  const key = text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  const patterns = nameSearchPatterns(text);
+  if (!patterns.length) return [];
   const { rows } = await getPool().query(
     `select p.id, n.display_name,
             (select to_char(date_from, 'YYYY') from events e where e.person_id = p.id and e.event_type = 'BIRT'
              order by e.date_from nulls last, e.id limit 1) as birth
      from persons p join person_names n on n.person_id = p.id and n.is_primary
-     where p.tree_id = $1 and n.search_key like '%' || $2 || '%'
+     where p.tree_id = $1 and n.search_key like all($2::text[])
      order by n.display_name limit 20`,
-    [treeId, key],
+    [treeId, patterns],
   );
   return rows.map((r) => ({ id: r.id, displayName: r.display_name, birth: r.birth }));
 }

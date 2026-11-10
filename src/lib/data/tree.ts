@@ -1,3 +1,4 @@
+import { nameSearchPatterns } from "@/lib/name-search";
 import { viewerCanReview } from "./review";
 import { limitLiving } from "../privacy";
 import { getSession } from "../auth/session";
@@ -197,10 +198,8 @@ export async function getPersonCard(treeId: string, personId: string) {
 }
 
 export async function searchPersons(treeId: string, query: string, limit = 30) {
-  const normalized = query
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase();
+  const patterns = nameSearchPatterns(query);
+  if (!patterns.length) return [];
   const { rows } = await getPool().query(
     `select p.id, n.display_name,
             (select date_from from events e where e.person_id = p.id and e.event_type = 'BIRT' order by e.date_from nulls last, e.id limit 1) as birth_from,
@@ -213,10 +212,10 @@ export async function searchPersons(treeId: string, query: string, limit = 30) {
              where fc.child_id = p.id limit 1) as parents
      from persons p
      join person_names n on n.person_id = p.id and n.is_primary
-     where p.tree_id = $1 and n.search_key like '%' || $2 || '%'
+     where p.tree_id = $1 and n.search_key like all($2::text[])
      order by n.display_name
      limit $3`,
-    [treeId, normalized, limit],
+    [treeId, patterns, limit],
   );
   return rows.map((r) => ({
     id: r.id as string,
