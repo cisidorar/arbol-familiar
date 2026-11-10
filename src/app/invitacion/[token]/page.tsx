@@ -41,10 +41,10 @@ export default async function InvitationPage({ params }: { params: Promise<{ tok
       intro={
         isReset
           ? `Hola${invitation.userName ? `, ${invitation.userName}` : ""}. Al guardarla se cerrarán las sesiones que tengas abiertas en otros aparatos.`
-          : `Entrarás como ${ROLE_LABELS[invitation.role].toLowerCase()}: ${ROLE_HELP[invitation.role].toLowerCase()}`
+          : `${invitation.personName ? `Eres ${invitation.personName} en el árbol. ` : ""}Solo elige una contraseña. Entrarás como ${ROLE_LABELS[invitation.role].toLowerCase()}: ${ROLE_HELP[invitation.role].toLowerCase()}`
       }
     >
-      <AcceptInviteForm token={token} kind={invitation.kind} email={invitation.email} minLength={MIN_PASSWORD_LENGTH} />
+      <AcceptInviteForm token={token} kind={invitation.kind} email={invitation.email} personName={invitation.personName} minLength={MIN_PASSWORD_LENGTH} />
     </AuthShell>
   );
 }

@@ -108,11 +108,14 @@ export function AcceptInviteForm({
   token,
   kind,
   email,
+  personName,
   minLength,
 }: {
   token: string;
   kind: "invite" | "reset";
   email: string;
+  /** Nombre de la persona del árbol a la que apunta la invitación: si viene, no se pide el nombre. */
+  personName?: string | null;
   minLength: number;
 }) {
   const [state, action, pending] = useActionState(acceptInvite, undefined);
@@ -127,7 +130,14 @@ export function AcceptInviteForm({
         {/* Para que el navegador guarde la contraseña junto al correo correcto. */}
         <input type="hidden" name="username" autoComplete="username" value={email} readOnly />
       </div>
-      {kind === "invite" && (
+      {kind === "invite" && personName && (
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[1.125rem] font-bold">Tu nombre en el archivo</span>
+          <p className="rounded-lg bg-adobe-2 px-3.5 py-3 text-[1.125rem]">{personName}</p>
+          <p className="zb-apoyo">Es quien eres en el árbol. Si no es tu nombre, avísale a quien te invitó.</p>
+        </div>
+      )}
+      {kind === "invite" && !personName && (
         <Field
           id="name"
           name="name"
@@ -135,7 +145,6 @@ export function AcceptInviteForm({
           autoComplete="name"
           required
           maxLength={80}
-          autoFocus
           defaultValue={state?.name}
           hint="Aparece junto a los cambios que hagas."
         />
@@ -148,6 +157,7 @@ export function AcceptInviteForm({
         autoComplete="new-password"
         required
         minLength={minLength}
+        autoFocus={kind === "reset" || Boolean(personName)}
         hint={`Al menos ${minLength} letras o números.`}
       />
       <Field

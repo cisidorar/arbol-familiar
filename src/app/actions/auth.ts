@@ -59,8 +59,10 @@ export async function acceptInvite(_prev: FormState, formData: FormData): Promis
   const invitation = await getInvitation(token);
   if (!invitation) return { error: "Este enlace ya no sirve: venció o ya se usó. Pídele a quien administra el archivo que te mande uno nuevo." };
 
-  const name = invitation.kind === "reset" ? invitation.userName ?? "" : String(formData.get("name") ?? "").trim();
-  if (invitation.kind === "invite" && (name.length < 2 || name.length > 80)) {
+  // Con la persona del árbol elegida por quien invita, el nombre sale de ella; si no (invitaciones antiguas), se pide.
+  const name =
+    invitation.kind === "reset" ? invitation.userName ?? "" : invitation.personName ?? String(formData.get("name") ?? "").trim();
+  if (invitation.kind === "invite" && (name.length < 2 || name.length > 200)) {
     return { error: "Escribe tu nombre, por favor." };
   }
   const problem = passwordProblem(password);

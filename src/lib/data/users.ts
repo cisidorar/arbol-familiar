@@ -216,19 +216,20 @@ export async function createPasswordReset(opts: {
   return { ok: true, id: created[0].id, token };
 }
 
-export type InvitationInfo = { kind: "invite" | "reset"; email: string; role: Role; userName: string | null };
+export type InvitationInfo = { kind: "invite" | "reset"; email: string; role: Role; userName: string | null; personName: string | null };
 
 /** Lo que muestra la página del enlace, o null si el enlace no existe, venció o ya se usó. */
 export async function getInvitation(token: string): Promise<InvitationInfo | null> {
   const { rows } = await getPool().query(
-    `select i.kind, i.email, i.role, u.name as user_name
+    `select i.kind, i.email, i.role, u.name as user_name,
+            (select display_name from person_names where person_id = i.person_id and is_primary) as person_name
      from invitations i
      left join users u on lower(u.email) = i.email
      where i.token_hash = $1 and i.used_at is null and i.revoked_at is null and i.expires_at > now()`,
     [hashToken(token)],
   );
   const r = rows[0];
-  return r ? { kind: r.kind, email: r.email, role: r.role, userName: r.user_name } : null;
+  return r ? { kind: r.kind, email: r.email, role: r.role, userName: r.user_name, personName: r.person_name } : null;
 }
 
 export type AcceptResult = { ok: true; userId: string; kind: "invite" | "reset"; email: string } | { ok: false; error: string };
@@ -252,6 +253,13 @@ export async function acceptInvitation(token: string, name: string, password: st
       return { ok: false, error: "Este enlace ya no sirve: venció o ya se usó. Pide uno nuevo." };
     }
 
+    // El nombre de la cuenta es el de la persona del árbol a la que apunta la invitación.
+    let accountName = name;
+    if (inv.kind === "invite" && inv.person_id) {
+      const { rows: pn } = await client.query(`select display_name from person_names where person_id = $1 and is_primary`, [inv.person_id]);
+      if (pn[0]?.display_name) accountName = pn[0].display_name;
+    }
+
     let userId: string;
     if (inv.kind === "reset") {
       const res = await client.query(
@@ -271,7 +279,7 @@ export async function acceptInvitation(token: string, name: string, password: st
         `insert into users (email, name, password_hash) values ($1, $2, $3)
          on conflict (lower(email)) do update set name = excluded.name, password_hash = excluded.password_hash
          returning id`,
-        [inv.email, name, passwordHash],
+        [inv.email, accountName, passwordHash],
       );
       userId = res.rows[0].id;
       // Si el correo ya tenía cuenta, su contraseña acaba de cambiar: se cierran sus sesiones abiertas.
