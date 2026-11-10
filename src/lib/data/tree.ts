@@ -40,7 +40,7 @@ export async function getFamilyChartData(treeId: string) {
   // y no hay un endpoint que las sirva), así que ni siquiera consultamos el avatar.
   const showReview = await viewerCanReview();
   const { rows: persons } = await getPool().query(
-    `select p.id, p.sex, p.is_living,
+    `select p.id, p.sex, p.is_living, p.parents_theory,
             exists (select 1 from events x where x.needs_review and (x.person_id = p.id
               or x.family_id in (select f2.id from families f2 where f2.partner1_id = p.id or f2.partner2_id = p.id))) as needs_review,
             n.given_names, n.surname_pat, n.surname_mat, n.display_name,
@@ -132,9 +132,19 @@ export async function getFamilyChartData(treeId: string) {
   const orderedSpouses = (id: string) =>
     [...(spousesOf.get(id) ?? new Map<string, number>())].sort((x, y) => x[1] - y[1]).map(([sp]) => sp);
 
+  // Teoría: todo lo que está arriba de un vínculo marcado como teoría (los padres y sus antepasados).
+  const theoryAbove = new Set<string>();
+  const queue = persons.filter((p) => p.parents_theory).flatMap((p) => parentsOf.get(p.id as string) ?? []);
+  while (queue.length) {
+    const id = queue.pop()!;
+    if (theoryAbove.has(id)) continue;
+    theoryAbove.add(id);
+    queue.push(...(parentsOf.get(id) ?? []));
+  }
+
   return persons.map((p) => ({
     id: p.id as string,
-    data: cards.get(p.id as string)!,
+    data: { ...cards.get(p.id as string)!, theory: theoryAbove.has(p.id as string) },
     rels: {
       parents: parentsOf.get(p.id) ?? [],
       children: childrenOf.get(p.id) ?? [],
@@ -159,6 +169,7 @@ function cardData(p: {
   sex: string | null;
   is_living: boolean;
   needs_review?: boolean;
+  parents_theory?: boolean;
   given_names: string | null;
   surname_pat: string | null;
   surname_mat: string | null;
@@ -190,6 +201,8 @@ function cardData(p: {
     is_living: p.is_living,
     // Hay un documento por revisar (marca que se prende en la ficha): se señala en la tarjeta.
     needs_review: showReview && Boolean(p.needs_review),
+    // Su vínculo con sus padres es una teoría (sin acta); `theory` lo agrega getFamilyChartData para quienes están arriba.
+    parents_theory: Boolean(p.parents_theory),
     // Murió siendo niño/a: silueta infantil en la tarjeta. Se calcula por año
     // (no siempre hay día y mes), así que es aproximado; sin nacimiento
     // conocido, por la edad aproximada anotada en su defunción.
@@ -201,7 +214,7 @@ function cardData(p: {
 export async function getPersonCard(treeId: string, personId: string) {
   const showReview = await viewerCanReview();
   const { rows } = await getPool().query(
-    `select p.id, p.sex, p.is_living,
+    `select p.id, p.sex, p.is_living, p.parents_theory,
             exists (select 1 from events x where x.needs_review and (x.person_id = p.id
               or x.family_id in (select f2.id from families f2 where f2.partner1_id = p.id or f2.partner2_id = p.id))) as needs_review,
             n.given_names, n.surname_pat, n.surname_mat, n.display_name,
@@ -684,6 +697,8 @@ export async function getPersonDetail(treeId: string, personId: string) {
     media,
     familiesAsPartner: families,
     parents: asChild[0] ?? null,
+    parentsTheory: Boolean(person.parents_theory),
+    theoryNote: (person.theory_note as string | null) ?? null,
   }, viewerEdits);
 }
 

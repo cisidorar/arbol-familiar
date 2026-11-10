@@ -852,3 +852,35 @@ export async function setUnionType(
     return { ok: true } as const;
   });
 }
+
+/**
+ * Marca (o desmarca) como teoría el vínculo de una persona con sus padres: todavía no hay un acta
+ * que lo pruebe. Quien está arriba de ese vínculo se pinta distinto en el árbol.
+ */
+export async function setParentsTheory(
+  treeId: string,
+  personId: string,
+  theory: unknown,
+  note: unknown,
+  actor: Actor,
+): Promise<EditResult> {
+  if (typeof theory !== "boolean") return { ok: false, status: 400, error: "Falta decir si es teoría." };
+  const text = typeof note === "string" ? note.trim().slice(0, 500) : "";
+  return transaction(async (client) => {
+    const { rows } = await client.query(
+      `select parents_theory, theory_note from persons where tree_id = $1 and id = $2 for update`,
+      [treeId, personId],
+    );
+    if (!rows[0]) return NOT_FOUND;
+    const nextNote = theory ? text || null : null;
+    if (rows[0].parents_theory === theory && (rows[0].theory_note ?? null) === nextNote) return { ok: true } as const;
+    await client.query(`update persons set parents_theory = $2, theory_note = $3 where id = $1`, [personId, theory, nextNote]);
+    await markEdited(client, personId, actor);
+    await logChange(client, {
+      treeId, actor, personId, entity: "person", entityId: personId, action: "update",
+      before: { parents_theory: rows[0].parents_theory, theory_note: rows[0].theory_note ?? null },
+      after: { parents_theory: theory, theory_note: nextNote },
+    });
+    return { ok: true } as const;
+  });
+}

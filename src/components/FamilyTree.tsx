@@ -34,6 +34,8 @@ type ChartDatum = {
     is_living: boolean;
     is_child: boolean;
     needs_review?: boolean;
+    /** Está arriba de un vínculo que es teoría (sin acta): la tarjeta y la línea van de otro color. */
+    theory?: boolean;
     /** Con quiénes estuvo casada o casado y ya se divorció: la línea hacia ellos se dibuja punteada. */
     divorced_from?: string[];
   };
@@ -128,6 +130,12 @@ function straightenLinks(container: HTMLElement) {
     const d = datumOf(path) as (LinkDatum & { source?: { data?: { id?: string; data?: { divorced_from?: string[] } } }; target?: { data?: { id?: string } } }) | undefined;
     const divorced = Boolean(d?.spouse && d.target?.data?.id && d.source?.data?.data?.divorced_from?.includes(d.target.data.id));
     path.classList.toggle("link-divorced", divorced);
+    // Teoría: la línea que une a los padres con su hijo cuando los padres están arriba de un vínculo sin acta.
+    // En esas líneas `source` son los dos padres (un arreglo) y `target` el hijo.
+    type TheoryNode = { data?: { data?: { theory?: boolean } } };
+    const link = d as { spouse?: boolean; source?: TheoryNode | TheoryNode[]; target?: TheoryNode } | undefined;
+    const ends = [...(Array.isArray(link?.source) ? link.source : [link?.source]), link?.target];
+    path.classList.toggle("link-theory", Boolean(!link?.spouse && ends.some((n) => n?.data?.data?.theory)));
     const target = entry.targets[i];
     if (target && path.getAttribute("d") !== target) path.setAttribute("d", target);
   });
@@ -855,6 +863,9 @@ export default function FamilyTree({ data, mainId, line = null, version, resetKe
               flag?.remove();
             }
           }
+
+          // Teoría: arriba de un vínculo sin acta. Otro color, para no confundirlo con lo que sí está probado.
+          this.querySelector(".card")?.classList.toggle("card-theory", Boolean(d.data.data.theory));
 
           // Expareja de quien está al lado: la tarjeta se apaga un poco (la línea punteada ya lo dice, esto lo refuerza).
           {

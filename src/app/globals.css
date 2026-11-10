@@ -300,6 +300,36 @@ div.f3 path.link.f3-path-to-main {
   stroke-width: 3px;
 }
 
+/* Teoría: la línea hacia quien está arriba de un vínculo sin acta va punteada y violeta (gana a la línea al centro). */
+div.f3 path.link.link-theory {
+  stroke: #6b4aa0 !important;
+  stroke-width: 3px;
+  stroke-dasharray: 9 6;
+  stroke-linecap: butt;
+}
+
+/* Tarjeta de teoría: borde punteado violeta y una pestañita que lo dice. */
+div.f3 div.card.card-theory {
+  outline: 3px dashed #6b4aa0;
+  outline-offset: 3px;
+}
+div.f3 div.card.card-theory::before {
+  content: "Teoría";
+  position: absolute;
+  top: -13px;
+  left: 14px;
+  z-index: 3;
+  padding: 1px 10px;
+  border-radius: 9999px;
+  background: #6b4aa0;
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+  pointer-events: none;
+}
+
 /* Control de "más familia" de una tarjeta. Es un botón: abre esa rama ahí
    mismo o, si no se puede dibujar desde este árbol, lo centra en la persona.
    FamilyTree.tsx le pone `data-dir` según lo que va a pasar:

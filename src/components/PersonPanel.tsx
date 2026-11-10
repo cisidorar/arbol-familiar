@@ -59,6 +59,9 @@ interface PersonDetail {
   notes: string;
   edited: { at: string; by: string | null } | null;
   canEdit: boolean;
+  /** Su vínculo con sus padres es una teoría (todavía sin acta), con el motivo si se anotó. */
+  parentsTheory?: boolean;
+  theoryNote?: string | null;
   /** Solo administradores: puede marcar hechos «por revisar». */
   canReview?: boolean;
   timeline: TimelineEntry[];
@@ -533,6 +536,46 @@ export default function PersonPanel({
       setUnionError("No se pudo guardar: revisa tu conexión y prueba de nuevo.");
     } finally {
       setUnionBusy(false);
+    }
+  };
+
+  // Marca la filiación como teoría (sin acta): quien está arriba se pinta de otro color en el árbol.
+  const [theoryBusy, setTheoryBusy] = useState(false);
+  const [theoryError, setTheoryError] = useState<string | null>(null);
+  const [theoryNote, setTheoryNote] = useState("");
+  const [theoryFor, setTheoryFor] = useState<string | null>(null);
+  if (person && theoryFor !== person.id) {
+    // Al cambiar de persona, el cuadro de la nota parte con la suya.
+    setTheoryFor(person.id);
+    setTheoryNote(person.theoryNote ?? "");
+  }
+  const saveTheory = async (theory: boolean, note: string) => {
+    if (!person) return;
+    setTheoryBusy(true);
+    setTheoryError(null);
+    try {
+      const res = await fetch(`/api/persons/${person.id}/theory`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ theory, note }),
+      });
+      if (res.status === 401) {
+        router.push("/login");
+        return;
+      }
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        setTheoryError(json?.error ?? "No se pudo guardar.");
+        return;
+      }
+      setPerson(json.person);
+      setTheoryNote(json.person.theoryNote ?? "");
+      if (json.data) onTreeData?.(json.data);
+      if (json.card) onPersonChanged(json.person.id, json.card);
+    } catch {
+      setTheoryError("No se pudo guardar: revisa tu conexión y prueba de nuevo.");
+    } finally {
+      setTheoryBusy(false);
     }
   };
 
@@ -1062,6 +1105,42 @@ export default function PersonPanel({
               <div className="px-5 py-6 sm:px-7">
                 {familyCount === 0 && <p className="text-base text-gris">{data.length ? "Sin familiares en el árbol." : "Cargando…"}</p>}
                 {familySection("Padres", parentIds, (id) => yearsLine(byId.get(id)?.data?.birth_year, byId.get(id)?.data?.death_year))}
+                {parentIds.length > 0 && person && (canEdit || person.parentsTheory) && (
+                  <div className="mt-3 rounded-2xl border-2 border-[#6b4aa0] bg-white px-4 py-3">
+                    {canEdit ? (
+                      <label className="flex min-h-11 cursor-pointer items-center gap-3 text-base font-bold text-ink">
+                        <input
+                          type="checkbox"
+                          className="h-6 w-6 shrink-0 accent-[#6b4aa0]"
+                          checked={Boolean(person.parentsTheory)}
+                          disabled={theoryBusy}
+                          onChange={(e) => saveTheory(e.target.checked, theoryNote)}
+                        />
+                        Teoría: todavía no hay un acta que pruebe que son sus padres
+                      </label>
+                    ) : (
+                      <p className="text-base font-bold text-[#6b4aa0]">Teoría: todavía no hay un acta que pruebe que son sus padres.</p>
+                    )}
+                    {person.parentsTheory && canEdit && (
+                      <div className="mt-2">
+                        <label className="text-base text-gris" htmlFor="theory-note">¿Por qué es teoría? (opcional)</label>
+                        <textarea
+                          id="theory-note"
+                          rows={2}
+                          maxLength={500}
+                          value={theoryNote}
+                          disabled={theoryBusy}
+                          onChange={(e) => setTheoryNote(e.target.value)}
+                          onBlur={() => theoryNote.trim() !== (person.theoryNote ?? "") && saveTheory(true, theoryNote)}
+                          placeholder="Ej.: viene del árbol de FamilySearch, sin acta"
+                          className="mt-1 w-full rounded-lg border-2 border-[#8f8a80] bg-white px-3 py-2 text-base text-ink focus:border-hombre"
+                        />
+                      </div>
+                    )}
+                    {person.parentsTheory && !canEdit && person.theoryNote && <p className="mt-1 text-base text-ink">{person.theoryNote}</p>}
+                    {theoryError && <p role="alert" className="mt-2 text-base font-bold text-aviso">{theoryError}</p>}
+                  </div>
+                )}
                 {familySection(spouseIds.length > 1 ? "Parejas" : spouseLabel, spouseIds, (id) => {
                   const y = marriedIn(id);
                   const d = byId.get(id)?.data;

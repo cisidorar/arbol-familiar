@@ -89,8 +89,11 @@ export default function TreeApp({ data, user, homeId, selfId }: { data: any[]; u
     const known = new Map(data.map((d) => [d.id, d]));
     for (const datum of fresh) {
       const current = known.get(datum.id);
-      if (current) current.rels = datum.rels;
-      else data.push(datum);
+      if (current) {
+        current.rels = datum.rels;
+        // También las marcas de la tarjeta (por ejemplo, el color de teoría de todos los antepasados), en el mismo objeto que usa el árbol.
+        Object.assign(current.data, datum.data);
+      } else data.push(datum);
     }
     setVersion((v) => v + 1);
   };
@@ -381,6 +384,12 @@ export default function TreeApp({ data, user, homeId, selfId }: { data: any[]; u
             <line x1="1" y1="3" x2="39" y2="3" stroke="#a39986" strokeWidth="2.5" strokeDasharray="3 7" />
           </svg>
           Línea punteada: la pareja ya se divorció.
+        </div>
+        <div className="flex items-center gap-2">
+          <svg viewBox="0 0 40 6" className="h-1.5 w-10 shrink-0" aria-hidden="true">
+            <line x1="1" y1="3" x2="39" y2="3" stroke="#6b4aa0" strokeWidth="3" strokeDasharray="9 6" />
+          </svg>
+          Violeta: teoría, todavía sin acta.
         </div>
       </div>
       {!legendDesktop && (
