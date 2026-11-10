@@ -12,6 +12,7 @@ import { getPersonFacts } from "@/lib/data/origins";
 import { collectAncestors } from "@/lib/origins";
 import { closeness, grandparentsOf } from "@/lib/closeness";
 import { PORTADA } from "@/lib/portada-contenido";
+import { nameKey, withoutTheory } from "@/lib/data/theory";
 import { getPool } from "@/lib/db/pool";
 
 export const metadata: Metadata = { title: "Inicio · Archivo Zamora Balcázar" };
@@ -120,6 +121,10 @@ export default async function InicioPage() {
     ]),
   );
   const me = selfId ? byId.get(selfId) : undefined;
+  // Teoría (arriba de un vínculo sin confirmar): se ve en el árbol, pero aquí no se cuenta como hecho, ni en las
+  // cifras de la línea directa, ni en «Te tocó», ni en las novedades.
+  const theoryIds = new Set(chart.filter((c) => c.data.theory).map((c) => c.id));
+  const theoryNames = new Set(chart.filter((c) => c.data.theory).map((c) => nameKey(c.data.label)));
 
   // Con 400 personas, las fechas parten por la familia cercana: línea directa y parientes cercanos de quien mira.
   // Sin vínculo con el árbol (todavía no dice quién es), se muestran todas.
@@ -149,7 +154,7 @@ export default async function InicioPage() {
   // Tus cuatro ramas: por cada abuelo/a, cuánto conocemos hacia atrás.
   type Rama = { id: string; name: string; count: number; gens: number; oldest: { name: string; year: number; place: string | null } | null };
   const direct = me
-    ? collectAncestors(me.id, chart.map((c) => ({ id: c.id, data: c.data, rels: c.rels })), facts).filter((a) => !a.lateral)
+    ? collectAncestors(me.id, chart.map((c) => ({ id: c.id, data: c.data, rels: c.rels })), facts).filter((a) => !a.lateral && !theoryIds.has(a.id))
     : [];
   const originOf = new Map(direct.map((a) => [a.id, a.origin]));
   const ramas: Rama[] = [];
@@ -163,7 +168,7 @@ export default async function InicioPage() {
       let gens = 0;
       while (frontier.length) {
         const next: string[] = [];
-        for (const id of frontier) for (const par of byId.get(id)?.rels.parents ?? []) if (!seen.has(par)) { seen.set(par, (seen.get(id) ?? 0) + 1); next.push(par); }
+        for (const id of frontier) for (const par of byId.get(id)?.rels.parents ?? []) if (!seen.has(par) && !theoryIds.has(par)) { seen.set(par, (seen.get(id) ?? 0) + 1); next.push(par); }
         if (next.length) gens++;
         frontier = next;
       }
@@ -216,7 +221,8 @@ export default async function InicioPage() {
   // Novedades: quién se sumó este mes, primero los de tu línea directa.
   const directSet = new Set(direct.map((a) => a.id));
   const relOf = new Map(direct.map((a) => [a.id, a.relation]));
-  const recentMineAll = recentRows.filter((id) => directSet.has(id));
+  const recentConfirmed = recentRows.filter((id) => !theoryIds.has(id));
+  const recentMineAll = recentConfirmed.filter((id) => directSet.has(id));
   const recentMine = recentMineAll.slice(0, 4);
   const recentMineRest = recentMineAll.length - recentMine.length;
   // "tu bisabuelo" ayuda; "tu antepasado de la generación 12" no: para esos se dice cuántas generaciones atrás.
@@ -225,7 +231,7 @@ export default async function InicioPage() {
     return r && !/generaci/.test(r) ? `tu ${r}` : null;
   };
   const recentGens = recentMineAll.map((id) => direct.find((a) => a.id === id)?.generation ?? 0).filter(Boolean);
-  const hallazgos = PORTADA.hallazgos.slice(0, 2);
+  const hallazgos = withoutTheory(PORTADA.hallazgos, theoryNames).slice(0, 2);
 
   return (
     <div className="zb album min-h-screen text-ink [color-scheme:light]">
@@ -350,12 +356,12 @@ export default async function InicioPage() {
           </section>
         )}
 
-        {(recentRows.length > 0 || hallazgos.length > 0) && (
+        {(recentConfirmed.length > 0 || hallazgos.length > 0) && (
           <section aria-label="Novedades del archivo">
             <h2 className="al-titulo al-regla">Novedades del archivo</h2>
-            {recentRows.length > 0 && (
+            {recentConfirmed.length > 0 && (
               <p className="zb-texto mt-3 max-w-5xl">
-                Este mes se {recentRows.length === 1 ? "sumó 1 persona" : `sumaron ${recentRows.length} personas`} al archivo
+                Este mes se {recentConfirmed.length === 1 ? "sumó 1 persona" : `sumaron ${recentConfirmed.length} personas`} al archivo
                 {recentMine.length > 0 ? (
                   <>
                     , {recentMineAll.length === 1 ? "una" : recentMineAll.length} de tu línea directa:{" "}

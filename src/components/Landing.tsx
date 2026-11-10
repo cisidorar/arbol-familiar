@@ -38,7 +38,21 @@ function SurnameCard({ s, i }: { s: PublicSurname; i: number }) {
   );
 }
 
-export default function Landing({ stats, surnames = [] }: { stats: PublicStats | null; surnames?: PublicSurname[] }) {
+type Destacado = (typeof PORTADA.destacados)[number];
+type Hallazgo = (typeof PORTADA.hallazgos)[number];
+
+export default function Landing({
+  stats,
+  surnames = [],
+  destacado,
+  hallazgos,
+}: {
+  stats: PublicStats | null;
+  surnames?: PublicSurname[];
+  /** Lo que sigue en teoría en el árbol ya viene filtrado. */
+  destacado: Destacado | null;
+  hallazgos: Hallazgo[];
+}) {
   const items = [
     stats && { value: stats.people.toLocaleString("es-CL"), label: "personas" },
     stats?.generations && { value: String(stats.generations), label: "generaciones" },
@@ -92,21 +106,23 @@ export default function Landing({ stats, surnames = [] }: { stats: PublicStats |
           </div>
 
           {/* Una ficha grande y legible con un hallazgo; detrás, otras dos asoman como un montón. */}
-          <div className="relative mx-auto w-full max-w-[26rem] pb-4 pt-6 lg:col-start-2 lg:row-span-2 lg:row-start-1" aria-label={`${PORTADA.destacado.tipo}: ${PORTADA.destacado.nombre}`} role="group">
+          {destacado && (
+          <div className="relative mx-auto w-full max-w-[26rem] pb-4 pt-6 lg:col-start-2 lg:row-span-2 lg:row-start-1" aria-label={`${destacado.tipo}: ${destacado.nombre}`} role="group">
             <div aria-hidden="true" className="absolute inset-x-6 top-0 h-[92%] rotate-[5deg] rounded-md bg-[#eae3d2] shadow-[0_10px_24px_-10px_rgba(0,0,0,0.6)]" />
             <div aria-hidden="true" className="absolute inset-x-3 top-2 h-[92%] -rotate-[4deg] rounded-md bg-[#efe8d9] shadow-[0_10px_24px_-10px_rgba(0,0,0,0.6)]" />
             <article className="relative -rotate-[1.5deg] rounded-md bg-[#f7f4ed] p-6 pb-7 text-ink shadow-[0_28px_44px_-14px_rgba(0,0,0,0.8)] sm:p-8">
               <span aria-hidden="true" className="absolute -top-3 left-1/2 h-7 w-28 -translate-x-1/2 rotate-[-2deg] bg-trigo/90" />
               <p className="flex items-center justify-between font-maquina text-base uppercase tracking-[0.1em] text-gris">
-                <span>{PORTADA.destacado.tipo}</span>
-                <span>{PORTADA.destacado.lugar}</span>
+                <span>{destacado.tipo}</span>
+                <span>{destacado.lugar}</span>
               </p>
               <div className="mt-2 h-px bg-terra" aria-hidden="true" />
-              <h2 className="mt-4 font-maquina text-[1.875rem] leading-tight sm:text-[2.25rem]">{PORTADA.destacado.nombre}</h2>
-              <p className="mt-3 text-[1.1875rem] leading-relaxed">{PORTADA.destacado.frase}</p>
+              <h2 className="mt-4 font-maquina text-[1.875rem] leading-tight sm:text-[2.25rem]">{destacado.nombre}</h2>
+              <p className="mt-3 text-[1.1875rem] leading-relaxed">{destacado.frase}</p>
               <p className="mt-4 text-base text-gris">Así de difícil es a veces encontrar a nuestros antepasados.</p>
             </article>
           </div>
+          )}
             {items.length > 0 && (
               <div className="grid max-w-md grid-cols-3 gap-4 border-t border-white/15 pt-6 lg:col-start-1 lg:row-start-2">
                 {items.map((s) => (
@@ -154,12 +170,13 @@ export default function Landing({ stats, surnames = [] }: { stats: PublicStats |
       </section>
 
       {/* Lo último que encontramos */}
+      {hallazgos.length > 0 && (
       <section className="bg-adobe-2">
         <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 sm:py-20">
           <h2 className="al-titulo al-regla !text-[1.75rem] sm:!text-4xl">Lo último que encontramos</h2>
           <p className="mt-3 max-w-2xl text-lg text-gris">Algunas historias que fueron apareciendo en los registros.</p>
           <ol className="relative ml-3 mt-10 space-y-10 border-l-2 border-terra/40 md:ml-4">
-            {PORTADA.hallazgos.map((h) => (
+            {hallazgos.map((h) => (
               <li key={h.titulo} className="relative pl-8 md:pl-10">
                 <span aria-hidden="true" className="absolute -left-[0.6875rem] top-2 h-5 w-5 rounded-full bg-trigo ring-4 ring-adobe-2" />
                 <div className="grid gap-x-8 gap-y-1 md:grid-cols-[7rem_1fr] md:items-baseline">
@@ -175,6 +192,7 @@ export default function Landing({ stats, surnames = [] }: { stats: PublicStats |
           </ol>
         </div>
       </section>
+      )}
 
       {/* Aportar */}
       <section className="on-dark bg-parra text-white">

@@ -4,6 +4,8 @@ import { getSession, requireSession } from "@/lib/auth/session";
 import { getPublicStats, getPublicSurnames } from "@/lib/data/public-stats";
 import { getLinkedPersonId } from "@/lib/data/users";
 import { getDefaultTreeId, getFamilyChartData } from "@/lib/data/tree";
+import { getTheoryNameKeys, withoutTheory } from "@/lib/data/theory";
+import { PORTADA } from "@/lib/portada-contenido";
 
 // Los datos viven en Postgres y cambian con cada importación/edición:
 // nunca se deben servir desde una página prerenderizada en build time.
@@ -30,8 +32,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ p
   // El archivo es privado: sin sesión (o sin acceso a este árbol) se ve la portada
   // pública, que solo tiene cifras generales, y de ahí se pasa al login.
   if (!(await getSession())) {
-    const [stats, surnames] = await Promise.all([getPublicStats(treeId), getPublicSurnames(treeId)]);
-    return <Landing stats={stats} surnames={surnames} />;
+    const [stats, surnames, theory] = await Promise.all([getPublicStats(treeId), getPublicSurnames(treeId), getTheoryNameKeys(treeId)]);
+    // Lo que todavía es teoría en el árbol no se cuenta como hallazgo en la portada.
+    const destacado = withoutTheory(PORTADA.destacados, theory)[0] ?? null;
+    return <Landing stats={stats} surnames={surnames} destacado={destacado} hallazgos={withoutTheory(PORTADA.hallazgos, theory)} />;
   }
   const session = await requireSession();
   const data = await getFamilyChartData(session.treeId);

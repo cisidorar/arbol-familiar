@@ -1,6 +1,8 @@
 // Cifras generales para la portada pública. Solo agregados (cuántas personas,
-// cuántas generaciones, el año más antiguo): nada que identifique a nadie.
+// cuántas generaciones, el año más antiguo): nada que identifique a nadie. Lo que es teoría en el árbol
+// (arriba de un vínculo sin confirmar) no se cuenta.
 import { getPool } from "../db/pool";
+import { THEORY_CTE } from "./theory";
 
 export type PublicStats = { people: number; generations: number | null; oldestYear: number | null };
 
@@ -8,19 +10,25 @@ export async function getPublicStats(treeId: string): Promise<PublicStats | null
   try {
     const pool = getPool();
     const [people, gens, oldest] = await Promise.all([
-      pool.query(`select count(*)::int as n from persons where tree_id = $1`, [treeId]),
+      pool.query(
+        `with recursive ${THEORY_CTE}
+         select count(*)::int as n from persons where tree_id = $1 and id not in (select id from theory)`,
+        [treeId],
+      ),
       // Generaciones = la cadena más larga de padres a hijos (con tope por si hubiera un ciclo).
       pool.query(
-        `with recursive edges as (
+        `with recursive ${THEORY_CTE},
+         edges as (
            select v.parent, fc.child_id as child
            from families f
            cross join lateral (values (f.partner1_id), (f.partner2_id)) as v(parent)
            join family_children fc on fc.family_id = f.id
-           where f.tree_id = $1 and v.parent is not null
+           where f.tree_id = $1 and v.parent is not null and v.parent not in (select id from theory)
          ),
          chain(person, depth) as (
            select p.id, 1 from persons p
-           where p.tree_id = $1 and not exists (select 1 from edges e where e.child = p.id)
+           where p.tree_id = $1 and p.id not in (select id from theory)
+             and not exists (select 1 from edges e where e.child = p.id)
            union all
            select e.child, c.depth + 1 from chain c join edges e on e.parent = c.person where c.depth < 30
          )
@@ -28,8 +36,13 @@ export async function getPublicStats(treeId: string): Promise<PublicStats | null
         [treeId],
       ),
       pool.query(
-        `select min(extract(year from date_from))::int as y from events
-         where tree_id = $1 and date_from is not null and extract(year from date_from) >= 1500`,
+        `with recursive ${THEORY_CTE}
+         select min(extract(year from e.date_from))::int as y from events e
+         left join families f on f.id = e.family_id
+         where e.tree_id = $1 and e.date_from is not null and extract(year from e.date_from) >= 1500
+           and coalesce(e.person_id not in (select id from theory), true)
+           and coalesce(f.partner1_id not in (select id from theory), true)
+           and coalesce(f.partner2_id not in (select id from theory), true)`,
         [treeId],
       ),
     ]);
@@ -63,12 +76,13 @@ export type PublicSurname = {
 export async function getPublicSurnames(treeId: string, limit = 8): Promise<PublicSurname[]> {
   try {
     const { rows } = await getPool().query(
-      `with s as (
+      `with recursive ${THEORY_CTE},
+       s as (
          select p.id, initcap(lower(trim(n.surname_pat))) as sur,
                 lower(immutable_unaccent(trim(n.surname_pat))) as k
          from persons p
          join person_names n on n.person_id = p.id and n.is_primary
-         where p.tree_id = $1 and coalesce(trim(n.surname_pat), '') <> ''
+         where p.tree_id = $1 and coalesce(trim(n.surname_pat), '') <> '' and p.id not in (select id from theory)
        ),
        old as (
          select s.k, s.id, extract(year from e.date_from)::int as y
