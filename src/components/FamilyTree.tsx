@@ -17,6 +17,10 @@ import {
 import { countCrossings, pathWithJumps } from "@/lib/link-jumps";
 import { allRelativesDisplayed, layoutAncestry, makeChildSort, tightenCouples, treeDimensions, type LayoutDatum } from "@/lib/tree-layout";
 
+const HTML_ESCAPES: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+/** Texto seguro para meter en HTML armado a mano. */
+const escapeHtml = (text: unknown) => String(text ?? "").replace(/[&<>"']/g, (c) => HTML_ESCAPES[c]);
+
 type ChartDatum = {
   id: string;
   data: {
@@ -668,7 +672,13 @@ export default function FamilyTree({ data, mainId, line = null, version, resetKe
 
       const card = chart
         .setCardHtml()
-        .setCardDisplay([["first_name", "last_name"], ["birth_year_label"], ["cemetery_label"]])
+        // family-chart arma la tarjeta con innerHTML: cada texto se escapa antes, para que un nombre
+        // o un lugar con "<" no se interprete como HTML (sería un script ejecutándose en el navegador de otros).
+        .setCardDisplay([
+          (d: any) => escapeHtml([d.data?.first_name, d.data?.last_name].filter(Boolean).join(" ")),
+          (d: any) => escapeHtml(d.data?.birth_year_label ?? ""),
+          (d: any) => escapeHtml(d.data?.cemetery_label ?? ""),
+        ] as any)
         .setOnCardClick((e: Event, d: any) => {
           // El ícono de "más familia" vive dentro de la tarjeta, así que su
           // clic llega acá también. Lo distinguimos: el ícono solo navega,
