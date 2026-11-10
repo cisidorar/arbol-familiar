@@ -127,7 +127,8 @@ export default async function AdminPage() {
     <div className="zb album min-h-screen text-ink [color-scheme:light]">
       <SectionHeader current="admin" />
 
-      <main className="mx-auto flex max-w-3xl flex-col gap-12 px-4 py-8 sm:px-6 lg:py-10">
+      <main className="mx-auto max-w-[88rem] px-4 py-8 sm:px-6 lg:py-10">
+        <div className="flex flex-col gap-10">
         <PageTitle intro="Quién puede entrar al archivo, qué puede hacer y qué se ha cambiado.">Usuarios e historial</PageTitle>
 
         <nav aria-label="Secciones de esta pantalla" className="-mt-6 flex flex-wrap gap-2">
@@ -149,6 +150,10 @@ export default async function AdminPage() {
           </div>
         )}
 
+        </div>
+
+        <div className="mt-12 grid gap-12 lg:grid-cols-2 lg:items-start lg:gap-14">
+          <div className="flex flex-col gap-12">
         <Section
           id="invitar"
           title="Invitar a alguien"
@@ -171,6 +176,9 @@ export default async function AdminPage() {
           <InvitationsList invitations={invitations} />
         </Section>
 
+          </div>
+
+          <div className="flex flex-col gap-12">
         <Section
           id="seguridad"
           title="Registro de seguridad"
@@ -242,6 +250,8 @@ export default async function AdminPage() {
             </Fold>
           )}
         </Section>
+          </div>
+        </div>
       </main>
     </div>
   );
