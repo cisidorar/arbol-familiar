@@ -24,7 +24,8 @@ function slots(a: { id: string; sex: Sex }, b: { id: string; sex: Sex } | null):
 
 async function createFamily(client: PoolClient, treeId: string, partner1: string | null, partner2: string | null) {
   const { rows } = await client.query(
-    `insert into families (tree_id, partner1_id, partner2_id) values ($1, $2, $3) returning id`,
+    // Una unión nueva es solo pareja: pasa a ser matrimonio cuando alguien registra el matrimonio.
+    `insert into families (tree_id, partner1_id, partner2_id, union_type) values ($1, $2, $3, 'partnership') returning id`,
     [treeId, partner1, partner2],
   );
   return rows[0].id as string;

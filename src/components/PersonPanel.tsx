@@ -702,7 +702,7 @@ export default function PersonPanel({
   // Una pareja puede tener hijos sin haberse casado: esas uniones se marcan como
   // "sin matrimonio" y se rotulan "Pareja" en vez de "Esposo/Esposa".
   const unionTypeOf = (spouseId: string) =>
-    (person?.familiesAsPartner ?? []).find((f) => f.partner1_id === spouseId || f.partner2_id === spouseId)?.union_type ?? "marriage";
+    (person?.familiesAsPartner ?? []).find((f) => f.partner1_id === spouseId || f.partner2_id === spouseId)?.union_type ?? "partnership";
   const allUnmarried = spouseIds.length > 0 && spouseIds.every((id) => unionTypeOf(id) === "partnership");
   const spouseLabel = allUnmarried
     ? spouseIds.length > 1 ? "Parejas" : "Pareja"
@@ -1072,7 +1072,7 @@ export default function PersonPanel({
                         .filter((f) => f.partner1_id && f.partner2_id)
                         .map((f) => {
                           const other = f.partner1_id === person.id ? f.partner2_name : f.partner1_name;
-                          const current = f.union_type ?? "marriage";
+                          const current = f.union_type ?? "partnership";
                           return (
                             <li key={f.id} className="flex flex-wrap items-center justify-between gap-2">
                               <span className="text-base text-ink">{other ?? "(sin nombre)"}</span>

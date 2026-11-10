@@ -462,6 +462,8 @@ async function insertFamilyEvent(
     [treeId, familyId, v.type, v.subtype, date?.text ?? null, date?.from ?? null, date?.to ?? null, placeId, v.description, actor.id, v.review != null, v.review, v.reviewNote],
   );
   const eventId = rows[0].id as string;
+  // Registrar un matrimonio es lo que vuelve «matrimonio» a una unión (por defecto es solo pareja).
+  if (v.type === "MARR") await client.query(`update families set union_type = 'marriage' where id = $1 and tree_id = $2`, [familyId, treeId]);
   await setEventSource(client, treeId, eventId, v.source);
   await setParticipants(client, treeId, eventId, v.participants);
   await markEditedForEvent(client, { personId: null, familyId }, actor);
