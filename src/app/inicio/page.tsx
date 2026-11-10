@@ -66,10 +66,10 @@ const TILE: Record<FamilyDateItem["kind"], string> = {
   casan: "bg-teja text-adobe",
 };
 
-function DateRow({ it, today, i, far = false, selfId }: { it: FamilyDateItem; today: boolean; i: number; far?: boolean; selfId?: string | null }) {
+function DateRow({ it, today, i, far = false, selfId, forceShow = false }: { it: FamilyDateItem; today: boolean; i: number; far?: boolean; selfId?: string | null; forceShow?: boolean }) {
   const when = it.inDays === 0 ? "Hoy" : it.inDays === 1 ? "Mañana" : `En ${it.inDays} días`;
   return (
-    <li className={`${i >= 4 ? "hidden md:flex" : "flex"} items-center gap-4 relative rounded-2xl border-2 bg-white p-4 hover:border-ink ${today ? "border-ink" : "border-line"}`}>
+    <li className={`${i >= 4 && !forceShow ? "hidden md:flex" : "flex"} items-center gap-4 relative rounded-2xl border-2 bg-white p-4 hover:border-ink ${today ? "border-ink" : "border-line"}`}>
       <span
         className={`grid h-[4.5rem] w-[4.5rem] shrink-0 place-items-center rounded-full border-4 border-double border-adobe text-center leading-none ${TILE[it.kind]}`}
         aria-hidden="true"
@@ -289,6 +289,20 @@ export default async function InicioPage() {
                 <DateRow key={`s${i}`} it={it} today={false} i={i + todayItems.length} far={farSet.has(it)} selfId={selfId} />
               ))}
             </ul>
+            {/* En el teléfono se ven 4 y el resto queda a un toque: nada desaparece sin avisar. */}
+            {todayItems.length + soon.length > 4 && (
+              <details className="group mt-4 md:hidden">
+                <summary className="inline-flex min-h-12 cursor-pointer list-none items-center rounded-full border-2 border-ink bg-white px-6 text-[1.125rem] font-bold [&::-webkit-details-marker]:hidden">
+                  <span className="group-open:hidden">Ver las otras {todayItems.length + soon.length - 4} fechas</span>
+                  <span className="hidden group-open:inline">Ocultar</span>
+                </summary>
+                <ul className="mt-4 grid gap-4">
+                  {[...todayItems, ...soon].slice(4).map((it, i) => (
+                    <DateRow key={`m${i}`} it={it} today={it.inDays === 0} i={0} far={farSet.has(it)} selfId={selfId} forceShow />
+                  ))}
+                </ul>
+              </details>
+            )}
           </section>
         )}
 
@@ -302,7 +316,7 @@ export default async function InicioPage() {
                   <li key={r.id}>
                     <Link href={`/?persona=${r.id}`} className="block h-full rounded-2xl border-2 border-ink bg-white p-5 hover:border-teja">
                       <p className="zb-etiqueta !text-burdeos">Rama de</p>
-                      <p className="mt-1 font-slab text-[1.375rem] font-bold leading-tight">{r.name}</p>
+                      <p className="mt-1 font-slab text-[1.25rem] font-bold leading-tight">{r.name}</p>
                       {/* Una marca por generación conocida: se ve de un vistazo qué tan atrás llega. */}
                       <div className="mt-3 flex flex-wrap gap-1.5" aria-hidden="true">
                         {Array.from({ length: Math.min(r.gens, 16) }, (_, i) => (

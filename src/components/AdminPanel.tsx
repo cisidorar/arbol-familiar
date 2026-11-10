@@ -117,6 +117,7 @@ export function InviteForm() {
           <Button type="submit" disabled={pending || !person}>
             {pending ? "Enviando…" : "Enviar invitación"}
           </Button>
+          {!person && <p className="zb-apoyo mt-2">Elige primero quién es en el árbol para poder enviarla.</p>}
         </div>
       </form>
       <ErrorText state={state} />
@@ -223,12 +224,9 @@ export function MemberRow({
         </summary>
       <div className="mt-2 flex flex-col gap-3 rounded-xl bg-paper px-4 py-3">
       <div className="flex flex-col gap-2">
-        <p className="zb-apoyo">
-          Vínculo con el árbol:{" "}
-          <button type="button" onClick={() => setChangingLink((o) => !o)} className={buttonClass("enlace")}>
-            {changingLink ? "Cancelar" : member.personName ? "Cambiar" : "Vincular"}
-          </button>
-        </p>
+        <button type="button" onClick={() => setChangingLink((o) => !o)} className={buttonClass("enlace", "w-fit")}>
+          {changingLink ? "Cancelar" : member.personName ? "Cambiar la persona del árbol" : "Vincular con una persona del árbol"}
+        </button>
         {changingLink && (
           <div className="flex flex-col gap-2">
             <PersonPicker value={newPerson} onChange={setNewPerson} placeholder="Escribe su nombre" />
@@ -359,7 +357,7 @@ function InvitationRow({ invitation }: { invitation: InvitationRowData }) {
 export function InvitationsList({ invitations }: { invitations: InvitationRowData[] }) {
   const open = invitations.filter((i) => OPEN.has(i.status));
   const closed = invitations.filter((i) => !OPEN.has(i.status));
-  if (!invitations.length) return <p className="zb-texto rounded-2xl border-2 border-line bg-white px-5 py-6 text-gris">No hay invitaciones de los últimos 60 días.</p>;
+  if (!invitations.length) return <p className="zb-apoyo">Sin invitaciones en los últimos 60 días. Cuando invites a alguien, aquí verás si le llegó.</p>;
   return (
     <div className="flex flex-col gap-4">
       {open.length > 0 ? (
@@ -420,9 +418,11 @@ export function MembersList({ members, selfId }: { members: MemberData[]; selfId
       {groups.length === 0 && <p className="zb-apoyo">Nadie coincide con «{query}».</p>}
       {groups.map((g) => (
         <section key={g.role} aria-label={GROUP_TITLE[g.role]}>
-          <h3 className="zb-apoyo mb-2 font-bold uppercase tracking-wide !text-burdeos">
-            {GROUP_TITLE[g.role]} ({g.people.length})
-          </h3>
+          {groups.length > 1 && (
+            <h3 className="zb-apoyo mb-2 font-bold uppercase tracking-wide !text-burdeos">
+              {GROUP_TITLE[g.role]} ({g.people.length})
+            </h3>
+          )}
           <ul className="overflow-hidden rounded-2xl border-2 border-line bg-white divide-y-2 divide-line">
             {g.people.map((m) => (
               <MemberRow key={m.id} member={m} isSelf={m.id === selfId} />

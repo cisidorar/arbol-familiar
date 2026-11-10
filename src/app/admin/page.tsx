@@ -39,6 +39,46 @@ function Fold({ title, hint, count, open, children }: { title: string; hint: str
   );
 }
 
+const DAYS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+/** "2026-11-10 14:30" → «martes 10/11/2026». */
+const dayLabel = (when: string) => {
+  const [y, m, d] = when.slice(0, 10).split("-").map(Number);
+  return `${DAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]} ${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}/${y}`;
+};
+
+/** Lista de registros agrupada por día: se ven los primeros y el resto queda tras «Ver los otros». */
+function DayList<T extends { id: string; when: string }>({ items, row, first = 15 }: { items: T[]; row: (item: T) => React.ReactNode; first?: number }) {
+  const render = (list: T[]) => {
+    let day = "";
+    return list.map((it) => {
+      const d = it.when.slice(0, 10);
+      const head = d !== day;
+      day = d;
+      return (
+        <li key={it.id} className="list-none">
+          {head && <p className="zb-apoyo border-t-2 border-line bg-paper px-4 py-2 font-bold !text-ink first:border-t-0 sm:px-5">{dayLabel(it.when)}</p>}
+          {row(it)}
+        </li>
+      );
+    });
+  };
+  const rest = items.slice(first);
+  return (
+    <>
+      <ul>{render(items.slice(0, first))}</ul>
+      {rest.length > 0 && (
+        <details className="group border-t-2 border-line">
+          <summary className="flex min-h-12 cursor-pointer list-none items-center px-5 py-2 text-[1.125rem] font-bold underline decoration-2 underline-offset-4 [&::-webkit-details-marker]:hidden">
+            <span className="group-open:hidden">Ver los otros {rest.length}</span>
+            <span className="hidden group-open:inline">Ocultar los otros {rest.length}</span>
+          </summary>
+          <ul>{render(rest)}</ul>
+        </details>
+      )}
+    </>
+  );
+}
+
 const card = "overflow-hidden rounded-2xl border-2 border-line bg-white";
 
 const EVENT_LABELS: Record<SecurityEvent, string> = {
@@ -145,22 +185,23 @@ export default async function AdminPage() {
               count={security.length}
               open={failedDay >= 5}
             >
-              <ul className="divide-y-2 divide-line">
-                {security.map((e) => (
-                  <li key={e.id} className="px-4 py-3 sm:px-5">
+              <DayList
+                items={security}
+                row={(e) => (
+                  <div className="px-4 py-3 sm:px-5">
                     <p className={`zb-texto ${ALERT.has(e.event) ? "font-bold !text-burdeos" : ""}`}>
                       {ALERT.has(e.event) && <span className="mr-2 rounded-full bg-burdeos px-2.5 py-0.5 text-sm font-bold text-white">Atención</span>}
                       {EVENT_LABELS[e.event] ?? e.event}
                       {(e.userName || e.email) && <span className="font-normal !text-ink"> · {e.userName ?? e.email}</span>}
                     </p>
                     <p className="zb-apoyo mt-0.5 tabular-nums">
-                      {e.when.replace(/^(\d+)-(\d+)-(\d+)/, "$3/$2/$1")}
+                      {e.when.slice(11)}
                       {e.ip ? ` · ${e.ip}` : ""}
                       {e.detail && typeof e.detail.role === "string" ? ` · rol ${e.detail.role}` : ""}
                     </p>
-                  </li>
-                ))}
-              </ul>
+                  </div>
+                )}
+              />
             </Fold>
           )}
         </Section>
@@ -174,29 +215,30 @@ export default async function AdminPage() {
             <p className={`${card} zb-texto px-5 py-6 text-gris`}>Todavía nadie ha editado nada.</p>
           ) : (
             <Fold title="Cambios hechos en la app" hint="Con lo que había antes y lo que quedó" count={changes.length}>
-            <ul className="divide-y-2 divide-line">
-              {changes.map((c) => {
-                const { summary, details } = describeChange(c);
-                return (
-                  <li key={c.id} className="px-4 py-4 sm:px-5">
-                    <p className="zb-texto">
-                      <span className="font-bold">{c.userName}</span> {summary}{" "}
-                      <span className="font-bold">{c.personName ?? "una persona borrada"}</span>
-                    </p>
-                    <p className="zb-apoyo mt-0.5 tabular-nums">{c.when.replace(/^(\d+)-(\d+)-(\d+)/, "$3/$2/$1")}</p>
-                    {details.length > 0 && (
-                      <ul className="mt-2 flex flex-col gap-1">
-                        {details.map((d, i) => (
-                          <li key={i} className="zb-apoyo break-words">
-                            {d}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
+              <DayList
+                items={changes}
+                row={(c) => {
+                  const { summary, details } = describeChange(c);
+                  return (
+                    <div className="px-4 py-4 sm:px-5">
+                      <p className="zb-texto">
+                        <span className="font-bold">{c.userName}</span> {summary}{" "}
+                        <span className="font-bold">{c.personName ?? "una persona borrada"}</span>
+                      </p>
+                      <p className="zb-apoyo mt-0.5 tabular-nums">{c.when.slice(11)}</p>
+                      {details.length > 0 && (
+                        <ul className="mt-2 flex flex-col gap-1">
+                          {details.map((d, i) => (
+                            <li key={i} className="zb-apoyo break-words">
+                              {d}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  );
+                }}
+              />
             </Fold>
           )}
         </Section>
