@@ -9,4 +9,5 @@ export const KNOWN_CEMETERIES: [name: string, comunaCode: string][] = [
   ["Cementerio N.º 2", "05101"],
   ["Cementerio de Disidentes", "05101"],
   ["Cementerio General", "08101"],
+  ["Parque Cementerio San Pedro", "08101"],
 ];

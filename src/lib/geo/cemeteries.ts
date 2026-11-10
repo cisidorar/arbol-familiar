@@ -99,13 +99,15 @@ export function canonicalCemetery(text: string, isBurial = false): CemeteryInfo 
   name = titleCase(name);
   // La comuna puede venir en el nombre ("… de Buin", "… Curicó") o como siguiente parte del texto.
   // (En un parque como "Parque Santiago" la palabra final es parte del nombre, no la comuna.)
-  let { base, comuna } = looksLikeCemetery(name) ? splitTrailingComuna(name) : { base: name, comuna: null as ComunaEntry | null };
-  if (!comuna) {
-    for (const extra of parts.slice(1)) {
-      const c = comunaByName(extra) ?? comunaByName(extra.split(" ").slice(-1)[0]);
-      if (c) { comuna = c; break; }
-    }
+  // Si el texto trae la comuna como otra parte ("Parque Cementerio San Pedro, Concepción"), manda esa:
+  // así "San Pedro" al final del nombre no se confunde con la comuna de San Pedro.
+  let base = name;
+  let comuna: ComunaEntry | null = null;
+  for (const extra of parts.slice(1)) {
+    const c = comunaByName(extra) ?? comunaByName(extra.split(" ").slice(-1)[0]);
+    if (c) { comuna = c; break; }
   }
+  if (!comuna && looksLikeCemetery(name)) ({ base, comuna } = splitTrailingComuna(name));
   if (!comuna) {
     const display = name;
     return { kind: "ambiguous", display, locality: null, comunaCode: null, regionCode: null, detail, key: normName(display) };

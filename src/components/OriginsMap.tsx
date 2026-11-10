@@ -185,19 +185,35 @@ export default function OriginsMap(props: {
   const [listOpen, setListOpen] = useState(true);
   // El encuadre se acerca a las comunas con datos (de todos los antepasados, no solo de los
   // filtrados, para que el mapa no salte al cambiar un filtro) y deja un margen de contexto.
-  const zoneView = useMemo<Box | null>(() => {
-    const codes = new Set(ancestors.flatMap((a) => (a.origin.kind === "comuna" ? [a.origin.code] : [])));
-    const withData = zoneMain.filter((c) => codes.has(c.code));
-    if (!withData.length) return null;
-    const b = unionBox(withData.map((c) => c.bbox));
+  const frameOf = (list: Zone[]): Box => {
+    const b = unionBox(list.map((c) => c.bbox));
     // Con una sola comuna el encuadre quedaría demasiado cerrado: se asegura un tamaño mínimo.
     const grow = (lo: number, hi: number, min: number): [number, number] =>
       hi - lo >= min ? [lo, hi] : [(lo + hi) / 2 - min / 2, (lo + hi) / 2 + min / 2];
     const [x0, x1] = grow(b[0], b[2], 110);
     const [y0, y1] = grow(b[1], b[3], 110);
     return padBox([x0, y0, x1, y1], 0.14);
+  };
+  const withDataZone = useMemo(() => {
+    const codes = new Set(ancestors.flatMap((a) => (a.origin.kind === "comuna" ? [a.origin.code] : [])));
+    return zoneMain.filter((c) => codes.has(c.code));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ancestors, zone]);
+  // Todas las comunas con datos, incluso las que quedan lejos.
+  const fullView = useMemo<Box | null>(() => (withDataZone.length ? frameOf(withDataZone) : null), [withDataZone]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Vista de inicio: sin las comunas sueltas que quedan muy lejos del resto (una en el sur estiraba
+  // el encuadre hasta mostrar todo Chile y dejaba los marcadores del centro amontonados).
+  const zoneView = useMemo<Box | null>(() => {
+    if (!withDataZone.length) return null;
+    const cs = withDataZone.map((c) => [(c.bbox[0] + c.bbox[2]) / 2, (c.bbox[1] + c.bbox[3]) / 2] as const);
+    const med = (v: number[]) => [...v].sort((a, b) => a - b)[Math.floor(v.length / 2)];
+    const mx = med(cs.map((c) => c[0])), my = med(cs.map((c) => c[1]));
+    const dist = cs.map((c) => Math.hypot(c[0] - mx, c[1] - my));
+    const limit = Math.max(120, med(dist) * 3);
+    const near = withDataZone.filter((_, i) => dist[i] <= limit);
+    return frameOf(near.length ? near : withDataZone);
+  }, [withDataZone]); // eslint-disable-line react-hooks/exhaustive-deps
+  const hasFar = !!(zoneView && fullView && (fullView[2] - fullView[0] > (zoneView[2] - zoneView[0]) * 1.15 || fullView[3] - fullView[1] > (zoneView[3] - zoneView[1]) * 1.15));
   const chileView = padBox(unionBox(regions.map((r) => r.bbox)), 0.02);
   // Zona que se ve: por defecto la de las comunas con datos; los botones "Acercar a" y +/− la cambian.
   const [view, setView] = useState<Box | null>(null);
@@ -420,6 +436,25 @@ export default function OriginsMap(props: {
             </span>
           </div>
 
+          {zv && zoomChips.length > 1 && (
+            <div className="mt-4 flex flex-wrap items-center gap-2" role="group" aria-label="Acercar a">
+              <span className="mr-1 font-bold">Acercar a</span>
+              <button type="button" aria-pressed={focus === "all"} className={chip(focus === "all")} onClick={() => { setView(null); setFocus("all"); }}>
+                {hasFar ? "Donde más hay" : "Todo"}
+              </button>
+              {hasFar && fullView && (
+                <button type="button" aria-pressed={focus === "full"} className={chip(focus === "full")} onClick={() => { setView(fullView); setFocus("full"); }}>
+                  Todo Chile
+                </button>
+              )}
+              {zoomChips.map((c) => (
+                <button key={c.key} type="button" aria-pressed={focus === c.key} className={chip(focus === c.key)} onClick={() => { setView(c.box); setFocus(c.key); }}>
+                  {c.label}
+                </button>
+              ))}
+            </div>
+          )}
+
           <details className="group mt-3 border-t border-line pt-1">
             <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 font-bold [&::-webkit-details-marker]:hidden">
               <span>Más opciones</span>
@@ -432,20 +467,6 @@ export default function OriginsMap(props: {
             <input type="checkbox" className="h-5 w-5 accent-ink" checked={filters.birthOnly} onChange={(e) => { setFilters({ ...filters, birthOnly: e.target.checked }); setSelected(null); }} />
             Solo nacimientos confirmados
           </label>
-
-          {zv && zoomChips.length > 1 && (
-            <div className="mt-3 flex flex-wrap items-center gap-2" role="group" aria-label="Acercar a">
-              <span className="mr-1 font-bold">Acercar a</span>
-              <button type="button" aria-pressed={focus === "all"} className={chip(focus === "all")} onClick={() => { setView(null); setFocus("all"); }}>
-                Todo
-              </button>
-              {zoomChips.map((c) => (
-                <button key={c.key} type="button" aria-pressed={focus === c.key} className={chip(focus === c.key)} onClick={() => { setView(c.box); setFocus(c.key); }}>
-                  {c.label}
-                </button>
-              ))}
-            </div>
-          )}
 
           <div className="mt-3 flex flex-wrap items-center gap-3">
             {!isSelf && hasSelf && (
