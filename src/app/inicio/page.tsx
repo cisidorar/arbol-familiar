@@ -69,7 +69,7 @@ const TILE: Record<FamilyDateItem["kind"], string> = {
 function DateRow({ it, today, i, far = false, selfId, forceShow = false }: { it: FamilyDateItem; today: boolean; i: number; far?: boolean; selfId?: string | null; forceShow?: boolean }) {
   const when = it.inDays === 0 ? "Hoy" : it.inDays === 1 ? "Mañana" : `En ${it.inDays} días`;
   return (
-    <li className={`${i >= 4 && !forceShow ? "hidden md:flex" : "flex"} items-center gap-4 relative rounded-2xl border-2 bg-white p-4 hover:border-ink ${today ? "border-ink" : "border-line"}`}>
+    <li className={`${i >= 4 && !forceShow ? "hidden" : "flex"} items-center gap-4 relative rounded-2xl border-2 bg-white p-4 hover:border-ink ${today ? "border-ink" : "border-line"}`}>
       <span
         className={`grid h-[4.5rem] w-[4.5rem] shrink-0 place-items-center rounded-full border-4 border-double border-adobe text-center leading-none ${TILE[it.kind]}`}
         aria-hidden="true"
@@ -232,11 +232,11 @@ export default async function InicioPage() {
       <SectionHeader current="inicio" hideSearch />
 
       <header className="relative">
-        <div className="mx-auto max-w-6xl px-4 pb-8 pt-8 sm:px-6 lg:pb-10 lg:pt-10">
+        <div className="mx-auto grid max-w-[88rem] gap-10 px-4 pb-8 pt-8 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-start lg:gap-14 lg:pb-12 lg:pt-12">
           <div>
             <h1 className="font-slab text-[2.75rem] font-bold leading-[1.05] sm:text-6xl">Hola, {first}.</h1>
             <p className="zb-texto mt-2 max-w-xl text-gris">
-              <span className="capitalize">{dateLabel}</span>.{" "}
+              {dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1)}.{" "}
               {me && direct.length > 0
                 ? `Tu familia está aquí: ${direct.length} antepasados${oldestYear ? `, desde ${oldestYear}` : ""}. Busca a alguien o recorre el árbol.`
                 : "Este es el archivo de tu familia. Busca a alguien o recorre el árbol."}
@@ -260,10 +260,37 @@ export default async function InicioPage() {
             </div>
           </div>
 
+            {(todayItems.length > 0 || soon.length > 0) && (
+              <section className="lg:pt-2" aria-label={todayItems.length > 0 ? "Hoy en la familia" : "Próximos 30 días en la familia"}>
+                <h2 className="al-titulo al-regla">{todayItems.length > 0 ? "Hoy en la familia" : "Próximos 30 días en la familia"}</h2>
+                <ul className="mt-5 grid gap-4">
+                  {todayItems.map((it, i) => (
+                    <DateRow key={`t${i}`} it={it} today i={i} far={farSet.has(it)} selfId={selfId} />
+                  ))}
+                  {soon.map((it, i) => (
+                    <DateRow key={`s${i}`} it={it} today={false} i={i + todayItems.length} far={farSet.has(it)} selfId={selfId} />
+                  ))}
+                </ul>
+                {/* En el teléfono se ven 4 y el resto queda a un toque: nada desaparece sin avisar. */}
+                {todayItems.length + soon.length > 4 && (
+                  <details className="group mt-4">
+                    <summary className="inline-flex min-h-12 cursor-pointer list-none items-center rounded-full border-2 border-ink bg-white px-6 text-[1.125rem] font-bold [&::-webkit-details-marker]:hidden">
+                      <span className="group-open:hidden">Ver las otras {todayItems.length + soon.length - 4} fechas</span>
+                      <span className="hidden group-open:inline">Ocultar</span>
+                    </summary>
+                    <ul className="mt-4 grid gap-4">
+                      {[...todayItems, ...soon].slice(4).map((it, i) => (
+                        <DateRow key={`m${i}`} it={it} today={it.inDays === 0} i={0} far={farSet.has(it)} selfId={selfId} forceShow />
+                      ))}
+                    </ul>
+                  </details>
+                )}
+              </section>
+            )}
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl space-y-12 px-4 pb-14 pt-4 sm:px-6">
+      <main className="mx-auto max-w-[88rem] space-y-12 px-4 pb-14 pt-4 sm:px-6">
         {/* Primero quién eres: sin eso, el archivo no puede hablarte de tu familia. */}
         {!me && (
           <section aria-label="¿Quién eres en el árbol?" className="rounded-3xl border-2 border-ink bg-white p-6 sm:p-8">
@@ -277,41 +304,12 @@ export default async function InicioPage() {
           </section>
         )}
 
-        {/* Fechas */}
-        {(todayItems.length > 0 || soon.length > 0) && (
-          <section aria-label={todayItems.length > 0 ? "Hoy en la familia" : "Próximos 30 días en la familia"}>
-            <h2 className="al-titulo al-regla">{todayItems.length > 0 ? "Hoy en la familia" : "Próximos 30 días en la familia"}</h2>
-            <ul className="mt-5 grid gap-4 md:grid-cols-2">
-              {todayItems.map((it, i) => (
-                <DateRow key={`t${i}`} it={it} today i={i} far={farSet.has(it)} selfId={selfId} />
-              ))}
-              {soon.map((it, i) => (
-                <DateRow key={`s${i}`} it={it} today={false} i={i + todayItems.length} far={farSet.has(it)} selfId={selfId} />
-              ))}
-            </ul>
-            {/* En el teléfono se ven 4 y el resto queda a un toque: nada desaparece sin avisar. */}
-            {todayItems.length + soon.length > 4 && (
-              <details className="group mt-4 md:hidden">
-                <summary className="inline-flex min-h-12 cursor-pointer list-none items-center rounded-full border-2 border-ink bg-white px-6 text-[1.125rem] font-bold [&::-webkit-details-marker]:hidden">
-                  <span className="group-open:hidden">Ver las otras {todayItems.length + soon.length - 4} fechas</span>
-                  <span className="hidden group-open:inline">Ocultar</span>
-                </summary>
-                <ul className="mt-4 grid gap-4">
-                  {[...todayItems, ...soon].slice(4).map((it, i) => (
-                    <DateRow key={`m${i}`} it={it} today={it.inDays === 0} i={0} far={farSet.has(it)} selfId={selfId} forceShow />
-                  ))}
-                </ul>
-              </details>
-            )}
-          </section>
-        )}
-
         {me && ramas.length > 0 && (
           <section aria-label="De dónde vienes">
             <h2 className="al-titulo al-regla">De dónde vienes</h2>
             <p className="zb-texto mt-2 max-w-2xl text-gris">Una rama por cada abuelo o abuela. Toca una para abrir el árbol en esa persona.</p>
             {knownRamas.length > 0 && (
-              <ul className="mt-5 grid gap-4 sm:grid-cols-2">
+              <ul className={`mt-5 grid gap-4 sm:grid-cols-2 ${knownRamas.length >= 3 ? "lg:grid-cols-4" : ""}`}>
                 {knownRamas.map((r) => (
                   <li key={r.id}>
                     <Link href={`/?persona=${r.id}`} className="block h-full rounded-2xl border-2 border-ink bg-white p-5 hover:border-teja">
@@ -356,7 +354,7 @@ export default async function InicioPage() {
           <section aria-label="Novedades del archivo">
             <h2 className="al-titulo al-regla">Novedades del archivo</h2>
             {recentRows.length > 0 && (
-              <p className="zb-texto mt-3 max-w-3xl">
+              <p className="zb-texto mt-3 max-w-5xl">
                 Este mes se {recentRows.length === 1 ? "sumó 1 persona" : `sumaron ${recentRows.length} personas`} al archivo
                 {recentMine.length > 0 ? (
                   <>
@@ -386,11 +384,11 @@ export default async function InicioPage() {
                 {hallazgos.map((h, i) => (
                   // En el teléfono, uno solo: dos historias largas seguidas empujan todo lo demás muy abajo.
                   <li key={h.titulo} className={`rounded-2xl border-2 border-line bg-white p-5 ${i > 0 ? "hidden md:block" : ""}`}>
-                    <p className="zb-etiqueta !text-burdeos">
-                      {h.anio} · encontrado en {h.cuando.toLowerCase()}
-                    </p>
-                    <p className="mt-1 font-slab text-[1.25rem] font-bold leading-tight">{h.titulo}</p>
+                    <p className="font-slab text-[1.25rem] font-bold leading-tight">{h.titulo}</p>
                     <p className="zb-texto mt-2">{h.texto}</p>
+                    <p className="zb-apoyo mt-3 font-bold !text-burdeos">
+                      Año {h.anio} · encontrado en {h.cuando.toLowerCase()}
+                    </p>
                   </li>
                 ))}
               </ul>
@@ -401,7 +399,7 @@ export default async function InicioPage() {
         {roulette.length > 1 && <AncestorRoulette people={roulette} initialId={startId} />}
       </main>
 
-      <footer className="mx-auto max-w-6xl px-4 pb-10 sm:px-6">
+      <footer className="mx-auto max-w-[88rem] px-4 pb-10 sm:px-6">
         <div className="alero-tejas rotate-180 opacity-60" aria-hidden="true" />
         <p className="zb-apoyo mt-3 text-center">Archivo Zamora Balcázar · Hecho en familia</p>
       </footer>
