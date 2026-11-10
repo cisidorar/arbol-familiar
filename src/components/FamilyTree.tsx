@@ -795,11 +795,10 @@ export default function FamilyTree({ data, mainId, line = null, version, resetKe
           const action = actionFor(d);
           const expanded = currentExpanded();
           if (action.kind === "up") {
-            // Se abren sus padres y, con ellos, sus hermanos: la familia en
-            // la que nació. Solo la suya, no la de todos los de su nivel.
+            // Se abren sus padres, pero no sus hermanos: esos quedan a un toque, con el botón «Hermanos»
+            // al costado de su tarjeta (sin él, abrir a los padres llenaba la fila de gente que no se pidió).
             setAnnouncement(openedText(action, d.data.data.label));
             expanded.up.add(d.data.id);
-            expanded.sibs.add(d.data.id);
             updateKeepingInPlace(d);
           } else if (action.kind === "down") {
             setAnnouncement(openedText(action, d.data.data.label));
