@@ -34,8 +34,8 @@ type ChartDatum = {
     is_living: boolean;
     is_child: boolean;
     needs_review?: boolean;
-    /** «Divorciada 2010»: la pareja ya terminó. */
-    divorce_label?: string;
+    /** Con quiénes estuvo casada o casado y ya se divorció: la línea hacia ellos se dibuja punteada. */
+    divorced_from?: string[];
   };
   rels: { parents: string[]; children: string[]; spouses: string[] };
 };
@@ -124,6 +124,10 @@ function straightenLinks(container: HTMLElement) {
     straightCache.set(container, entry);
   }
   paths.forEach((path, i) => {
+    // La línea entre una pareja que ya se divorció va punteada.
+    const d = datumOf(path) as (LinkDatum & { source?: { data?: { id?: string; data?: { divorced_from?: string[] } } }; target?: { data?: { id?: string } } }) | undefined;
+    const divorced = Boolean(d?.spouse && d.target?.data?.id && d.source?.data?.data?.divorced_from?.includes(d.target.data.id));
+    path.classList.toggle("link-divorced", divorced);
     const target = entry.targets[i];
     if (target && path.getAttribute("d") !== target) path.setAttribute("d", target);
   });
@@ -842,24 +846,11 @@ export default function FamilyTree({ data, mainId, line = null, version, resetKe
             }
           }
 
-          // Pareja que ya terminó: una pestañita sobre la tarjeta («Divorciada 2010»). Con dos
-          // exparejas, las tarjetas quedan en fila y la segunda parece unida a la primera; esto lo aclara.
-          // La persona del centro no la lleva (ya la dicen las tarjetas de sus exparejas).
+          // Expareja de quien está al lado: la tarjeta se apaga un poco (la línea punteada ya lo dice, esto lo refuerza).
           {
             const el = this.querySelector(".card");
-            const text = d.data.data.divorce_label as string | undefined;
-            const isCenter = d.data.id === chart.store.getMainId();
-            let tag = el?.querySelector<HTMLElement>(".card-divorce") ?? null;
-            if (el && text && !isCenter) {
-              if (!tag) {
-                tag = document.createElement("div");
-                tag.className = "card-divorce";
-                el.appendChild(tag);
-              }
-              tag.textContent = text;
-            } else {
-              tag?.remove();
-            }
+            const main = d.spouse as { data?: { data?: { divorced_from?: string[] } } } | undefined;
+            el?.classList.toggle("card-ex", Boolean(main?.data?.data?.divorced_from?.includes(d.data.id)));
           }
 
           // «Solo mi familia»: esta persona tiene familiares fuera de la vista. Un botón lo dice y abre el

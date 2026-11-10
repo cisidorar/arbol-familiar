@@ -377,10 +377,10 @@ export default function TreeApp({ data, user, homeId, selfId }: { data: any[]; u
         <div>Toca una tarjeta para abrir su ficha. «Centro» marca de quién parte el árbol.</div>
         <div>Las pastillas («Padres», «Hijos», «Otra pareja») abren esa rama.</div>
         <div className="flex items-center gap-2">
-          <span className="rounded-full bg-gris px-2 text-sm font-bold text-white" aria-hidden="true">
-            Divorciada
-          </span>
-          Esa pareja ya terminó.
+          <svg viewBox="0 0 40 6" className="h-1.5 w-10 shrink-0" aria-hidden="true">
+            <line x1="1" y1="3" x2="39" y2="3" stroke="#a39986" strokeWidth="2.5" strokeDasharray="3 7" />
+          </svg>
+          Línea punteada: la pareja ya se divorció.
         </div>
       </div>
       {!legendDesktop && (

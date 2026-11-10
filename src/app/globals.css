@@ -269,27 +269,6 @@ div.f3 div.card-main::after {
   pointer-events: none;
 }
 
-/* Pareja que ya terminó: pestañita gris sobre la tarjeta (la del centro lleva «Centro»). */
-div.f3 div.card .card-divorce {
-  position: absolute;
-  top: -12px;
-  left: 14px;
-  z-index: 3;
-  max-width: calc(100% - 56px);
-  padding: 1px 10px;
-  border-radius: 9999px;
-  background: var(--color-gris);
-  color: #fff;
-  font-family: var(--font-body);
-  font-size: 14px;
-  font-weight: 700;
-  line-height: 1.4;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  pointer-events: none;
-}
-
 /* Líneas de conexión: la librería las dibuja blancas (pensadas para fondo
    oscuro), por lo que eran casi invisibles acá. El trazo de cada línea es
    una curva con puntos repetidos para forzar un codo en ángulo recto; sin
@@ -300,6 +279,20 @@ div.f3 path.link {
   stroke-width: 2.5px;
   stroke-linejoin: round;
   stroke-linecap: round;
+}
+
+/* Expareja: la tarjeta se ve un poco apagada. */
+div.f3 div.card.card-ex {
+  /* Sin transparencia: la línea de atrás se vería a través de la tarjeta. */
+  filter: saturate(0.35);
+}
+
+/* Pareja que ya terminó (divorcio): la línea entre ellos va punteada y apagada. */
+div.f3 path.link.link-divorced {
+  stroke: #a39986 !important;
+  stroke-width: 2.5px;
+  stroke-dasharray: 3 7;
+  stroke-linecap: butt;
 }
 
 div.f3 path.link.f3-path-to-main {

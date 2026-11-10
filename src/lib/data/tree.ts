@@ -76,8 +76,8 @@ export async function getFamilyChartData(treeId: string) {
   const marrYear = new Map<string, number | null>(marriages.map((r) => [r.family_id as string, yearOf(r.d)]));
   const cards = new Map(persons.map((p) => [p.id as string, cardData(p, showReview)]));
 
-  // Divorcios: la tarjeta de cada uno lo dice, para que se vea que una pareja ya terminó
-  // (con dos exparejas, las tarjetas quedan una al lado de la otra y parecen unidas entre sí).
+  // Divorcios: la línea entre una pareja que ya terminó se dibuja punteada (ver FamilyTree.tsx). Con dos
+  // exparejas las tarjetas quedan en fila y la segunda parece unida a la primera; esto lo aclara.
   const { rows: divorces } = await getPool().query(
     `select family_id, min(date_from) as d, min(date_text) as t from events
      where tree_id = $1 and event_type = 'DIV' and family_id is not null group by family_id`,
@@ -95,17 +95,7 @@ export async function getFamilyChartData(treeId: string) {
   }
   for (const [id, list] of divsOf) {
     const card = cards.get(id);
-    if (!card) continue;
-    const fem = card.gender === "F";
-    const word = fem ? "Divorciada" : "Divorciado";
-    list.sort((a, b) => (a.year ?? Infinity) - (b.year ?? Infinity));
-    const first = (pid: string) => cards.get(pid)?.first_name.split(" ")[0] ?? "";
-    (card as { divorce_label?: string }).divorce_label =
-      list.length === 1
-        ? list[0].year
-          ? `${word} ${list[0].year}`
-          : `${word} de ${first(list[0].other)}`
-        : `${word} ${list.length} veces`;
+    if (card) (card as { divorced_from?: string[] }).divorced_from = list.map((x) => x.other);
   }
   const yearOfPerson = (id: string) => {
     const d = cards.get(id);
