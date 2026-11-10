@@ -308,10 +308,17 @@ div.f3 path.link.link-theory {
   stroke-linecap: butt;
 }
 
-/* Tarjeta de teoría: borde punteado violeta y una pestañita que lo dice. */
-div.f3 div.card.card-theory {
-  outline: 3px dashed #6b4aa0;
-  outline-offset: 3px;
+/* Tarjeta de teoría: borde violeta y fondo lavanda, todo por dentro de la tarjeta (un borde por fuera se juntaba con el de la pareja
+   y con los botones), más una pestañita que lo dice. */
+div.f3 div.card.card-theory .card-inner.card-rect {
+  --edge: #6b4aa0;
+  --fill: #f3eefa;
+  background: var(--fill);
+  border: 3px solid var(--edge);
+  border-left: 6px solid var(--accent);
+}
+div.f3 div.card.card-theory .card-inner.card-rect::after {
+  border-color: rgba(107, 74, 160, 0.35);
 }
 div.f3 div.card.card-theory::before {
   content: "Teoría";
