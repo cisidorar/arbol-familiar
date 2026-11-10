@@ -69,8 +69,7 @@ const TILE: Record<FamilyDateItem["kind"], string> = {
 function DateRow({ it, today, i, far = false, selfId }: { it: FamilyDateItem; today: boolean; i: number; far?: boolean; selfId?: string | null }) {
   const when = it.inDays === 0 ? "Hoy" : it.inDays === 1 ? "Mañana" : `En ${it.inDays} días`;
   return (
-    // Una conmemoración (fallecimiento) va derecha y sin giro: se recuerda, no se celebra.
-    <li className={`${i >= 4 ? "hidden md:flex" : "flex"} items-center gap-4 relative rounded-2xl border-2 bg-white p-4 hover:border-ink ${today ? "border-ink" : "border-line"} ${it.kind === "muere" ? "" : i % 2 ? "rotate-[0.5deg]" : "-rotate-[0.5deg]"}`}>
+    <li className={`${i >= 4 ? "hidden md:flex" : "flex"} items-center gap-4 relative rounded-2xl border-2 bg-white p-4 hover:border-ink ${today ? "border-ink" : "border-line"}`}>
       <span
         className={`grid h-[4.5rem] w-[4.5rem] shrink-0 place-items-center rounded-full border-4 border-double border-adobe text-center leading-none ${TILE[it.kind]}`}
         aria-hidden="true"
@@ -206,8 +205,7 @@ export default async function InicioPage() {
   });
   const startId = roulette.length ? randomItem(roulette).id : "";
 
-  // Tu línea en una frase: cuántos antepasados, cuántas generaciones y desde cuándo.
-  const maxGen = direct.length ? Math.max(...direct.map((a) => a.generation)) : 0;
+  // Tu línea en una frase: cuántos antepasados y desde cuándo.
   // El año más antiguo sale de las ramas (que recorren todos los padres) y de la línea directa: el menor de los dos.
   const ramaYears = ramas.map((r) => r.oldest?.year).filter((y): y is number => typeof y === "number");
   const oldestAll = Math.min(minBirth, ...ramaYears);
@@ -234,29 +232,11 @@ export default async function InicioPage() {
       <SectionHeader current="inicio" hideSearch />
 
       <header className="relative">
-        {/* Las decoraciones (parra y sello) van en su propia capa recortada: el desplegable del buscador no debe cortarse. */}
-        <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-        <svg aria-hidden="true" viewBox="0 0 120 320" className="pointer-events-none absolute -right-4 top-0 h-72 w-24 text-parra opacity-25 sm:right-4 sm:h-80 sm:w-28">
-          <path d="M60 320C60 240 30 220 50 150S90 80 60 0" fill="none" stroke="currentColor" strokeWidth="4" />
-          {[40, 90, 140, 190, 240].map((y, i) => (
-            <path key={y} d={i % 2 ? "M62 0c24 6 36 24 30 44-24-4-34-20-30-44Z" : "M58 0c-24 6-36 24-30 44 24-4 34-20 30-44Z"} transform={`translate(0 ${y})`} fill="currentColor" />
-          ))}
-          <circle cx="86" cy="262" r="9" fill="currentColor" />
-          <circle cx="76" cy="280" r="9" fill="currentColor" />
-          <circle cx="92" cy="282" r="9" fill="currentColor" />
-        </svg>
-
-        <svg aria-hidden="true" viewBox="0 0 100 100" className="sello-redondo pointer-events-none absolute left-[58%] top-6 hidden h-28 w-28 -rotate-12 opacity-25 lg:block">
-          <circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" strokeWidth="3" />
-          <circle cx="50" cy="50" r="38" fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3 3" />
-          <path d="M50 72V46m0 6-10-8m10 5 10-8M50 46V30m0 0-6 6m6-6 6 6" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-        </div>
-        <div className="relative mx-auto grid max-w-6xl gap-8 px-4 pb-8 pt-8 sm:px-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:pb-12 lg:pt-10">
+        <div className="mx-auto max-w-6xl px-4 pb-8 pt-8 sm:px-6 lg:pb-10 lg:pt-10">
           <div>
-            <p className="zb-etiqueta !text-burdeos capitalize">{dateLabel}</p>
-            <h1 className="mt-2 font-slab text-[2.75rem] font-bold leading-[1.05] sm:text-6xl">Hola, {first}.</h1>
+            <h1 className="font-slab text-[2.75rem] font-bold leading-[1.05] sm:text-6xl">Hola, {first}.</h1>
             <p className="zb-texto mt-2 max-w-xl text-gris">
+              <span className="capitalize">{dateLabel}</span>.{" "}
               {me && direct.length > 0
                 ? `Tu familia está aquí: ${direct.length} antepasados${oldestYear ? `, desde ${oldestYear}` : ""}. Busca a alguien o recorre el árbol.`
                 : "Este es el archivo de tu familia. Busca a alguien o recorre el árbol."}
@@ -280,30 +260,6 @@ export default async function InicioPage() {
             </div>
           </div>
 
-          {me && direct.length > 0 && (
-            <aside aria-label="Tu línea en números" className="relative w-full max-w-md -rotate-1 rounded-sm bg-white p-6 pt-8 shadow-[0_6px_18px_rgba(30,26,23,0.22)] lg:ml-auto">
-              <span className="cinta" aria-hidden="true" />
-              <h2 className="al-titulo !text-[1.375rem]">Tu línea directa</h2>
-              <dl className="mt-4 grid grid-cols-3 gap-3 text-center">
-                <div>
-                  <dt className="zb-apoyo">antepasados</dt>
-                  <dd className="font-maquina text-[2rem] leading-tight text-burdeos">{direct.length}</dd>
-                </div>
-                <div>
-                  <dt className="zb-apoyo">generaciones</dt>
-                  <dd className="font-maquina text-[2rem] leading-tight text-burdeos">{maxGen}</dd>
-                </div>
-                <div>
-                  <dt className="zb-apoyo">desde</dt>
-                  <dd className="font-maquina text-[2rem] leading-tight text-burdeos">{oldestYear ?? "—"}</dd>
-                </div>
-              </dl>
-              <p className="zb-apoyo mt-4">
-                {knownRamas.length} de tus {ramas.length} ramas tienen antepasados cargados
-                {emptyRamas.length ? `; ${plural(emptyRamas.length, "falta", "faltan")} por descubrir` : ""}.
-              </p>
-            </aside>
-          )}
         </div>
       </header>
 
@@ -318,6 +274,21 @@ export default async function InicioPage() {
             <div className="mt-5 max-w-lg">
               <LinkSelf />
             </div>
+          </section>
+        )}
+
+        {/* Fechas */}
+        {(todayItems.length > 0 || soon.length > 0) && (
+          <section aria-label={todayItems.length > 0 ? "Hoy en la familia" : "Próximos 30 días en la familia"}>
+            <h2 className="al-titulo al-regla">{todayItems.length > 0 ? "Hoy en la familia" : "Próximos 30 días en la familia"}</h2>
+            <ul className="mt-5 grid gap-4 md:grid-cols-2">
+              {todayItems.map((it, i) => (
+                <DateRow key={`t${i}`} it={it} today i={i} far={farSet.has(it)} selfId={selfId} />
+              ))}
+              {soon.map((it, i) => (
+                <DateRow key={`s${i}`} it={it} today={false} i={i + todayItems.length} far={farSet.has(it)} selfId={selfId} />
+              ))}
+            </ul>
           </section>
         )}
 
@@ -364,21 +335,6 @@ export default async function InicioPage() {
                 </p>
               </div>
             )}
-          </section>
-        )}
-
-        {/* Fechas */}
-        {(todayItems.length > 0 || soon.length > 0) && (
-          <section aria-label={todayItems.length > 0 ? "Hoy en la familia" : "Próximos 30 días en la familia"}>
-            <h2 className="al-titulo al-regla">{todayItems.length > 0 ? "Hoy en la familia" : "Próximos 30 días en la familia"}</h2>
-            <ul className="mt-5 grid gap-4 md:grid-cols-2">
-              {todayItems.map((it, i) => (
-                <DateRow key={`t${i}`} it={it} today i={i} far={farSet.has(it)} selfId={selfId} />
-              ))}
-              {soon.map((it, i) => (
-                <DateRow key={`s${i}`} it={it} today={false} i={i + todayItems.length} far={farSet.has(it)} selfId={selfId} />
-              ))}
-            </ul>
           </section>
         )}
 
