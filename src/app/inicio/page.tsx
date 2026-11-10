@@ -11,6 +11,8 @@ import { getLinkedPersonId } from "@/lib/data/users";
 import { getPersonFacts } from "@/lib/data/origins";
 import { collectAncestors } from "@/lib/origins";
 import { closeness, grandparentsOf } from "@/lib/closeness";
+import { PORTADA } from "@/lib/portada-contenido";
+import { getPool } from "@/lib/db/pool";
 
 export const metadata: Metadata = { title: "Inicio · Archivo Zamora Balcázar" };
 export const dynamic = "force-dynamic";
@@ -40,12 +42,13 @@ function Names({ people }: { people: { id: string; name: string }[] }) {
   );
 }
 
-function sentence(it: FamilyDateItem) {
+function sentence(it: FamilyDateItem, selfId?: string | null) {
   const date = <span className="sr-only"> (el {it.day} de {MONTH_FULL[it.month - 1]})</span>;
   const people = <Names people={it.people} />;
   const place = it.place ? ` en ${shortPlace(it.place)}` : "";
   switch (it.kind) {
     case "cumple":
+      if (selfId && it.people.length === 1 && it.people[0].id === selfId) return <>Tu cumpleaños: cumples {plural(it.years, "año", "años")}{date}</>;
       return <>{people} cumple {plural(it.years, "año", "años")}{date}</>;
     case "nace":
       return <>{it.years === 0 ? "Hoy nació" : `Hace ${plural(it.years, "año", "años")} nació`} {people}{place}{date}</>;
@@ -63,7 +66,7 @@ const TILE: Record<FamilyDateItem["kind"], string> = {
   casan: "bg-teja text-adobe",
 };
 
-function DateRow({ it, today, i, far = false }: { it: FamilyDateItem; today: boolean; i: number; far?: boolean }) {
+function DateRow({ it, today, i, far = false, selfId }: { it: FamilyDateItem; today: boolean; i: number; far?: boolean; selfId?: string | null }) {
   const when = it.inDays === 0 ? "Hoy" : it.inDays === 1 ? "Mañana" : `En ${it.inDays} días`;
   return (
     // Una conmemoración (fallecimiento) va derecha y sin giro: se recuerda, no se celebra.
@@ -84,7 +87,7 @@ function DateRow({ it, today, i, far = false }: { it: FamilyDateItem; today: boo
           {when}
           {far && <span className="font-normal !text-gris"> · familia extendida</span>}
         </p>
-        <p className="zb-texto">{sentence(it)}</p>
+        <p className="zb-texto">{sentence(it, selfId)}</p>
       </div>
     </li>
   );
@@ -94,11 +97,16 @@ export default async function InicioPage() {
   const session = await requireSession();
   const treeId = session.treeId;
   const today = todayInChile();
-  const [chart, selfId, allItems, facts] = await Promise.all([
+  const [chart, selfId, allItems, facts, recentRows] = await Promise.all([
     getFamilyChartData(treeId),
     getLinkedPersonId(session.user.id),
     getFamilyOnDates(treeId, today, 30),
     getPersonFacts(treeId),
+    // Quiénes se sumaron al archivo en el último mes (para "Novedades").
+    getPool()
+      .query(`select id from persons where tree_id = $1 and created_at > now() - interval '30 days' order by created_at desc`, [treeId])
+      .then((r) => r.rows.map((x) => x.id as string))
+      .catch(() => [] as string[]),
   ]);
 
   const first = session.user.name.trim().split(/\s+/)[0] ?? "";
@@ -146,6 +154,8 @@ export default async function InicioPage() {
     : [];
   const originOf = new Map(direct.map((a) => [a.id, a.origin]));
   const ramas: Rama[] = [];
+  // De qué rama (abuelo/a) viene cada antepasado: para decirlo en "Te tocó".
+  const ramaOf = new Map<string, string>();
   if (me) {
     const gmap = new Map(chart.map((c) => [c.id, { id: c.id, rels: { parents: c.rels.parents ?? [], children: c.rels.children ?? [], spouses: c.rels.spouses ?? [] } }]));
     for (const gid of grandparentsOf(gmap, me.id)) {
@@ -166,6 +176,7 @@ export default async function InicioPage() {
           oldest = { name: q.label, year: q.birth, place: o && o.kind !== "none" ? shortPlace(o.label) : null };
         }
       }
+      for (const id of seen.keys()) if (!ramaOf.has(id)) ramaOf.set(id, byId.get(gid)?.label ?? "");
       ramas.push({ id: gid, name: byId.get(gid)?.label ?? "", count: seen.size - 1, gens, oldest });
     }
   }
@@ -181,7 +192,9 @@ export default async function InicioPage() {
     const kidsText = kids > 1 ? `Tuvo ${kids} hijos.` : kids === 1 ? `Tuvo ${onlyChild === "F" ? "una hija" : onlyChild === "M" ? "un hijo" : "un hijo o una hija"}.` : "";
     // El sello ya dice quién es, dónde y cuándo nació: el párrafo suma solo lo que el sello no dice.
     const oldest = p?.birth && p.birth === minBirth ? "Es el antepasado más antiguo del archivo." : "";
-    const blurb = [oldest, lived, kidsText].filter(Boolean).join(" ") || "Una persona de tu familia. Conoce su historia.";
+    const rama = ramaOf.get(a.id);
+    const viaRama = rama && rama !== a.name ? `Viene por la rama de ${rama}.` : "";
+    const blurb = [oldest, viaRama, lived, kidsText].filter(Boolean).join(" ") || "Una persona de tu familia. Conoce su historia.";
     return {
       id: a.id,
       name: a.name,
@@ -192,6 +205,29 @@ export default async function InicioPage() {
     };
   });
   const startId = roulette.length ? randomItem(roulette).id : "";
+
+  // Tu línea en una frase: cuántos antepasados, cuántas generaciones y desde cuándo.
+  const maxGen = direct.length ? Math.max(...direct.map((a) => a.generation)) : 0;
+  // El año más antiguo sale de las ramas (que recorren todos los padres) y de la línea directa: el menor de los dos.
+  const ramaYears = ramas.map((r) => r.oldest?.year).filter((y): y is number => typeof y === "number");
+  const oldestAll = Math.min(minBirth, ...ramaYears);
+  const oldestYear = Number.isFinite(oldestAll) ? oldestAll : null;
+  const knownRamas = ramas.filter((r) => r.count > 0);
+  const emptyRamas = ramas.filter((r) => r.count === 0);
+
+  // Novedades: quién se sumó este mes, primero los de tu línea directa.
+  const directSet = new Set(direct.map((a) => a.id));
+  const relOf = new Map(direct.map((a) => [a.id, a.relation]));
+  const recentMineAll = recentRows.filter((id) => directSet.has(id));
+  const recentMine = recentMineAll.slice(0, 4);
+  const recentMineRest = recentMineAll.length - recentMine.length;
+  // "tu bisabuelo" ayuda; "tu antepasado de la generación 12" no: para esos se dice cuántas generaciones atrás.
+  const shortRel = (id: string) => {
+    const r = relOf.get(id);
+    return r && !/generaci/.test(r) ? `tu ${r}` : null;
+  };
+  const recentGens = recentMineAll.map((id) => direct.find((a) => a.id === id)?.generation ?? 0).filter(Boolean);
+  const hallazgos = PORTADA.hallazgos.slice(0, 2);
 
   return (
     <div className="zb album min-h-screen text-ink [color-scheme:light]">
@@ -216,29 +252,58 @@ export default async function InicioPage() {
           <path d="M50 72V46m0 6-10-8m10 5 10-8M50 46V30m0 0-6 6m6-6 6 6" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
         </div>
-        <div className="relative mx-auto grid max-w-6xl gap-10 px-4 pb-10 pt-8 sm:px-6 lg:pb-14 lg:pt-10">
+        <div className="relative mx-auto grid max-w-6xl gap-8 px-4 pb-8 pt-8 sm:px-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:pb-12 lg:pt-10">
           <div>
             <p className="zb-etiqueta !text-burdeos capitalize">{dateLabel}</p>
             <h1 className="mt-2 font-slab text-[2.75rem] font-bold leading-[1.05] sm:text-6xl">Hola, {first}.</h1>
-            <p className="zb-texto mt-2 max-w-xl text-gris">Este es el archivo de tu familia. Busca a alguien, recorre el árbol o mira dónde descansan.</p>
-
-            <Link
-              href="/"
-              className="group al-mueve mt-7 flex min-h-14 w-full max-w-xl items-center justify-center gap-3 rounded-full border-4 border-burdeos bg-teja px-8 py-3 text-[1.375rem] font-bold text-adobe hover:bg-burdeos sm:min-h-16 sm:w-auto sm:px-10 sm:text-[1.5rem]"
-            >
-              Ir al árbol <span aria-hidden="true" className="transition-transform duration-200 group-hover:translate-x-1">→</span>
-            </Link>
+            <p className="zb-texto mt-2 max-w-xl text-gris">
+              {me && direct.length > 0
+                ? `Tu familia está aquí: ${direct.length} antepasados${oldestYear ? `, desde ${oldestYear}` : ""}. Busca a alguien o recorre el árbol.`
+                : "Este es el archivo de tu familia. Busca a alguien o recorre el árbol."}
+            </p>
 
             <div className="relative z-20 mt-6 max-w-xl rounded-2xl bg-trigo p-4">
               <InicioSearch />
             </div>
-            {me && (
-              <Link href={`/persona/${me.id}`} className="mt-3 inline-flex min-h-12 items-center px-1 py-2 text-[1.125rem] font-bold underline decoration-2 underline-offset-4 hover:text-teja">
-                Ver mi ficha
+            <div className="mt-4 flex max-w-xl flex-wrap items-center gap-x-5 gap-y-2">
+              <Link
+                href="/"
+                className="group al-mueve inline-flex min-h-14 items-center justify-center gap-3 rounded-full border-4 border-burdeos bg-teja px-8 py-2 text-[1.25rem] font-bold text-adobe hover:bg-burdeos"
+              >
+                Ir al árbol <span aria-hidden="true" className="transition-transform duration-200 group-hover:translate-x-1">→</span>
               </Link>
-            )}
+              {me && (
+                <Link href={`/persona/${me.id}`} className="inline-flex min-h-12 items-center px-1 py-2 text-[1.125rem] font-bold underline decoration-2 underline-offset-4 hover:text-teja">
+                  Ver mi ficha
+                </Link>
+              )}
+            </div>
           </div>
 
+          {me && direct.length > 0 && (
+            <aside aria-label="Tu línea en números" className="relative w-full max-w-md -rotate-1 rounded-sm bg-white p-6 pt-8 shadow-[0_6px_18px_rgba(30,26,23,0.22)] lg:ml-auto">
+              <span className="cinta" aria-hidden="true" />
+              <h2 className="al-titulo !text-[1.375rem]">Tu línea directa</h2>
+              <dl className="mt-4 grid grid-cols-3 gap-3 text-center">
+                <div>
+                  <dt className="zb-apoyo">antepasados</dt>
+                  <dd className="font-maquina text-[2rem] leading-tight text-burdeos">{direct.length}</dd>
+                </div>
+                <div>
+                  <dt className="zb-apoyo">generaciones</dt>
+                  <dd className="font-maquina text-[2rem] leading-tight text-burdeos">{maxGen}</dd>
+                </div>
+                <div>
+                  <dt className="zb-apoyo">desde</dt>
+                  <dd className="font-maquina text-[2rem] leading-tight text-burdeos">{oldestYear ?? "—"}</dd>
+                </div>
+              </dl>
+              <p className="zb-apoyo mt-4">
+                {knownRamas.length} de tus {ramas.length} ramas tienen antepasados cargados
+                {emptyRamas.length ? `; ${plural(emptyRamas.length, "falta", "faltan")} por descubrir` : ""}.
+              </p>
+            </aside>
+          )}
         </div>
       </header>
 
@@ -256,28 +321,49 @@ export default async function InicioPage() {
           </section>
         )}
 
-                {me && ramas.length > 0 && (
-          <section aria-label="Tus cuatro ramas">
+        {me && ramas.length > 0 && (
+          <section aria-label="De dónde vienes">
             <h2 className="al-titulo al-regla">De dónde vienes</h2>
             <p className="zb-texto mt-2 max-w-2xl text-gris">Una rama por cada abuelo o abuela. Toca una para abrir el árbol en esa persona.</p>
-            <ul className="mt-5 grid gap-4 sm:grid-cols-2">
-              {ramas.map((r) => (
-                <li key={r.id}>
-                  <Link href={`/?persona=${r.id}`} className="block h-full rounded-2xl border-2 border-ink bg-white p-5 hover:border-teja">
-                    <p className="zb-etiqueta !text-burdeos">Rama de</p>
-                    <p className="mt-1 font-slab text-[1.375rem] font-bold leading-tight">{r.name}</p>
-                    {r.count > 0 && r.oldest ? (
-                      <p className="zb-texto mt-2">
-                        {plural(r.count, "antepasado conocido", "antepasados conocidos")} en {plural(r.gens, "generación", "generaciones")}. El más antiguo, {r.oldest.name}, nació en {r.oldest.year}
-                        {r.oldest.place ? ` (${r.oldest.place})` : ""}.
+            {knownRamas.length > 0 && (
+              <ul className="mt-5 grid gap-4 sm:grid-cols-2">
+                {knownRamas.map((r) => (
+                  <li key={r.id}>
+                    <Link href={`/?persona=${r.id}`} className="block h-full rounded-2xl border-2 border-ink bg-white p-5 hover:border-teja">
+                      <p className="zb-etiqueta !text-burdeos">Rama de</p>
+                      <p className="mt-1 font-slab text-[1.375rem] font-bold leading-tight">{r.name}</p>
+                      {/* Una marca por generación conocida: se ve de un vistazo qué tan atrás llega. */}
+                      <div className="mt-3 flex flex-wrap gap-1.5" aria-hidden="true">
+                        {Array.from({ length: Math.min(r.gens, 16) }, (_, i) => (
+                          <span key={i} className="h-3 w-5 rounded-full bg-parra" style={{ opacity: 1 - i * 0.045 }} />
+                        ))}
+                      </div>
+                      <p className="zb-texto mt-3">
+                        {plural(r.count, "antepasado", "antepasados")} en {plural(r.gens, "generación", "generaciones")}.
+                        {r.oldest ? ` Llega hasta ${r.oldest.name}, nacido en ${r.oldest.year}${r.oldest.place ? `, ${r.oldest.place}` : ""}.` : ""}
                       </p>
-                    ) : (
-                      <p className="zb-texto mt-2 text-gris">Rama por descubrir. ¿Sabes algo de esta familia?</p>
-                    )}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {emptyRamas.length > 0 && (
+              <div className="mt-4 rounded-2xl border-2 border-dashed border-ink/50 p-5">
+                <p className="zb-etiqueta !text-burdeos">Por descubrir</p>
+                <p className="zb-texto mt-1">
+                  De la rama de{" "}
+                  {emptyRamas.map((r, i) => (
+                    <span key={r.id}>
+                      {i > 0 && (i === emptyRamas.length - 1 ? " y de " : ", ")}
+                      <Link href={`/persona/${r.id}`} className="font-bold underline decoration-2 underline-offset-4 hover:text-teja">
+                        {r.name}
+                      </Link>
+                    </span>
+                  ))}{" "}
+                  todavía no hay antepasados en el archivo. Si sabes de dónde venían sus padres, cómo se llamaban o tienes fotos o papeles, cuéntaselo a quien administra el archivo: es lo que más falta.
+                </p>
+              </div>
+            )}
           </section>
         )}
 
@@ -287,12 +373,58 @@ export default async function InicioPage() {
             <h2 className="al-titulo al-regla">{todayItems.length > 0 ? "Hoy en la familia" : "Próximos 30 días en la familia"}</h2>
             <ul className="mt-5 grid gap-4 md:grid-cols-2">
               {todayItems.map((it, i) => (
-                <DateRow key={`t${i}`} it={it} today i={i} far={farSet.has(it)} />
+                <DateRow key={`t${i}`} it={it} today i={i} far={farSet.has(it)} selfId={selfId} />
               ))}
               {soon.map((it, i) => (
-                <DateRow key={`s${i}`} it={it} today={false} i={i + todayItems.length} far={farSet.has(it)} />
+                <DateRow key={`s${i}`} it={it} today={false} i={i + todayItems.length} far={farSet.has(it)} selfId={selfId} />
               ))}
             </ul>
+          </section>
+        )}
+
+        {(recentRows.length > 0 || hallazgos.length > 0) && (
+          <section aria-label="Novedades del archivo">
+            <h2 className="al-titulo al-regla">Novedades del archivo</h2>
+            {recentRows.length > 0 && (
+              <p className="zb-texto mt-3 max-w-3xl">
+                Este mes se {recentRows.length === 1 ? "sumó 1 persona" : `sumaron ${recentRows.length} personas`} al archivo
+                {recentMine.length > 0 ? (
+                  <>
+                    , {recentMineAll.length === 1 ? "una" : recentMineAll.length} de tu línea directa:{" "}
+                    {recentMine.map((id, i) => (
+                      <span key={id}>
+                        {i > 0 && (i === recentMine.length - 1 && !recentMineRest ? " y " : ", ")}
+                        <Link href={`/persona/${id}`} className="font-bold underline decoration-2 underline-offset-4 hover:text-teja">
+                          {byId.get(id)?.label}
+                        </Link>
+                        {shortRel(id) ? ` (${shortRel(id)})` : ""}
+                      </span>
+                    ))}
+                    {recentMineRest > 0 ? ` y ${plural(recentMineRest, "más", "más")}` : ""}
+                    {recentGens.length && !recentMine.some((id) => shortRel(id))
+                      ? `, de hace ${Math.min(...recentGens) === Math.max(...recentGens) ? Math.min(...recentGens) : `${Math.min(...recentGens)} a ${Math.max(...recentGens)}`} generaciones`
+                      : ""}
+                    .
+                  </>
+                ) : (
+                  "."
+                )}
+              </p>
+            )}
+            {hallazgos.length > 0 && (
+              <ul className="mt-5 grid gap-4 md:grid-cols-2">
+                {hallazgos.map((h, i) => (
+                  // En el teléfono, uno solo: dos historias largas seguidas empujan todo lo demás muy abajo.
+                  <li key={h.titulo} className={`rounded-2xl border-2 border-line bg-white p-5 ${i > 0 ? "hidden md:block" : ""}`}>
+                    <p className="zb-etiqueta !text-burdeos">
+                      {h.anio} · encontrado en {h.cuando.toLowerCase()}
+                    </p>
+                    <p className="mt-1 font-slab text-[1.25rem] font-bold leading-tight">{h.titulo}</p>
+                    <p className="zb-texto mt-2">{h.texto}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
         )}
 
