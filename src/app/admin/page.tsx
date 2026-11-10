@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import SectionHeader from "@/components/SectionHeader";
 import { PageTitle } from "@/components/ui";
-import { InvitationRow, InviteForm, MemberRow } from "@/components/AdminPanel";
+import { InvitationsList, InviteForm, MembersList } from "@/components/AdminPanel";
 import { requireAdmin } from "@/lib/auth/session";
 import { describeChange } from "@/lib/changes";
-import { listChanges, listMembers, listPendingInvitations } from "@/lib/data/users";
+import { listChanges, listInvitations, listMembers } from "@/lib/data/users";
+import { mailConfigured } from "@/lib/mail";
 import { countFailedLastDay, listSecurityLog, type SecurityEvent } from "@/lib/data/security-log";
 
 export const metadata: Metadata = { title: "Usuarios e historial · Archivo Zamora Balcázar" };
@@ -30,7 +31,8 @@ const EVENT_LABELS: Record<SecurityEvent, string> = {
   salida: "Salió",
   invitacion_creada: "Creó una invitación",
   invitacion_aceptada: "Aceptó su invitación",
-  invitacion_cancelada: "Canceló una invitación",
+  invitacion_cancelada: "Anuló una invitación",
+  invitacion_reenviada: "Reenvió una invitación",
   enlace_contrasena_creado: "Creó un enlace de contraseña",
   contrasena_cambiada: "Cambió su contraseña",
   rol_cambiado: "Cambió un rol",
@@ -44,7 +46,7 @@ export default async function AdminPage() {
   const session = await requireAdmin();
   const [members, invitations, changes, security, failedDay] = await Promise.all([
     listMembers(session.treeId),
-    listPendingInvitations(session.treeId),
+    listInvitations(session.treeId),
     listChanges(session.treeId, 100),
     listSecurityLog(100),
     countFailedLastDay(),
@@ -60,7 +62,11 @@ export default async function AdminPage() {
 
         <Section
           title="Invitar a alguien"
-          hint="Nadie puede registrarse por su cuenta: solo entra quien recibe un enlace tuyo."
+          hint={
+            mailConfigured()
+              ? "Le llega un correo con el enlace para crear su cuenta. Nadie puede registrarse por su cuenta."
+              : "El envío de correos no está configurado: copia el enlace y mándaselo tú. Nadie puede registrarse por su cuenta."
+          }
         >
           <div className={`${card} p-4`}>
             <InviteForm />
@@ -68,22 +74,12 @@ export default async function AdminPage() {
         </Section>
 
         <Section title={`Personas con acceso (${members.length})`}>
-          <ul className={`${card} divide-y-2 divide-line`}>
-            {members.map((m) => (
-              <MemberRow key={m.id} member={m} isSelf={m.id === session.user.id} />
-            ))}
-          </ul>
+          <MembersList members={members} selfId={session.user.id} />
         </Section>
 
-        {invitations.length > 0 && (
-          <Section title="Enlaces pendientes" hint="Creados y todavía sin usar.">
-            <ul className={`${card} divide-y-2 divide-line`}>
-              {invitations.map((i) => (
-                <InvitationRow key={i.id} invitation={i} />
-              ))}
-            </ul>
-          </Section>
-        )}
+        <Section title="Invitaciones" hint="Su estado, para saber si les llegó. Reenviar manda un enlace nuevo y el anterior deja de servir.">
+          <InvitationsList invitations={invitations} />
+        </Section>
 
         <Section
           title="Registro de seguridad"

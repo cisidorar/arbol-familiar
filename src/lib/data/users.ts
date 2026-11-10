@@ -109,21 +109,53 @@ export async function listMembers(treeId: string): Promise<Member[]> {
   return rows as Member[];
 }
 
-export type PendingInvitation = { id: string; kind: "invite" | "reset"; email: string; role: Role; expires: string; personName: string | null };
+export type InvitationStatus = "aceptada" | "anulada" | "vencida" | "no_enviada" | "abierta" | "enviada" | "creada";
 
-export async function listPendingInvitations(treeId: string): Promise<PendingInvitation[]> {
+export type InvitationRowData = {
+  id: string;
+  kind: "invite" | "reset";
+  email: string;
+  role: Role;
+  created: string;
+  expires: string;
+  personName: string | null;
+  invitedBy: string | null;
+  status: InvitationStatus;
+  sendError: string | null;
+};
+
+/**
+ * Invitaciones y enlaces de contraseña: los vigentes y, de los cerrados (aceptados,
+ * anulados o vencidos), los de los últimos 60 días. El estado sale de las fechas.
+ */
+export async function listInvitations(treeId: string): Promise<InvitationRowData[]> {
   const { rows } = await getPool().query(
-    `select i.id, i.kind, i.email, i.role, to_char(i.expires_at, 'YYYY-MM-DD') as expires, pn.display_name as "personName"
+    `select i.id, i.kind, i.email, i.role,
+            to_char(i.created_at at time zone 'America/Santiago', 'YYYY-MM-DD') as created,
+            to_char(i.expires_at at time zone 'America/Santiago', 'YYYY-MM-DD') as expires,
+            pn.display_name as "personName", u.name as "invitedBy", i.send_error as "sendError",
+            case
+              when i.used_at is not null then 'aceptada'
+              when i.revoked_at is not null then 'anulada'
+              when i.expires_at <= now() then 'vencida'
+              when i.send_error is not null then 'no_enviada'
+              when i.opened_at is not null then 'abierta'
+              when i.sent_at is not null then 'enviada'
+              else 'creada'
+            end as status
      from invitations i
      left join person_names pn on pn.person_id = i.person_id and pn.is_primary
-     where i.tree_id = $1 and i.used_at is null and i.expires_at > now()
+     left join users u on u.id = i.invited_by
+     where i.tree_id = $1
+       and (i.used_at is null and i.revoked_at is null and i.expires_at > now()
+            or i.created_at > now() - interval '60 days')
      order by i.created_at desc`,
     [treeId],
   );
-  return rows as PendingInvitation[];
+  return rows as InvitationRowData[];
 }
 
-export type InviteResult = { ok: true; token: string } | { ok: false; error: string };
+export type InviteResult = { ok: true; id: string; token: string } | { ok: false; error: string };
 
 /** Invita a un correo nuevo. Devuelve el token: el enlace se muestra una sola vez. */
 export async function createInvitation(opts: {
@@ -142,18 +174,19 @@ export async function createInvitation(opts: {
   );
   if (members.length) return { ok: false, error: "Esa persona ya tiene acceso." };
 
-  // Una invitación vigente por correo: la anterior deja de servir.
+  // Una invitación vigente por correo: la anterior deja de servir (queda anulada en el historial).
   await pool.query(
-    `delete from invitations where tree_id = $1 and email = $2 and kind = 'invite' and used_at is null`,
+    `update invitations set revoked_at = now()
+     where tree_id = $1 and email = $2 and kind = 'invite' and used_at is null and revoked_at is null`,
     [opts.treeId, opts.email],
   );
   const token = newToken();
-  await pool.query(
+  const { rows } = await pool.query(
     `insert into invitations (tree_id, kind, email, role, token_hash, invited_by, expires_at, person_id)
-     values ($1, 'invite', $2, $3, $4, $5, now() + make_interval(days => $6), $7)`,
+     values ($1, 'invite', $2, $3, $4, $5, now() + make_interval(days => $6), $7) returning id`,
     [opts.treeId, opts.email, opts.role, hashToken(token), opts.invitedBy, INVITE_DAYS, opts.personId ?? null],
   );
-  return { ok: true, token };
+  return { ok: true, id: rows[0].id, token };
 }
 
 /** Enlace para que alguien que ya tiene cuenta ponga una contraseña nueva. */
@@ -170,16 +203,17 @@ export async function createPasswordReset(opts: {
   );
   if (!rows[0]) return { ok: false, error: "Esa persona ya no tiene acceso." };
   await pool.query(
-    `delete from invitations where tree_id = $1 and email = $2 and kind = 'reset' and used_at is null`,
+    `update invitations set revoked_at = now()
+     where tree_id = $1 and email = $2 and kind = 'reset' and used_at is null and revoked_at is null`,
     [opts.treeId, rows[0].email],
   );
   const token = newToken();
-  await pool.query(
+  const { rows: created } = await pool.query(
     `insert into invitations (tree_id, kind, email, role, token_hash, invited_by, expires_at)
-     values ($1, 'reset', $2, $3, $4, $5, now() + make_interval(hours => $6))`,
+     values ($1, 'reset', $2, $3, $4, $5, now() + make_interval(hours => $6)) returning id`,
     [opts.treeId, rows[0].email, rows[0].role, hashToken(token), opts.invitedBy, RESET_HOURS],
   );
-  return { ok: true, token };
+  return { ok: true, id: created[0].id, token };
 }
 
 export type InvitationInfo = { kind: "invite" | "reset"; email: string; role: Role; userName: string | null };
@@ -190,7 +224,7 @@ export async function getInvitation(token: string): Promise<InvitationInfo | nul
     `select i.kind, i.email, i.role, u.name as user_name
      from invitations i
      left join users u on lower(u.email) = i.email
-     where i.token_hash = $1 and i.used_at is null and i.expires_at > now()`,
+     where i.token_hash = $1 and i.used_at is null and i.revoked_at is null and i.expires_at > now()`,
     [hashToken(token)],
   );
   const r = rows[0];
@@ -208,7 +242,7 @@ export async function acceptInvitation(token: string, name: string, password: st
     // "for update": dos pestañas con el mismo enlace no pueden usarlo a la vez.
     const { rows } = await client.query(
       `select id, tree_id, kind, email, role, person_id from invitations
-       where token_hash = $1 and used_at is null and expires_at > now()
+       where token_hash = $1 and used_at is null and revoked_at is null and expires_at > now()
        for update`,
       [hashToken(token)],
     );
@@ -264,11 +298,61 @@ export async function acceptInvitation(token: string, name: string, password: st
 }
 
 export async function revokeInvitation(treeId: string, invitationId: string): Promise<void> {
-  await getPool().query(`delete from invitations where tree_id = $1 and id = $2 and used_at is null`, [
-    treeId,
-    invitationId,
-  ]);
+  if (!UUID_RE.test(invitationId)) return;
+  await getPool().query(
+    `update invitations set revoked_at = now() where tree_id = $1 and id = $2 and used_at is null and revoked_at is null`,
+    [treeId, invitationId],
+  );
 }
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Anota si el correo salió (error = null) o por qué no. */
+export async function markInvitationSent(invitationId: string, error: string | null): Promise<void> {
+  await getPool().query(
+    `update invitations set sent_at = case when $2::text is null then now() else sent_at end, send_error = $2 where id = $1`,
+    [invitationId, error],
+  );
+}
+
+/** La persona abrió el enlace (solo se anota la primera vez). */
+export async function markInvitationOpened(token: string): Promise<void> {
+  await getPool().query(
+    `update invitations set opened_at = now()
+     where token_hash = $1 and opened_at is null and used_at is null and revoked_at is null`,
+    [hashToken(token)],
+  );
+}
+
+export type RenewResult =
+  | { ok: true; id: string; token: string; kind: "invite" | "reset"; email: string; personName: string | null; userName: string | null }
+  | { ok: false; error: string };
+
+/**
+ * Reenviar: la misma invitación (o enlace de contraseña) con un enlace nuevo y un plazo
+ * nuevo. El enlace anterior deja de servir. No sirve para una ya aceptada ni anulada.
+ */
+export async function renewInvitation(treeId: string, invitationId: string): Promise<RenewResult> {
+  if (!UUID_RE.test(invitationId)) return { ok: false, error: "No encontré esa invitación." };
+  const token = newToken();
+  const { rows } = await getPool().query(
+    `update invitations i set
+       token_hash = $3,
+       expires_at = case when i.kind = 'reset' then now() + make_interval(hours => $4) else now() + make_interval(days => $5) end,
+       sent_at = null, send_error = null, opened_at = null
+     where i.tree_id = $1 and i.id = $2 and i.used_at is null and i.revoked_at is null
+     returning i.id, i.kind, i.email,
+       (select display_name from person_names where person_id = i.person_id and is_primary) as "personName",
+       (select name from users where lower(email) = i.email) as "userName"`,
+    [treeId, invitationId, hashToken(token), RESET_HOURS, INVITE_DAYS],
+  );
+  const r = rows[0];
+  if (!r) return { ok: false, error: "Esa invitación ya se aceptó o se anuló. Crea una nueva." };
+  return { ok: true, id: r.id, token, kind: r.kind, email: r.email, personName: r.personName, userName: r.userName };
+}
+
+export const INVITE_VALID_DAYS = INVITE_DAYS;
+export const RESET_VALID_HOURS = RESET_HOURS;
 
 async function adminCount(treeId: string): Promise<number> {
   const { rows } = await getPool().query(

@@ -15,6 +15,7 @@ export type SecurityEvent =
   | "invitacion_creada"
   | "invitacion_aceptada"
   | "invitacion_cancelada"
+  | "invitacion_reenviada"
   | "enlace_contrasena_creado"
   | "contrasena_cambiada"
   | "rol_cambiado"

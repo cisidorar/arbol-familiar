@@ -4,7 +4,7 @@ import { LinkButton, Notice } from "@/components/ui";
 import { AcceptInviteForm } from "@/components/AuthForms";
 import { MIN_PASSWORD_LENGTH } from "@/lib/auth/password";
 import { ROLE_HELP, ROLE_LABELS } from "@/lib/auth/roles";
-import { getInvitation } from "@/lib/data/users";
+import { getInvitation, markInvitationOpened } from "@/lib/data/users";
 
 export const metadata: Metadata = {
   title: "Invitación · Archivo Zamora Balcázar",
@@ -16,6 +16,8 @@ export const dynamic = "force-dynamic";
 export default async function InvitationPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const invitation = await getInvitation(token);
+  // Para el estado en Administración: "abrió el enlace".
+  if (invitation) await markInvitationOpened(token).catch(() => {});
 
   if (!invitation) {
     return (

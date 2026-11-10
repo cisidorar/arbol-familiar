@@ -4,7 +4,7 @@
 // a una acción de servidor (src/app/actions/admin.ts), que vuelve a comprobar
 // que quien la llama es administrador.
 
-import { startTransition, useActionState, useState } from "react";
+import { startTransition, useActionState, useMemo, useState } from "react";
 import {
   cancelInvitation,
   changeRole,
@@ -12,8 +12,10 @@ import {
   linkMember,
   passwordResetLink,
   removeAccess,
+  resendInvitation,
   type AdminState,
 } from "@/app/actions/admin";
+import type { InvitationRowData, InvitationStatus } from "@/lib/data/users";
 import { ROLES, ROLE_HELP, ROLE_LABELS, type Role } from "@/lib/auth/roles";
 import PersonPicker, { type PersonRef } from "./PersonPicker";
 import { Button, Field, Initial, Notice, buttonClass } from "./ui";
@@ -26,7 +28,10 @@ function ErrorText({ state }: { state: AdminState }) {
   return <Notice kind="aviso">{state.error}</Notice>;
 }
 
-/** El enlace recién creado. Se muestra una sola vez: en la base solo queda su hash. */
+/**
+ * El enlace recién creado. Se muestra una sola vez: en la base solo queda su hash.
+ * Si el correo salió, se avisa y el enlace queda de respaldo (por si no le llega).
+ */
 function LinkBox({ state, note }: { state: AdminState; note: string }) {
   const [copied, setCopied] = useState(false);
   if (!state?.link) return null;
@@ -42,8 +47,18 @@ function LinkBox({ state, note }: { state: AdminState; note: string }) {
   };
   return (
     <Notice kind="listo">
-      <p className="font-bold">Enlace listo{state.linkFor ? ` para ${state.linkFor}` : ""}</p>
-      <p className="zb-apoyo mt-0.5 !text-ink">{note}</p>
+      <p className="font-bold">
+        {state.sent ? `Correo enviado${state.linkFor ? ` a ${state.linkFor}` : ""}` : `Enlace listo${state.linkFor ? ` para ${state.linkFor}` : ""}`}
+      </p>
+      {state.mailError && (
+        <p className="zb-apoyo mt-0.5 !text-aviso">
+          No se pudo mandar el correo ({state.mailError}). Copia el enlace y mándaselo por WhatsApp.
+        </p>
+      )}
+      <p className="zb-apoyo mt-0.5 !text-ink">
+        {state.sent ? "Por si no le llega (que revise spam), también puedes copiar el enlace. " : ""}
+        {note}
+      </p>
       <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
         <input
           readOnly
@@ -99,14 +114,14 @@ export function InviteForm() {
         </div>
         <div>
           <Button type="submit" disabled={pending || !person}>
-            {pending ? "Creando…" : "Crear invitación"}
+            {pending ? "Enviando…" : "Enviar invitación"}
           </Button>
         </div>
       </form>
       <ErrorText state={state} />
       <LinkBox
         state={state}
-        note="Mándaselo por WhatsApp o correo. Sirve una sola vez, vence en 7 días y no se vuelve a mostrar: cópialo ahora."
+        note="Sirve una sola vez, vence en 7 días y no se vuelve a mostrar."
       />
     </div>
   );
@@ -209,7 +224,7 @@ export function MemberRow({
           <input type="hidden" name="userId" value={member.id} />
           <input type="hidden" name="label" value={member.name} />
           <button type="submit" disabled={resetPending} className={buttonClass("enlace")}>
-            {resetPending ? "Creando…" : "Enlace para nueva contraseña"}
+            {resetPending ? "Enviando…" : "Mandar enlace para nueva contraseña"}
           </button>
         </form>
         {!isSelf &&
@@ -247,27 +262,142 @@ export function MemberRow({
   );
 }
 
-export function InvitationRow({
-  invitation,
-}: {
-  invitation: { id: string; kind: "invite" | "reset"; email: string; role: Role; expires: string; personName: string | null };
-}) {
-  const [, action, pending] = useActionState(cancelInvitation, undefined);
+const STATUS: Record<InvitationStatus, { label: string; tone: string }> = {
+  creada: { label: "Creada, sin correo", tone: "bg-adobe-2 text-ink" },
+  enviada: { label: "Correo enviado", tone: "bg-[#dce7f6] text-hombre" },
+  abierta: { label: "Abrió el enlace", tone: "bg-trigo text-ink" },
+  no_enviada: { label: "No se pudo enviar", tone: "bg-aviso text-white" },
+  aceptada: { label: "Aceptada", tone: "bg-parra text-adobe" },
+  vencida: { label: "Vencida", tone: "bg-paper text-gris" },
+  anulada: { label: "Anulada", tone: "bg-paper text-gris" },
+};
+const OPEN = new Set<InvitationStatus>(["creada", "enviada", "abierta", "no_enviada"]);
+const date = (d: string) => d.split("-").reverse().join("/");
+
+function InvitationRow({ invitation }: { invitation: InvitationRowData }) {
+  const [cancelState, cancelAction, cancelPending] = useActionState(cancelInvitation, undefined);
+  const [resendState, resendAction, resendPending] = useActionState(resendInvitation, undefined);
+  const st = STATUS[invitation.status];
+  const canResend = OPEN.has(invitation.status) || invitation.status === "vencida";
+  const what =
+    invitation.kind === "reset"
+      ? "Contraseña nueva"
+      : `Invitación como ${ROLE_LABELS[invitation.role].toLowerCase()}${invitation.personName ? ` · será ${invitation.personName}` : ""}`;
   return (
-    <li className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-4 sm:px-5">
-      <div className="min-w-0 flex-1">
-        <p className="zb-nombre break-all">{invitation.email}</p>
-        <p className="zb-apoyo">
-          {invitation.kind === "reset" ? "Cambio de contraseña" : `Invitación como ${ROLE_LABELS[invitation.role].toLowerCase()}${invitation.personName ? ` · será ${invitation.personName}` : ""}`} · vence el{" "}
-          {invitation.expires.split("-").reverse().join("/")}
-        </p>
+    <li className="flex flex-col gap-2 px-4 py-4 sm:px-5">
+      <div className="flex flex-wrap items-start gap-x-4 gap-y-2">
+        <div className="min-w-0 flex-1">
+          <p className="zb-nombre break-all">{invitation.email}</p>
+          <p className="zb-apoyo">{what}</p>
+          <p className="zb-apoyo tabular-nums">
+            Creada el {date(invitation.created)}
+            {invitation.invitedBy ? ` por ${invitation.invitedBy}` : ""}
+            {OPEN.has(invitation.status) ? ` · vence el ${date(invitation.expires)}` : ""}
+          </p>
+        </div>
+        <span className={`rounded-full px-3 py-1 text-base font-bold ${st.tone}`}>{st.label}</span>
       </div>
-      <form action={action}>
-        <input type="hidden" name="invitationId" value={invitation.id} />
-        <button type="submit" disabled={pending} className={buttonClass("secundario")}>
-          Anular enlace
-        </button>
-      </form>
+      {invitation.status === "no_enviada" && invitation.sendError && <p className="zb-apoyo !text-aviso">Motivo: {invitation.sendError}</p>}
+      {canResend && (
+        <div className="flex flex-wrap gap-2">
+          <form action={resendAction}>
+            <input type="hidden" name="invitationId" value={invitation.id} />
+            <button type="submit" disabled={resendPending} className={buttonClass("secundario")}>
+              {resendPending ? "Reenviando…" : "Reenviar"}
+            </button>
+          </form>
+          {OPEN.has(invitation.status) && (
+            <form action={cancelAction}>
+              <input type="hidden" name="invitationId" value={invitation.id} />
+              <button type="submit" disabled={cancelPending} className={buttonClass("enlace", "!text-aviso")}>
+                Anular
+              </button>
+            </form>
+          )}
+        </div>
+      )}
+      <ErrorText state={resendState} />
+      <ErrorText state={cancelState} />
+      <LinkBox state={resendState} note="El enlace anterior ya no sirve. Este también es de un solo uso." />
     </li>
+  );
+}
+
+/** Invitaciones vigentes arriba; las cerradas (aceptadas, anuladas, vencidas) plegadas abajo. */
+export function InvitationsList({ invitations }: { invitations: InvitationRowData[] }) {
+  const open = invitations.filter((i) => OPEN.has(i.status));
+  const closed = invitations.filter((i) => !OPEN.has(i.status));
+  if (!invitations.length) return <p className="zb-texto rounded-2xl border-2 border-line bg-white px-5 py-6 text-gris">No hay invitaciones de los últimos 60 días.</p>;
+  return (
+    <div className="flex flex-col gap-4">
+      {open.length > 0 ? (
+        <ul className="overflow-hidden rounded-2xl border-2 border-line bg-white divide-y-2 divide-line">
+          {open.map((i) => (
+            <InvitationRow key={i.id} invitation={i} />
+          ))}
+        </ul>
+      ) : (
+        <p className="zb-apoyo">No hay invitaciones esperando respuesta.</p>
+      )}
+      {closed.length > 0 && (
+        <details className="rounded-2xl border-2 border-line bg-white">
+          <summary className="cursor-pointer px-5 py-4 text-[1.125rem] font-bold">Cerradas en los últimos 60 días ({closed.length})</summary>
+          <ul className="divide-y-2 divide-line border-t-2 border-line">
+            {closed.map((i) => (
+              <InvitationRow key={i.id} invitation={i} />
+            ))}
+          </ul>
+        </details>
+      )}
+    </div>
+  );
+}
+
+type MemberData = { id: string; name: string; email: string; role: Role; since: string; personId: string | null; personName: string | null };
+
+const fold = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+/** Personas con acceso: buscador y grupos por rol (administradores, editores, lectores). */
+export function MembersList({ members, selfId }: { members: MemberData[]; selfId: string }) {
+  const [query, setQuery] = useState("");
+  const shown = useMemo(() => {
+    const q = fold(query.trim());
+    return q ? members.filter((m) => fold(`${m.name} ${m.email} ${m.personName ?? ""}`).includes(q)) : members;
+  }, [members, query]);
+  const groups = ROLES.map((r) => ({ role: r, people: shown.filter((m) => m.role === r).sort((a, b) => a.name.localeCompare(b.name, "es")) })).filter(
+    (g) => g.people.length > 0,
+  );
+  const GROUP_TITLE: Record<Role, string> = { admin: "Administradores", editor: "Editores", lector: "Lectores" };
+  return (
+    <div className="flex flex-col gap-4">
+      {members.length > 5 && (
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="member-search" className="text-[1.125rem] font-bold">
+            Buscar
+          </label>
+          <input
+            id="member-search"
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Nombre, correo o persona del árbol"
+            className="min-h-12 w-full rounded-lg border-2 border-[#8f8a80] bg-white px-3 text-[1.125rem] text-ink focus:border-hombre"
+          />
+        </div>
+      )}
+      {groups.length === 0 && <p className="zb-apoyo">Nadie coincide con «{query}».</p>}
+      {groups.map((g) => (
+        <section key={g.role} aria-label={GROUP_TITLE[g.role]}>
+          <h3 className="zb-apoyo mb-2 font-bold uppercase tracking-wide !text-burdeos">
+            {GROUP_TITLE[g.role]} ({g.people.length})
+          </h3>
+          <ul className="overflow-hidden rounded-2xl border-2 border-line bg-white divide-y-2 divide-line">
+            {g.people.map((m) => (
+              <MemberRow key={m.id} member={m} isSelf={m.id === selfId} />
+            ))}
+          </ul>
+        </section>
+      ))}
+    </div>
   );
 }
