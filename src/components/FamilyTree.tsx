@@ -475,7 +475,7 @@ export default function FamilyTree({ data, mainId, line = null, version, resetKe
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Enter" && e.key !== " ") return;
       const target = e.target as HTMLElement | null;
-      if (!target?.matches?.(".card, .card-add, .mini-tree, .card-collapse")) return;
+      if (!target?.matches?.(".card, .card-add, .mini-tree, .card-collapse, .card-sibs")) return;
       e.preventDefault();
       if (target.matches(".card")) (target.querySelector<HTMLElement>(".card-inner") ?? target).click();
       else target.click();
@@ -765,6 +765,14 @@ export default function FamilyTree({ data, mainId, line = null, version, resetKe
             onAddRelativeRef.current?.(d.data.id, addButton.getBoundingClientRect());
             return;
           }
+          // «Hermanos»: sus padres ya están a la vista pero sus hermanos no; se abren sin tocar nada más.
+          const sibsButton = (e.target as Element | null)?.closest?.(".card-sibs");
+          if (sibsButton) {
+            setAnnouncement(openedText({ kind: "siblings", of: d.data.id } as ExpandAction, d.data.data.label, d.data.id));
+            currentExpanded().sibs.add(d.data.id);
+            updateKeepingInPlace(d);
+            return;
+          }
           // "Comprimir": oculta de nuevo a los hermanos desplegados al lado.
           const collapseButton = (e.target as Element | null)?.closest?.(".card-collapse");
           if (collapseButton) {
@@ -926,6 +934,30 @@ export default function FamilyTree({ data, mainId, line = null, version, resetKe
               const label = `Comprimir a los hermanos de ${d.data.data.label}`;
               collapse.setAttribute("title", label);
               collapse.setAttribute("aria-label", label);
+            }
+          }
+
+          // «Hermanos»: alguien de la línea directa cuyos padres están a la vista pero cuyos hermanos no. Sin esto,
+          // sus hermanos solo se abrían junto con los padres y, con los padres ya abiertos, no había cómo verlos.
+          if (cardEl) {
+            const inLine = Boolean(d.is_ancestry) || (!d.spouse && !d.sibling && !d.kid);
+            const canShow = inLine && siblingsHiddenFor(d) && !currentExpanded().sibs.has(d.data.id);
+            let sibs = cardEl.querySelector<HTMLElement>(".card-sibs");
+            if (!canShow) {
+              sibs?.remove();
+            } else {
+              if (!sibs) {
+                sibs = document.createElement("div");
+                sibs.className = "card-sibs";
+                sibs.setAttribute("role", "button");
+                sibs.setAttribute("tabindex", "0");
+                sibs.textContent = "Hermanos";
+                cardEl.appendChild(sibs);
+              }
+              sibs.setAttribute("data-side", expandDirection({ kind: "siblings", of: d.data.id } as ExpandAction, d) === "left" ? "left" : "right");
+              const label = `Ver los hermanos de ${d.data.data.label}`;
+              sibs.setAttribute("title", label);
+              sibs.setAttribute("aria-label", label);
             }
           }
 

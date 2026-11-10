@@ -580,6 +580,41 @@ div.f3 div.card-collapse[data-side="right"] {
 div.f3 div.card-collapse[data-side="left"] {
   right: calc(100% + 6px);
 }
+/* «Hermanos»: abre los hermanos de quien tiene a sus padres a la vista pero a ellos no. Del lado libre de la tarjeta. */
+div.f3 div.card-sibs {
+  position: absolute;
+  top: calc(50% - 15px);
+  z-index: 3;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 12px;
+  white-space: nowrap;
+  border: 1.5px solid #8f8472;
+  border-radius: 9999px;
+  background: var(--color-adobe);
+  box-shadow: 0 1px 2px rgb(30 26 23 / 0.12);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  color: #4a4740;
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
+}
+div.f3 div.card-sibs[data-side="right"] {
+  left: calc(100% + 6px);
+}
+div.f3 div.card-sibs[data-side="left"] {
+  right: calc(100% + 6px);
+}
+div.f3 div.card-sibs:hover {
+  background: #6e1f2e;
+  border-color: #6e1f2e;
+  color: #fff;
+}
+
 div.f3 div.card-collapse::before {
   content: "";
   position: absolute;
