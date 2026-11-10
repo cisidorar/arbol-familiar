@@ -704,7 +704,12 @@ export default function PersonPanel({
   const unionTypeOf = (spouseId: string) =>
     (person?.familiesAsPartner ?? []).find((f) => f.partner1_id === spouseId || f.partner2_id === spouseId)?.union_type ?? "partnership";
   const allUnmarried = spouseIds.length > 0 && spouseIds.every((id) => unionTypeOf(id) === "partnership");
-  const spouseLabel = allUnmarried
+  // Si la unión terminó (hay un divorcio registrado), ya no es «Esposo/Esposa».
+  const divorcedFrom: string[] = (person && byId.get(person.id)?.data?.divorced_from) ?? [];
+  const allDivorced = spouseIds.length > 0 && spouseIds.every((id) => divorcedFrom.includes(id));
+  const spouseLabel = allDivorced
+    ? spouseIds.length > 1 ? "Exparejas" : allUnmarried ? "Expareja" : byId.get(spouseIds[0])?.data?.gender === "F" ? "Exesposa" : "Exesposo"
+    : allUnmarried
     ? spouseIds.length > 1 ? "Parejas" : "Pareja"
     : spouseIds.length > 1 ? "Parejas" : byId.get(spouseIds[0])?.data?.gender === "F" ? "Esposa" : "Esposo";
 
@@ -1061,7 +1066,8 @@ export default function PersonPanel({
                   const y = marriedIn(id);
                   const d = byId.get(id)?.data;
                   const unmarried = unionTypeOf(id) === "partnership";
-                  return [unmarried ? "sin matrimonio" : y ? `Casados en ${y}` : null, d?.death_year ? `murió en ${d.death_year}` : d?.birth_year ? `n. ${d.birth_year}` : null].filter(Boolean).join(" · ") || null;
+                  const ended = divorcedFrom.includes(id);
+                  return [unmarried ? (ended ? "sin matrimonio · ya terminó" : "sin matrimonio") : y ? `Casados en ${y}${ended ? ", ya divorciados" : ""}` : ended ? "ya divorciados" : null, d?.death_year ? `murió en ${d.death_year}` : d?.birth_year ? `n. ${d.birth_year}` : null].filter(Boolean).join(" · ") || null;
                 })}
                 {canEdit && (person.familiesAsPartner ?? []).some((f) => f.partner1_id && f.partner2_id) && (
                   <div className="mt-3 rounded-2xl border-2 border-dashed border-ink/40 px-4 py-3">

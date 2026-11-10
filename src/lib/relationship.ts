@@ -5,7 +5,7 @@
 
 type Person = {
   id: string;
-  data: { gender?: string };
+  data: { gender?: string; divorced_from?: string[] };
   rels: { parents: string[]; children: string[]; spouses: string[] };
 };
 
@@ -106,6 +106,11 @@ function inLawLabel(code: Code, gender: string | undefined): string | null {
   return null;
 }
 
+/** ¿La unión entre las dos personas ya terminó (divorcio)? */
+function areDivorced(map: Map<string, Person>, a: string, b: string): boolean {
+  return Boolean(map.get(a)?.data.divorced_from?.includes(b) || map.get(b)?.data.divorced_from?.includes(a));
+}
+
 export function describeRelationship(
   people: Person[],
   focusId: string | null,
@@ -117,13 +122,21 @@ export function describeRelationship(
   if (!target) return null;
 
   const code = relationCode(map, focusId, targetId);
-  if (code) return "Su " + baseLabel(code, target.data.gender);
+  if (code) {
+    if (code.type === "spouse" && areDivorced(map, focusId, targetId)) return "Su " + pick(["exesposo", "exesposa"], target.data.gender);
+    return "Su " + baseLabel(code, target.data.gender);
+  }
 
   // No es pariente de sangre ni cónyuge directo: ¿es cónyuge de alguien que
   // sí lo es? (cuñado/a, yerno/nuera, padrastro/madrastra, o genérico).
-  for (const spouseId of target.rels.spouses) {
+  // Las uniones que ya terminaron no hacen cuñado ni nuera: primero las vigentes, y la expareja al final.
+  const spouses = [...target.rels.spouses].sort((a, b) => Number(areDivorced(map, targetId, a)) - Number(areDivorced(map, targetId, b)));
+  for (const spouseId of spouses) {
     const spouseCode = relationCode(map, focusId, spouseId);
     if (!spouseCode) continue;
+    if (areDivorced(map, targetId, spouseId)) {
+      return `${pick(["Exesposo", "Exesposa"], target.data.gender)} de su ${baseLabel(spouseCode, map.get(spouseId)?.data.gender)}`;
+    }
     const inLaw = inLawLabel(spouseCode, target.data.gender);
     if (inLaw) return "Su " + inLaw;
     return `Cónyuge de su ${baseLabel(spouseCode, map.get(spouseId)?.data.gender)}`;
