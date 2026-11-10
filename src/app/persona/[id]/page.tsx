@@ -44,7 +44,7 @@ function Group({ title, people, note }: { title: string; people: Person[]; note?
   return (
     <section aria-label={title}>
       <h3 className="zb-etiqueta">{title}</h3>
-      <ul className="mt-2 grid gap-2 sm:grid-cols-2">
+      <ul className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
         {people.map((p) => (
           <li key={p.id} className="min-w-0">
             <PersonLink p={p} note={note?.(p)} />
@@ -115,7 +115,7 @@ export default async function PersonaPage({ params }: { params: Promise<{ id: st
   return (
     <div className="zb album min-h-screen text-ink [color-scheme:light]">
       <SectionHeader current="arbol" />
-      <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:py-12">
+      <main className="mx-auto max-w-[88rem] px-4 py-8 sm:px-6 lg:py-12">
         <Link href={`/?persona=${id}`} className="print:hidden inline-flex min-h-12 items-center gap-2 font-bold text-ink hover:text-teja">
           <span aria-hidden>←</span> Ver en el árbol
         </Link>
@@ -155,9 +155,11 @@ export default async function PersonaPage({ params }: { params: Promise<{ id: st
           )}
         </div>
 
+        {/* Computador: la vida a la izquierda; dónde descansa, familia y notas a la derecha. Teléfono: una columna, dónde descansa primero. */}
+        <div className="mt-8 grid items-start gap-x-14 gap-y-10 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         {/* Dónde descansa */}
         {!me.living && (
-          <section className="mt-8 rounded-3xl border-2 border-ink bg-white p-5 sm:p-6" aria-label="Dónde descansa">
+          <section className="rounded-3xl lg:col-start-2 lg:row-start-1 border-2 border-ink bg-white p-5 sm:p-6" aria-label="Dónde descansa">
             <p className="zb-etiqueta !text-burdeos">{cremated ? "Cremación" : "Dónde descansa"}</p>
             {cremated ? (
               <>
@@ -196,7 +198,7 @@ export default async function PersonaPage({ params }: { params: Promise<{ id: st
         )}
 
         {/* Línea de vida */}
-        <section className="mt-10" aria-label="Línea de vida">
+        <section className="lg:col-start-1 lg:row-span-3 lg:row-start-1" aria-label="Línea de vida">
           <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-line pb-3">
             <h2 className="zb-seccion">Su vida</h2>
             <p className="zb-apoyo">{plural(timeline.length, "hecho", "hechos")}</p>
@@ -272,7 +274,7 @@ export default async function PersonaPage({ params }: { params: Promise<{ id: st
 
         {/* Familia */}
         {(parents.length > 0 || partners.length > 0 || children.length > 0 || siblings.length > 0) && (
-          <section className="mt-10 space-y-6" aria-label="Familia">
+          <section className="space-y-6 lg:col-start-2" aria-label="Familia">
             <div className="border-b border-line pb-3">
               <h2 className="zb-seccion">Su familia</h2>
             </div>
@@ -284,13 +286,14 @@ export default async function PersonaPage({ params }: { params: Promise<{ id: st
         )}
 
         {detail.notes && (
-          <section className="mt-10" aria-label="Notas">
+          <section className="lg:col-start-2" aria-label="Notas">
             <div className="border-b border-line pb-3">
               <h2 className="zb-seccion">Notas</h2>
             </div>
             <p className="zb-texto mt-4 whitespace-pre-line">{detail.notes}</p>
           </section>
         )}
+        </div>
 
         <p className="zb-apoyo mt-12 border-t border-line pt-4">
           {detail.edited
