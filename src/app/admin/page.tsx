@@ -11,13 +11,31 @@ import { countFailedLastDay, listSecurityLog, type SecurityEvent } from "@/lib/d
 export const metadata: Metadata = { title: "Usuarios e historial · Archivo Zamora Balcázar" };
 export const dynamic = "force-dynamic";
 
-function Section({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
+function Section({ id, title, hint, children }: { id: string; title: string; hint?: string; children: React.ReactNode }) {
   return (
-    <section>
-      <h2 className="zb-seccion">{title}</h2>
+    <section id={id} aria-labelledby={`${id}-titulo`} className="scroll-mt-24">
+      <h2 id={`${id}-titulo`} className="zb-seccion">{title}</h2>
       {hint && <p className="zb-apoyo mt-1">{hint}</p>}
       <div className="mt-4">{children}</div>
     </section>
+  );
+}
+
+/** Bloque plegable para los registros largos: el título dice cuánto hay adentro. */
+function Fold({ title, hint, count, open, children }: { title: string; hint: string; count: number; open?: boolean; children: React.ReactNode }) {
+  return (
+    <details open={open} className="group rounded-2xl border-2 border-line bg-white">
+      <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 px-5 py-3 [&::-webkit-details-marker]:hidden">
+        <span aria-hidden="true" className="inline-block text-gris transition-transform group-open:rotate-90">▸</span>
+        <span className="flex-1">
+          <span className="zb-nombre block">{title} ({count})</span>
+          <span className="zb-apoyo block">{hint}</span>
+        </span>
+        <span className="zb-apoyo font-bold !text-ink group-open:hidden">Ver</span>
+        <span className="zb-apoyo hidden font-bold !text-ink group-open:inline">Ocultar</span>
+      </summary>
+      <div className="border-t-2 border-line">{children}</div>
+    </details>
   );
 }
 
@@ -51,7 +69,19 @@ export default async function AdminPage() {
     listSecurityLog(100),
     countFailedLastDay(),
   ]);
-
+  const alerts = security.filter((e) => ALERT.has(e.event)).length;
+  const waiting = invitations.filter((i) => ["creada", "enviada", "abierta", "no_enviada"].includes(i.status)).length;
+  const unsent = invitations.filter((i) => i.status === "no_enviada").length;
+  const todo: string[] = [];
+  if (unsent) todo.push(`${unsent === 1 ? "1 invitación no se pudo enviar" : `${unsent} invitaciones no se pudieron enviar`}`);
+  if (failedDay >= 5) todo.push(`${failedDay} intentos de entrada fallidos en las últimas 24 horas`);
+  const nav = [
+    { href: "#invitar", label: "Invitar" },
+    { href: "#personas", label: `Personas (${members.length})` },
+    { href: "#invitaciones", label: waiting ? `Invitaciones (${waiting} esperando)` : "Invitaciones" },
+    { href: "#seguridad", label: "Seguridad" },
+    { href: "#historial", label: "Cambios" },
+  ];
 
   return (
     <div className="zb album min-h-screen text-ink [color-scheme:light]">
@@ -60,7 +90,27 @@ export default async function AdminPage() {
       <main className="mx-auto flex max-w-3xl flex-col gap-12 px-4 py-8 sm:px-6 lg:py-10">
         <PageTitle intro="Quién puede entrar al archivo, qué puede hacer y qué se ha cambiado.">Usuarios e historial</PageTitle>
 
+        <nav aria-label="Secciones de esta pantalla" className="-mt-6 flex flex-wrap gap-2">
+          {nav.map((n) => (
+            <a key={n.href} href={n.href} className="inline-flex min-h-11 items-center rounded-full border-2 border-line bg-white px-4 text-base font-bold text-ink hover:border-ink">
+              {n.label}
+            </a>
+          ))}
+        </nav>
+
+        {todo.length > 0 && (
+          <div role="status" className="rounded-2xl border-2 border-burdeos bg-white px-5 py-4">
+            <p className="zb-nombre !text-burdeos">Para revisar</p>
+            <ul className="zb-texto mt-1 list-disc pl-6">
+              {todo.map((t) => (
+                <li key={t}>{t}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <Section
+          id="invitar"
           title="Invitar a alguien"
           hint={
             mailConfigured()
@@ -73,52 +123,58 @@ export default async function AdminPage() {
           </div>
         </Section>
 
-        <Section title={`Personas con acceso (${members.length})`}>
+        <Section id="personas" title={`Personas con acceso (${members.length})`}>
           <MembersList members={members} selfId={session.user.id} />
         </Section>
 
-        <Section title="Invitaciones" hint="Su estado, para saber si les llegó. Reenviar manda un enlace nuevo y el anterior deja de servir.">
+        <Section id="invitaciones" title="Invitaciones" hint="Su estado, para saber si les llegó. Reenviar manda un enlace nuevo y el anterior deja de servir.">
           <InvitationsList invitations={invitations} />
         </Section>
 
         <Section
+          id="seguridad"
           title="Registro de seguridad"
           hint="Las últimas 100 entradas, intentos fallidos y acciones de administración."
         >
-          {failedDay >= 5 && (
-            <p className="zb-texto mb-4 rounded-2xl border-2 border-burdeos bg-white px-5 py-4 font-bold !text-burdeos">
-              Hubo {failedDay} intentos de entrada fallidos en las últimas 24 horas. Si no fuiste tú ni alguien de la familia, revisa de qué correos son.
-            </p>
-          )}
           {security.length === 0 ? (
             <p className={`${card} zb-texto px-5 py-6 text-gris`}>Todavía no hay nada registrado.</p>
           ) : (
-            <ul className={`${card} divide-y-2 divide-line`}>
-              {security.map((e) => (
-                <li key={e.id} className="px-4 py-3 sm:px-5">
-                  <p className={`zb-texto ${ALERT.has(e.event) ? "font-bold !text-burdeos" : ""}`}>
-                    {EVENT_LABELS[e.event] ?? e.event}
-                    {(e.userName || e.email) && <span className="font-normal !text-ink"> · {e.userName ?? e.email}</span>}
-                  </p>
-                  <p className="zb-apoyo mt-0.5 tabular-nums">
-                    {e.when.replace(/^(\d+)-(\d+)-(\d+)/, "$3/$2/$1")}
-                    {e.ip ? ` · ${e.ip}` : ""}
-                    {e.detail && typeof e.detail.role === "string" ? ` · rol ${e.detail.role}` : ""}
-                  </p>
-                </li>
-              ))}
-            </ul>
+            <Fold
+              title="Entradas y cambios de permisos"
+              hint={alerts ? `${alerts} para mirar con atención` : "Nada raro"}
+              count={security.length}
+              open={failedDay >= 5}
+            >
+              <ul className="divide-y-2 divide-line">
+                {security.map((e) => (
+                  <li key={e.id} className="px-4 py-3 sm:px-5">
+                    <p className={`zb-texto ${ALERT.has(e.event) ? "font-bold !text-burdeos" : ""}`}>
+                      {ALERT.has(e.event) && <span className="mr-2 rounded-full bg-burdeos px-2.5 py-0.5 text-sm font-bold text-white">Atención</span>}
+                      {EVENT_LABELS[e.event] ?? e.event}
+                      {(e.userName || e.email) && <span className="font-normal !text-ink"> · {e.userName ?? e.email}</span>}
+                    </p>
+                    <p className="zb-apoyo mt-0.5 tabular-nums">
+                      {e.when.replace(/^(\d+)-(\d+)-(\d+)/, "$3/$2/$1")}
+                      {e.ip ? ` · ${e.ip}` : ""}
+                      {e.detail && typeof e.detail.role === "string" ? ` · rol ${e.detail.role}` : ""}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </Fold>
           )}
         </Section>
 
         <Section
+          id="historial"
           title="Historial de cambios"
           hint="Los últimos 100 cambios hechos en la app, con lo que había antes y lo que quedó."
         >
           {changes.length === 0 ? (
             <p className={`${card} zb-texto px-5 py-6 text-gris`}>Todavía nadie ha editado nada.</p>
           ) : (
-            <ul className={`${card} divide-y-2 divide-line`}>
+            <Fold title="Cambios hechos en la app" hint="Con lo que había antes y lo que quedó" count={changes.length}>
+            <ul className="divide-y-2 divide-line">
               {changes.map((c) => {
                 const { summary, details } = describeChange(c);
                 return (
@@ -141,6 +197,7 @@ export default async function AdminPage() {
                 );
               })}
             </ul>
+            </Fold>
           )}
         </Section>
       </main>

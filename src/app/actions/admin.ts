@@ -5,7 +5,7 @@
 
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
-import { canAdmin, isRole, normalizeEmail } from "@/lib/auth/roles";
+import { ROLE_LABELS, canAdmin, isRole, normalizeEmail } from "@/lib/auth/roles";
 import { getSession } from "@/lib/auth/session";
 import { getPool } from "@/lib/db/pool";
 import { logSecurity } from "@/lib/data/security-log";
@@ -26,6 +26,8 @@ import { inviteEmail, mailConfigured, resetEmail, sendMail } from "@/lib/mail";
 export type AdminState =
   | {
       error?: string;
+      /** Aviso de que la acción salió bien (ej. «Ahora es Editor»). */
+      ok?: string;
       link?: string;
       linkFor?: string;
       /** El correo salió. */
@@ -122,7 +124,7 @@ export async function changeRole(_prev: AdminState, formData: FormData): Promise
   const error = await setMemberRole(session.treeId, userId, role);
   if (!error) await logSecurity("rol_cambiado", { userId: session.user.id, detail: { para: userId, role } });
   revalidatePath("/admin");
-  return error ? { error } : undefined;
+  return error ? { error } : { ok: `Listo: ahora es ${ROLE_LABELS[role].toLowerCase()}.` };
 }
 
 export async function removeAccess(_prev: AdminState, formData: FormData): Promise<AdminState> {

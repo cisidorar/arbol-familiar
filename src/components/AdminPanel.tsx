@@ -24,8 +24,9 @@ const selectClass =
   "min-h-12 w-full rounded-lg border-2 border-[#8f8a80] bg-white px-3 py-2 text-[1.125rem] text-ink focus:border-hombre";
 
 function ErrorText({ state }: { state: AdminState }) {
-  if (!state?.error) return null;
-  return <Notice kind="aviso">{state.error}</Notice>;
+  if (state?.error) return <Notice kind="aviso">{state.error}</Notice>;
+  if (state?.ok) return <Notice kind="listo">{state.ok}</Notice>;
+  return null;
 }
 
 /**
@@ -151,10 +152,17 @@ export function MemberRow({
     });
   };
   const [confirmRemove, setConfirmRemove] = useState(false);
-  // Mientras se guarda se muestra el rol elegido; después, el que diga el
-  // servidor (si rechazó el cambio, el selector vuelve solo al rol real).
-  const [pendingRole, setPendingRole] = useState<Role | null>(null);
-  const role = rolePending && pendingRole ? pendingRole : member.role;
+  // El rol elegido queda como borrador hasta apretar «Guardar»: un clic o un
+  // scroll sobre el selector no debe dar ni quitar permisos por accidente.
+  const [draftRole, setDraftRole] = useState<Role>(member.role);
+  const role = draftRole;
+  const changed = role !== member.role;
+  const saveRole = () => {
+    const formData = new FormData();
+    formData.set("userId", member.id);
+    formData.set("role", role);
+    startTransition(() => roleAction(formData));
+  };
 
   return (
     <li className="flex flex-col gap-3 px-4 py-4 sm:px-5">
@@ -170,32 +178,53 @@ export function MemberRow({
         {isSelf ? (
           <span className="rounded-full bg-paper px-4 py-2 text-base font-bold text-gris">{ROLE_LABELS[member.role]}</span>
         ) : (
-          <select
-            aria-label={`Qué puede hacer ${member.name}`}
-            value={role}
-            disabled={rolePending}
-            onChange={(e) => {
-              const next = e.target.value as Role;
-              setPendingRole(next);
-              const formData = new FormData();
-              formData.set("userId", member.id);
-              formData.set("role", next);
-              startTransition(() => roleAction(formData));
-            }}
-            className={`${selectClass} sm:w-52`}
-          >
-            {ROLES.map((r) => (
-              <option key={r} value={r}>
-                {ROLE_LABELS[r]}
-              </option>
-            ))}
-          </select>
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              aria-label={`Qué puede hacer ${member.name}`}
+              value={role}
+              disabled={rolePending}
+              onChange={(e) => setDraftRole(e.target.value as Role)}
+              className={`${selectClass} sm:w-44`}
+            >
+              {ROLES.map((r) => (
+                <option key={r} value={r}>
+                  {ROLE_LABELS[r]}
+                </option>
+              ))}
+            </select>
+            {changed && (
+              <>
+                <Button disabled={rolePending} onClick={saveRole}>
+                  {rolePending ? "Guardando…" : "Guardar"}
+                </Button>
+                <button type="button" disabled={rolePending} onClick={() => setDraftRole(member.role)} className={buttonClass("enlace")}>
+                  Cancelar
+                </button>
+              </>
+            )}
+          </div>
         )}
       </div>
 
+      {changed && role === "admin" && (
+        <Notice kind="aviso">
+          {member.name} podrá invitar gente, cambiar roles y quitar accesos, igual que tú. Revisa bien antes de guardar.
+        </Notice>
+      )}
+
+      <p className="zb-apoyo">
+        En el árbol: <span className="font-bold text-ink">{member.personName ?? "sin vincular"}</span>
+      </p>
+
+      <details className="group">
+        <summary className={`${buttonClass("enlace")} w-fit cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>
+          <span aria-hidden="true" className="inline-block transition-transform group-open:rotate-90">▸</span>
+          <span className="sr-only">{member.name}: </span>Administrar
+        </summary>
+      <div className="mt-2 flex flex-col gap-3 rounded-xl bg-paper px-4 py-3">
       <div className="flex flex-col gap-2">
         <p className="zb-apoyo">
-          En el árbol: <span className="font-bold text-ink">{member.personName ?? "sin vincular"}</span>{" "}
+          Vínculo con el árbol:{" "}
           <button type="button" onClick={() => setChangingLink((o) => !o)} className={buttonClass("enlace")}>
             {changingLink ? "Cancelar" : member.personName ? "Cambiar" : "Vincular"}
           </button>
@@ -249,6 +278,9 @@ export function MemberRow({
             </button>
           ))}
       </div>
+
+      </div>
+      </details>
 
       <ErrorText state={roleState} />
       <ErrorText state={resetState} />
