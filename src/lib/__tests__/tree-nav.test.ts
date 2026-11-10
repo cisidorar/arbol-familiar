@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  collapseParents,
   collapseSiblings,
   decideExpand,
   emptyExpanded,
@@ -393,5 +394,21 @@ describe("lineToViewer y pruneToLine", () => {
     const root = h("bruno", h("a", h("c", h("yo"), h("hermano"))), h("b", h("d")));
     pruneToLine(root, 2, new Set(["bruno"]), ["bruno", "a", "c", "yo"]);
     expect(ids(root).sort()).toEqual(["a", "b", "bruno", "c", "d", "yo"]);
+  });
+});
+
+describe("collapseParents", () => {
+  it("pliega los padres de una persona y todo lo abierto arriba, sin tocar a sus hermanos", () => {
+    const ex = emptyExpanded();
+    const parents: Record<string, string[]> = { hijo: ["padre", "madre"], padre: ["abuelo"], abuelo: ["bisabuelo"] };
+    ex.up.add("hijo");
+    ex.up.add("padre");
+    ex.up.add("abuelo");
+    ex.sibs.add("padre");
+    ex.sibs.add("hijo");
+    collapseParents(ex, "hijo", (id) => parents[id] ?? []);
+    expect([...ex.up]).toEqual([]);
+    expect(ex.sibs.has("padre")).toBe(false);
+    expect(ex.sibs.has("hijo")).toBe(true);
   });
 });

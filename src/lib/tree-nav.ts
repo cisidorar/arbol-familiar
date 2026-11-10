@@ -358,3 +358,26 @@ export function siblingsSide(node: { x?: number }, siblings: readonly { x?: numb
   const mean = xs.reduce((a, b) => a + b, 0) / xs.length;
   return mean >= node.x ? "right" : "left";
 }
+
+/**
+ * Vuelve a ocultar los padres de `id` y todo lo que se abrió arriba de ellos (sus padres, los hermanos y parejas que se
+ * mostraron a su lado…). Los hermanos de `id` y lo que hay debajo no se tocan.
+ */
+export function collapseParents(expanded: Expanded, id: string, parentsOf: (id: string) => readonly string[]): void {
+  expanded.up.delete(id);
+  expanded.spousesUp.delete(id);
+  const seen = new Set<string>();
+  const queue = [...parentsOf(id)];
+  while (queue.length) {
+    const who = queue.pop()!;
+    if (seen.has(who)) continue;
+    seen.add(who);
+    expanded.up.delete(who);
+    expanded.down.delete(who);
+    expanded.sibs.delete(who);
+    expanded.partners.delete(who);
+    expanded.spousesUp.delete(who);
+    expanded.kids?.delete(who);
+    queue.push(...parentsOf(who));
+  }
+}

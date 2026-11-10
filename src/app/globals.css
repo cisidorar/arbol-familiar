@@ -618,7 +618,8 @@ div.f3 div.card-collapse[data-side="left"] {
   right: calc(100% + 6px);
 }
 /* «Hermanos»: abre los hermanos de quien tiene a sus padres a la vista pero a ellos no. Del lado libre de la tarjeta. */
-div.f3 div.card-sibs {
+div.f3 div.card-sibs,
+div.f3 div.card-fold {
   position: absolute;
   top: calc(50% - 15px);
   z-index: 3;
@@ -640,13 +641,21 @@ div.f3 div.card-sibs {
   cursor: pointer;
   transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
 }
+/* «Ocultar padres»: arriba de la tarjeta, donde estaba «Padres» antes de abrirse. */
+div.f3 div.card-fold {
+  top: -17px;
+  left: calc(50% + 14px);
+  height: 28px;
+  transform: translateX(-50%);
+}
 div.f3 div.card-sibs[data-side="right"] {
   left: calc(100% + 6px);
 }
 div.f3 div.card-sibs[data-side="left"] {
   right: calc(100% + 6px);
 }
-div.f3 div.card-sibs:hover {
+div.f3 div.card-sibs:hover,
+div.f3 div.card-fold:hover {
   background: #6e1f2e;
   border-color: #6e1f2e;
   color: #fff;

@@ -11,6 +11,7 @@ import {
   pruneToLine,
   shownSiblings,
   siblingsSide,
+  collapseParents,
   type ExpandAction,
   type Expanded,
 } from "@/lib/tree-nav";
@@ -483,7 +484,7 @@ export default function FamilyTree({ data, mainId, line = null, version, resetKe
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Enter" && e.key !== " ") return;
       const target = e.target as HTMLElement | null;
-      if (!target?.matches?.(".card, .card-add, .mini-tree, .card-collapse, .card-sibs")) return;
+      if (!target?.matches?.(".card, .card-add, .mini-tree, .card-collapse, .card-sibs, .card-fold")) return;
       e.preventDefault();
       if (target.matches(".card")) (target.querySelector<HTMLElement>(".card-inner") ?? target).click();
       else target.click();
@@ -773,6 +774,15 @@ export default function FamilyTree({ data, mainId, line = null, version, resetKe
             onAddRelativeRef.current?.(d.data.id, addButton.getBoundingClientRect());
             return;
           }
+          // «Ocultar padres»: vuelve a plegar lo que se abrió arriba de esta tarjeta, de a una rama.
+          const foldButton = (e.target as Element | null)?.closest?.(".card-fold");
+          if (foldButton) {
+            const byId = new Map<string, any>(data.map((x: any) => [x.id as string, x]));
+            collapseParents(currentExpanded(), d.data.id, (id) => (byId.get(id)?.rels?.parents ?? []) as string[]);
+            setAnnouncement(`Se ocultaron los padres de ${d.data.data.label}.`);
+            updateKeepingInPlace(d);
+            return;
+          }
           // «Hermanos»: sus padres ya están a la vista pero sus hermanos no; se abren sin tocar nada más.
           const sibsButton = (e.target as Element | null)?.closest?.(".card-sibs");
           if (sibsButton) {
@@ -968,6 +978,29 @@ export default function FamilyTree({ data, mainId, line = null, version, resetKe
               const label = `Ver los hermanos de ${d.data.data.label}`;
               sibs.setAttribute("title", label);
               sibs.setAttribute("aria-label", label);
+            }
+          }
+
+          // «Ocultar padres»: sus padres se abrieron con un toque (no son parte de la vista de partida), así que se pueden volver a plegar.
+          if (cardEl) {
+            const ex = currentExpanded();
+            const parentIds = ((d.data.rels?.parents ?? []) as string[]);
+            const canFold = (ex.up.has(d.data.id) || ex.spousesUp.has(d.data.id)) && parentIds.some((pid) => visibleIds().has(pid));
+            let fold = cardEl.querySelector<HTMLElement>(".card-fold");
+            if (!canFold) {
+              fold?.remove();
+            } else {
+              if (!fold) {
+                fold = document.createElement("div");
+                fold.className = "card-fold";
+                fold.setAttribute("role", "button");
+                fold.setAttribute("tabindex", "0");
+                fold.textContent = "Ocultar padres";
+                cardEl.appendChild(fold);
+              }
+              const label = `Ocultar los padres de ${d.data.data.label}`;
+              fold.setAttribute("title", label);
+              fold.setAttribute("aria-label", label);
             }
           }
 
