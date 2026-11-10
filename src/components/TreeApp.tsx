@@ -48,6 +48,25 @@ export default function TreeApp({ data, user, homeId, selfId }: { data: any[]; u
   const addTriggerRef = useRef<HTMLElement | null>(null);
   // En el teléfono la leyenda va plegada (un botón "?") para no tapar el árbol.
   const [legendOpen, setLegendOpen] = useState(false);
+  // En escritorio la leyenda está a la vista, pero tapa la esquina del árbol: se puede cerrar (y se recuerda).
+  const [legendDesktop, setLegendDesktop] = useState(true);
+  useEffect(() => {
+    try {
+      // Se lee tras montar (no en el servidor): por eso el estado se ajusta aquí.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (localStorage.getItem("arbol-ayuda") === "cerrada") setLegendDesktop(false);
+    } catch {
+      /* sin almacenamiento: queda abierta */
+    }
+  }, []);
+  const toggleLegendDesktop = (open: boolean) => {
+    setLegendDesktop(open);
+    try {
+      localStorage.setItem("arbol-ayuda", open ? "abierta" : "cerrada");
+    } catch {
+      /* sin almacenamiento: no se recuerda */
+    }
+  };
   const controls = useRef<TreeControls | null>(null);
 
   // Se agregó a alguien: llegan los datos del árbol al día. Se suman a los
@@ -326,9 +345,18 @@ export default function TreeApp({ data, user, homeId, selfId }: { data: any[]; u
         </div>
       </div>
       <div
-        className={`pointer-events-none absolute bottom-[calc(9.5rem+env(safe-area-inset-bottom))] left-4 z-10 max-w-[calc(100%-2rem)] flex-col gap-2 rounded-2xl border-2 border-ink bg-adobe px-4 py-3 text-base text-ink sm:bottom-4 sm:max-w-none sm:flex ${legendOpen ? "flex" : "hidden"}`}
+        className={`pointer-events-none absolute bottom-[calc(9.5rem+env(safe-area-inset-bottom))] left-4 z-10 max-w-[calc(100%-2rem)] flex-col gap-2 rounded-2xl border-2 border-ink bg-adobe px-4 py-3 text-base text-ink sm:bottom-4 sm:max-w-none ${legendDesktop ? "sm:flex" : "sm:hidden"} ${legendOpen ? "flex" : "hidden"}`}
       >
-        <div className="font-slab text-[1.125rem] font-bold">Cómo leer el árbol</div>
+        <div className="flex items-center justify-between gap-4">
+          <span className="font-slab text-[1.125rem] font-bold">Cómo leer el árbol</span>
+          <button
+            type="button"
+            onClick={() => toggleLegendDesktop(false)}
+            className="pointer-events-auto hidden min-h-9 items-center rounded-full border-2 border-ink bg-white px-3 text-base font-bold hover:bg-adobe-2 sm:inline-flex"
+          >
+            × Ocultar
+          </button>
+        </div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
           <span className="flex items-center gap-1.5">
             <svg viewBox="0 0 24 24" className="h-6 w-6" fill="#3f7fcb" aria-hidden="true">
@@ -346,24 +374,24 @@ export default function TreeApp({ data, user, homeId, selfId }: { data: any[]; u
             Mujer
           </span>
         </div>
-        <div>Toca una tarjeta para abrir su ficha.</div>
-        <div>«Centro» marca de quién parte el árbol.</div>
+        <div>Toca una tarjeta para abrir su ficha. «Centro» marca de quién parte el árbol.</div>
+        <div>Las pastillas («Padres», «Hijos», «Otra pareja») abren esa rama.</div>
         <div className="flex items-center gap-2">
-          <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border-2 border-gris" aria-hidden="true">
-            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M6 15l6-6 6 6" />
-            </svg>
+          <span className="rounded-full bg-gris px-2 text-sm font-bold text-white" aria-hidden="true">
+            Divorciada
           </span>
-          Las flechas abren padres, hijos, hermanos o pareja.
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="inline-flex gap-0.5" aria-hidden="true">
-            <span className="h-2 w-3 rounded-sm bg-gris" />
-            <span className="h-2 w-3 rounded-sm bg-gris" />
-          </span>
-          Centra el árbol en esa persona.
+          Esa pareja ya terminó.
         </div>
       </div>
+      {!legendDesktop && (
+        <button
+          type="button"
+          onClick={() => toggleLegendDesktop(true)}
+          className="absolute bottom-4 left-4 z-10 hidden min-h-12 items-center rounded-full border-2 border-ink bg-adobe px-4 text-[1.125rem] font-bold text-ink hover:bg-adobe-2 sm:inline-flex"
+        >
+          ? Ayuda
+        </button>
+      )}
 
       {adding && (
         <AddRelative

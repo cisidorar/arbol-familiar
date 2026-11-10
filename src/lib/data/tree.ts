@@ -75,6 +75,38 @@ export async function getFamilyChartData(treeId: string) {
   );
   const marrYear = new Map<string, number | null>(marriages.map((r) => [r.family_id as string, yearOf(r.d)]));
   const cards = new Map(persons.map((p) => [p.id as string, cardData(p, showReview)]));
+
+  // Divorcios: la tarjeta de cada uno lo dice, para que se vea que una pareja ya terminó
+  // (con dos exparejas, las tarjetas quedan una al lado de la otra y parecen unidas entre sí).
+  const { rows: divorces } = await getPool().query(
+    `select family_id, min(date_from) as d, min(date_text) as t from events
+     where tree_id = $1 and event_type = 'DIV' and family_id is not null group by family_id`,
+    [treeId],
+  );
+  const divYear = new Map<string, number | null>(
+    divorces.map((r) => [r.family_id as string, yearOf(r.d) ?? (/\d{4}/.exec(String(r.t ?? ""))?.[0] ? Number(/\d{4}/.exec(String(r.t))![0]) : null)]),
+  );
+  const divsOf = new Map<string, { other: string; year: number | null }[]>();
+  for (const f of families) {
+    if (!divYear.has(f.id as string) || !f.partner1_id || !f.partner2_id) continue;
+    for (const [x, y] of [[f.partner1_id, f.partner2_id], [f.partner2_id, f.partner1_id]] as const) {
+      divsOf.set(x, [...(divsOf.get(x) ?? []), { other: y, year: divYear.get(f.id as string) ?? null }]);
+    }
+  }
+  for (const [id, list] of divsOf) {
+    const card = cards.get(id);
+    if (!card) continue;
+    const fem = card.gender === "F";
+    const word = fem ? "Divorciada" : "Divorciado";
+    list.sort((a, b) => (a.year ?? Infinity) - (b.year ?? Infinity));
+    const first = (pid: string) => cards.get(pid)?.first_name.split(" ")[0] ?? "";
+    (card as { divorce_label?: string }).divorce_label =
+      list.length === 1
+        ? list[0].year
+          ? `${word} ${list[0].year}`
+          : `${word} de ${first(list[0].other)}`
+        : `${word} ${list.length} veces`;
+  }
   const yearOfPerson = (id: string) => {
     const d = cards.get(id);
     return d ? (d.birth_year ?? d.est_birth_year ?? null) : null;

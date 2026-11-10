@@ -34,6 +34,8 @@ type ChartDatum = {
     is_living: boolean;
     is_child: boolean;
     needs_review?: boolean;
+    /** «Divorciada 2010»: la pareja ya terminó. */
+    divorce_label?: string;
   };
   rels: { parents: string[]; children: string[]; spouses: string[] };
 };
@@ -262,6 +264,15 @@ function miniTreeLabel(action: ExpandAction): string {
   if (action.kind === "down" || action.kind === "kids") return "Hijos";
   if (action.kind === "siblings") return "Hermanos";
   if (action.kind === "partners") return "Pareja";
+  if (action.kind === "recenter") {
+    // Un control sin palabra es un ícono mudo: se dice qué hay detrás.
+    const { parents, children, spouses } = action.hidden;
+    const n = [parents, children, spouses].filter(Boolean).length;
+    if (n > 1) return "Más familia";
+    if (spouses) return action.partly.spouses ? "Otra pareja" : "Pareja";
+    if (children) return action.partly.children ? "Otros hijos" : "Hijos";
+    if (parents) return "Padres";
+  }
   return "";
 }
 
@@ -632,15 +643,74 @@ export default function FamilyTree({ data, mainId, line = null, version, resetKe
           transition_time: 250,
         });
       };
+      // Tras abrir una rama, las tarjetas nuevas pueden haber quedado fuera de la pantalla (p. ej. los padres
+      // de una pareja caen al otro lado de la familia): solo se veía una línea que se iba. Se corre la vista lo
+      // justo para que entren, sin sacar de la pantalla a la persona recién tocada.
+      const revealNewCards = (newIds: Set<string>, anchorId: string): boolean => {
+        const box = containerRef.current?.getBoundingClientRect();
+        const view = (chart.svg.parentNode as any)?.__zoom as { k: number; x: number; y: number } | undefined;
+        if (!box || !view || !newIds.size) return false;
+        const phone = box.width < PHONE_MAX_WIDTH;
+        const MARGIN = 16;
+        const top = box.top + (phone ? 132 : 90) + MARGIN;
+        const bottom = box.bottom - MARGIN;
+        const left = box.left + MARGIN;
+        // En pantalla ancha, a la derecha flotan el zoom y los botones «Solo mi familia» / «Volver a mí».
+        const right = box.right - (phone ? RIGHT_INSET.phone : 180) - MARGIN;
+        let minL = Infinity, maxR = -Infinity, minT = Infinity, maxB = -Infinity;
+        let anchor: DOMRect | null = null;
+        containerRef.current?.querySelectorAll<HTMLElement>(".card_cont").forEach((el) => {
+          const id = (el as any).__data__?.data?.id as string | undefined;
+          if (!id) return;
+          const r = el.querySelector(".card")?.getBoundingClientRect();
+          if (!r) return;
+          if (id === anchorId) anchor = r;
+          if (!newIds.has(id)) return;
+          minL = Math.min(minL, r.left); maxR = Math.max(maxR, r.right);
+          minT = Math.min(minT, r.top); maxB = Math.max(maxB, r.bottom);
+        });
+        if (!Number.isFinite(minL)) return false;
+        // Lo nuevo y la tarjeta tocada, juntos: si caben a la vez, se encuadran los dos.
+        const a = anchor as DOMRect | null;
+        if (a) {
+          minL = Math.min(minL, a.left); maxR = Math.max(maxR, a.right);
+          minT = Math.min(minT, a.top); maxB = Math.max(maxB, a.bottom);
+        }
+        const shift = (lo: number, hi: number, min: number, max: number) => {
+          if (max - min > hi - lo) return min < lo ? lo - min : 0; // no cabe todo: se prioriza el borde de partida
+          if (min < lo) return lo - min;
+          if (max > hi) return hi - max;
+          return 0;
+        };
+        const dx = shift(left, right, minL, maxR);
+        const dy = shift(top, bottom, minT, maxB);
+        if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return false;
+        (f3 as any).handlers.cardToMiddle({
+          datum: { x: 0, y: 0 },
+          svg: chart.svg,
+          svg_dim: { width: 2 * (view.x + dx), height: 2 * (view.y + dy) },
+          scale: view.k,
+          transition_time: (chart.store.state as any).transition_time,
+        });
+        return true;
+      };
       const updateKeepingInPlace = (d: any) => {
+        const beforeIds = new Set(visibleIds());
         keepInPlace(d);
         setNotice(null);
         if (viewTimerRef.current) clearTimeout(viewTimerRef.current);
+        const transition = (chart.store.state as any).transition_time as number;
         // Cuando termina la transición de la vista.
         viewTimerRef.current = setTimeout(() => {
-          nudgeBelowHeader();
-          checkMainInView();
-        }, (chart.store.state as any).transition_time + 60);
+          const newIds = new Set([...visibleIds()].filter((id) => !beforeIds.has(id)));
+          const moved = revealNewCards(newIds, d.data.id);
+          const settle = () => {
+            nudgeBelowHeader();
+            checkMainInView();
+          };
+          if (moved) viewTimerRef.current = setTimeout(settle, transition + 60);
+          else settle();
+        }, transition + 60);
       };
       const keepInPlace = (d: any) => {
         const before = { x: d.x, y: d.y };
@@ -769,6 +839,26 @@ export default function FamilyTree({ data, mainId, line = null, version, resetKe
               el.appendChild(flag);
             } else if (!review) {
               flag?.remove();
+            }
+          }
+
+          // Pareja que ya terminó: una pestañita sobre la tarjeta («Divorciada 2010»). Con dos
+          // exparejas, las tarjetas quedan en fila y la segunda parece unida a la primera; esto lo aclara.
+          // La persona del centro no la lleva (ya la dicen las tarjetas de sus exparejas).
+          {
+            const el = this.querySelector(".card");
+            const text = d.data.data.divorce_label as string | undefined;
+            const isCenter = d.data.id === chart.store.getMainId();
+            let tag = el?.querySelector<HTMLElement>(".card-divorce") ?? null;
+            if (el && text && !isCenter) {
+              if (!tag) {
+                tag = document.createElement("div");
+                tag.className = "card-divorce";
+                el.appendChild(tag);
+              }
+              tag.textContent = text;
+            } else {
+              tag?.remove();
             }
           }
 

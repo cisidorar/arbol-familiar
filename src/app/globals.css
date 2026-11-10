@@ -269,6 +269,27 @@ div.f3 div.card-main::after {
   pointer-events: none;
 }
 
+/* Pareja que ya terminó: pestañita gris sobre la tarjeta (la del centro lleva «Centro»). */
+div.f3 div.card .card-divorce {
+  position: absolute;
+  top: -12px;
+  left: 14px;
+  z-index: 3;
+  max-width: calc(100% - 56px);
+  padding: 1px 10px;
+  border-radius: 9999px;
+  background: var(--color-gris);
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
 /* Líneas de conexión: la librería las dibuja blancas (pensadas para fondo
    oscuro), por lo que eran casi invisibles acá. El trazo de cada línea es
    una curva con puntos repetidos para forzar un codo en ángulo recto; sin
@@ -301,12 +322,42 @@ div.f3 div.mini-tree {
   z-index: 2;
 }
 
+/* Centrar en esa persona: una pastilla con la palabra («Otra pareja», «Más familia»), no un dibujo mudo. */
 div.f3 div.mini-tree[data-dir="recenter"] {
-  top: -17px;
+  top: -18px;
+  display: flex;
+  align-items: center;
+  width: fit-content;
+  height: 30px;
+  padding: 0 12px;
+  white-space: nowrap;
+  border: 1.5px solid #8f8472;
+  border-radius: 9999px;
+  background: var(--color-adobe);
+  box-shadow: 0 1px 2px rgb(30 26 23 / 0.12);
+  --arrow: #4a4740;
+  transition:
+    background-color 0.15s ease-in-out,
+    border-color 0.15s ease-in-out;
 }
 
 div.f3 div.mini-tree[data-dir="recenter"] svg {
-  width: 62px;
+  display: none;
+}
+
+div.f3 div.mini-tree[data-dir="recenter"] .mini-label {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--arrow);
+}
+
+div.f3 div.mini-tree[data-dir="recenter"]:hover {
+  --arrow: #ffffff;
+  background: #6e1f2e;
+  border-color: #6e1f2e;
 }
 
 div.f3 div.mini-tree rect.card-male,
