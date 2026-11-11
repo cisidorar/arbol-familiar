@@ -374,7 +374,7 @@ export default function OriginsMap(props: {
 
   const tabs = gens > 1 ? [genTabs[0], ...genTabs.slice(1).reverse()] : [];
   const chip = (isOn: boolean) =>
-    `min-h-10 whitespace-nowrap rounded-full border-2 px-3.5 text-base font-bold transition ${isOn ? "border-ink bg-burdeos text-white" : "border-line bg-white text-ink hover:border-ink"}`;
+    `min-h-10 shrink-0 whitespace-nowrap rounded-full border-2 px-3.5 text-base font-bold transition ${isOn ? "border-ink bg-burdeos text-white" : "border-line bg-white text-ink hover:border-ink"}`;
   const floatBtn =
     "grid h-12 w-12 place-items-center bg-white text-[1.5rem] font-bold leading-none text-ink hover:bg-adobe-2";
   const markerR = (n: number) => labelSize * (0.55 + 0.1 * Math.min(n, 4));
@@ -437,8 +437,8 @@ export default function OriginsMap(props: {
           </div>
 
           {zv && zoomChips.length > 1 && (
-            <div className="mt-4 flex flex-wrap items-center gap-2" role="group" aria-label="Acercar a">
-              <span className="mr-1 font-bold">Acercar a</span>
+            <div className="mt-4 flex items-center gap-2 overflow-x-auto pb-1 lg:flex-wrap lg:overflow-visible lg:pb-0" role="group" aria-label="Acercar a">
+              <span className="mr-1 shrink-0 font-bold">Acercar a</span>
               <button type="button" aria-pressed={focus === "all"} className={chip(focus === "all")} onClick={() => { setView(null); setFocus("all"); }}>
                 {hasFar ? "Donde más hay" : "Todo"}
               </button>
@@ -487,7 +487,7 @@ export default function OriginsMap(props: {
         </div>
 
         {/* El mapa */}
-        <div className="relative order-2 h-[60vh] min-h-[24rem] lg:absolute lg:inset-0 lg:h-full lg:px-[17rem] lg:pb-24 lg:pt-4 xl:px-[26rem]">
+        <div className="relative order-2 h-[60vh] min-h-[24rem] overflow-hidden lg:absolute lg:inset-0 lg:h-full lg:overflow-visible lg:px-[17rem] lg:pb-24 lg:pt-4 xl:px-[26rem]">
           {zv && <div className="absolute right-3 top-3 z-10 lg:hidden">{zoomControls}</div>}
           {zv ? (
             <svg viewBox={viewBoxOf(zv)} className={`h-full w-full touch-pan-y select-none overflow-visible lg:touch-none ${dragging ? "cursor-grabbing" : "cursor-grab"}`}
