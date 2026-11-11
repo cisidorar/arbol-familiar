@@ -12,10 +12,15 @@ interface Result {
 }
 
 const normText = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-/** 0: el nombre empieza con lo escrito; 1: alguna palabra del nombre empieza así; 2: lo demás. */
+/**
+ * 0: el nombre empieza con lo escrito (o lo contiene seguido); 1: cada palabra escrita empieza alguna palabra del
+ * nombre, en cualquier orden («daniel zamora» → «Daniel Enrique Zamora»); 2: lo demás.
+ */
 const rankOf = (name: string, needle: string) => {
   const n = normText(name);
-  return n.startsWith(needle) || (needle.includes(" ") && n.includes(needle)) ? 0 : n.split(/\s+/).some((w) => w.startsWith(needle)) ? 1 : 2;
+  if (n.startsWith(needle) || (needle.includes(" ") && n.includes(needle))) return 0;
+  const words = n.split(/\s+/);
+  return needle.split(/\s+/).filter(Boolean).every((w) => words.some((x) => x.startsWith(w))) ? 1 : 2;
 };
 
 export default function SearchBox({
