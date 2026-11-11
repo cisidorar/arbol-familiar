@@ -94,9 +94,9 @@ export function InviteForm() {
         <Field id="invite-email" name="email" type="email" required label="Correo de la persona" placeholder="nombre@correo.com" />
         <div className="flex flex-col gap-1.5">
           <span className="text-[1.125rem] font-bold">¿Quién es en el árbol?</span>
-          <PersonPicker value={person} onChange={setPerson} placeholder="Escribe su nombre" />
+          <PersonPicker value={person} onChange={setPerson} placeholder="Escribe su nombre" onlyLiving />
           <input type="hidden" name="personId" value={person?.id ?? ""} />
-          <p className="zb-apoyo">Obligatorio: solo se invita a quien ya está en el árbol. Si no aparece, agrégalo primero. Al entrar verá el archivo desde su propia persona.</p>
+          <p className="zb-apoyo">Obligatorio: solo se invita a quien ya está en el árbol y está marcado como vivo. Si no aparece, agrégalo primero. Al entrar verá el archivo desde su propia persona.</p>
         </div>
         <div className="flex flex-col gap-1.5">
           <label htmlFor="invite-role" className="text-[1.125rem] font-bold">

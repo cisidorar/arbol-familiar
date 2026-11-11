@@ -89,6 +89,9 @@ export async function invite(_prev: AdminState, formData: FormData): Promise<Adm
   const personId = await treePersonId(session.treeId, formData.get("personId"));
   if (personId === null) return { error: "Elige quién es en el árbol. Si todavía no está, agrégalo primero." };
   if (personId === "invalid") return { error: "No encontré a ese familiar en el árbol." };
+  // Solo entra quien vive: una persona marcada como fallecida no puede tener cuenta.
+  const living = await getPool().query(`select is_living from persons where id = $1`, [personId]);
+  if (!living.rows[0]?.is_living) return { error: "Solo se puede invitar a personas marcadas como vivas. Si está vivo, márcalo así en su ficha." };
 
   const result = await createInvitation({ treeId: session.treeId, email, role, invitedBy: session.user.id, personId });
   if (!result.ok) return { error: result.error };

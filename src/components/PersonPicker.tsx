@@ -15,11 +15,14 @@ export default function PersonPicker({
   onChange,
   placeholder = "Buscar por nombre",
   autoFocus = false,
+  onlyLiving = false,
 }: {
   value: PersonRef | null;
   onChange: (p: PersonRef | null) => void;
   placeholder?: string;
   autoFocus?: boolean;
+  /** Solo personas marcadas como vivas (para invitar: quien ya falleció no puede entrar). */
+  onlyLiving?: boolean;
 }) {
   const [q, setQ] = useState("");
   const [results, setResults] = useState<Result[]>([]);
@@ -30,13 +33,13 @@ export default function PersonPicker({
     if (timer.current) clearTimeout(timer.current);
     if (q.trim().length < 2) return;
     timer.current = setTimeout(async () => {
-      const res = await fetch(`/api/persons/search?q=${encodeURIComponent(q)}`);
+      const res = await fetch(`/api/persons/search?q=${encodeURIComponent(q)}${onlyLiving ? "&vivos=1" : ""}`);
       if (res.ok) {
         setResults((await res.json()).results);
         setSearched(true);
       }
     }, 200);
-  }, [q]);
+  }, [q, onlyLiving]);
 
   if (value) {
     return (
@@ -64,7 +67,11 @@ export default function PersonPicker({
       />
       {open && (
         <ul className="absolute z-20 mt-1 max-h-72 w-full overflow-auto rounded-lg border-2 border-line bg-white text-[1.125rem] text-ink shadow-lg">
-          {results.length === 0 && <li className="px-3.5 py-3 text-gris">No encontramos a nadie con ese nombre.</li>}
+          {results.length === 0 && (
+            <li className="px-3.5 py-3 text-gris">
+              {onlyLiving ? "No encontramos a nadie vivo con ese nombre. Solo se invita a personas marcadas como vivas." : "No encontramos a nadie con ese nombre."}
+            </li>
+          )}
           {results.map((r) => (
             <li key={r.id}>
               <button

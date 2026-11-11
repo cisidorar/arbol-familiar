@@ -12,7 +12,10 @@ export async function GET(request: Request) {
   if (q.length < 2) return NextResponse.json({ results: [] });
   // Con 400 personas, un nombre común trae muchas coincidencias: primero las de la familia cercana de quien busca.
   const selfId = await getLinkedPersonId(session.user.id);
-  const found = await searchPersons(session.treeId, q, selfId ? 120 : 30);
+  // ?vivos=1: solo personas marcadas como vivas (el selector de invitaciones).
+  const onlyLiving = searchParams.get("vivos") === "1";
+  const all = await searchPersons(session.treeId, q, selfId ? 120 : 30);
+  const found = onlyLiving ? all.filter((p) => p.isLiving) : all;
   if (!selfId) return NextResponse.json({ results: found });
   const graph = await getRelationGraph(session.treeId);
   return NextResponse.json({ results: sortByCloseness(graph, selfId, found).slice(0, 30) });
