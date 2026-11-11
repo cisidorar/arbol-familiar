@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import LinkSelf from "@/components/LinkSelf";
 import InicioSearch from "@/components/InicioSearch";
-import AncestorRoulette, { type RoulettePerson } from "@/components/AncestorRoulette";
 import SectionHeader from "@/components/SectionHeader";
 import { requireSession } from "@/lib/auth/session";
 import { getFamilyChartData } from "@/lib/data/tree";
@@ -18,7 +17,6 @@ import { getPool } from "@/lib/db/pool";
 export const metadata: Metadata = { title: "Inicio · Archivo Zamora Balcázar" };
 export const dynamic = "force-dynamic";
 
-const randomItem = <T,>(list: T[]): T => list[Math.floor(Math.random() * list.length)];
 const MONTHS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 const MONTH_FULL = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
@@ -122,7 +120,7 @@ export default async function InicioPage() {
   );
   const me = selfId ? byId.get(selfId) : undefined;
   // Teoría (arriba de un vínculo sin confirmar): se ve en el árbol, pero aquí no se cuenta como hecho, ni en las
-  // cifras de la línea directa, ni en «Te tocó», ni en las novedades.
+  // cifras de la línea directa, ni en las novedades.
   const theoryIds = new Set(chart.filter((c) => c.data.theory).map((c) => c.id));
   const theoryNames = new Set(chart.filter((c) => c.data.theory).map((c) => nameKey(c.data.label)));
 
@@ -158,8 +156,6 @@ export default async function InicioPage() {
     : [];
   const originOf = new Map(direct.map((a) => [a.id, a.origin]));
   const ramas: Rama[] = [];
-  // De qué rama (abuelo/a) viene cada antepasado: para decirlo en "Te tocó".
-  const ramaOf = new Map<string, string>();
   if (me) {
     const gmap = new Map(chart.map((c) => [c.id, { id: c.id, rels: { parents: c.rels.parents ?? [], children: c.rels.children ?? [], spouses: c.rels.spouses ?? [] } }]));
     for (const gid of grandparentsOf(gmap, me.id)) {
@@ -180,35 +176,11 @@ export default async function InicioPage() {
           oldest = { name: q.label, year: q.birth, place: o && o.kind !== "none" ? shortPlace(o.label) : null };
         }
       }
-      for (const id of seen.keys()) if (!ramaOf.has(id)) ramaOf.set(id, byId.get(gid)?.label ?? "");
       ramas.push({ id: gid, name: byId.get(gid)?.label ?? "", count: seen.size - 1, gens, oldest });
     }
   }
 
-  // "Te tocó": los antepasados directos con una frase corta, y uno al azar de partida.
   const minBirth = direct.length ? Math.min(...direct.map((a) => byId.get(a.id)?.birth ?? Infinity)) : Infinity;
-  const roulette: RoulettePerson[] = direct.filter((a) => byId.get(a.id)?.birth).map((a) => {
-    const p = byId.get(a.id);
-    const place = a.origin.kind === "none" ? null : shortPlace(a.origin.label);
-    const lived = p?.birth && p?.death && p.death > p.birth ? `Vivió ${p.death - p.birth} años.` : "";
-    const kids = byId.get(a.id)?.rels.children.length ?? 0;
-    const onlyChild = kids === 1 ? byId.get(byId.get(a.id)!.rels.children[0])?.gender : null;
-    const kidsText = kids > 1 ? `Tuvo ${kids} hijos.` : kids === 1 ? `Tuvo ${onlyChild === "F" ? "una hija" : onlyChild === "M" ? "un hijo" : "un hijo o una hija"}.` : "";
-    // El sello ya dice quién es, dónde y cuándo nació: el párrafo suma solo lo que el sello no dice.
-    const oldest = p?.birth && p.birth === minBirth ? "Es el antepasado más antiguo del archivo." : "";
-    const rama = ramaOf.get(a.id);
-    const viaRama = rama && rama !== a.name ? `Viene por la rama de ${rama}.` : "";
-    const blurb = [oldest, viaRama, lived, kidsText].filter(Boolean).join(" ") || "Una persona de tu familia. Conoce su historia.";
-    return {
-      id: a.id,
-      name: a.name,
-      rel: `Tu ${a.relation}`,
-      years: p?.death ? `${p.birth} – ${p.death}` : `nació ${p?.birth}`,
-      place,
-      blurb,
-    };
-  });
-  const startId = roulette.length ? randomItem(roulette).id : "";
 
   // Tu línea en una frase: cuántos antepasados y desde cuándo.
   // El año más antiguo sale de las ramas (que recorren todos los padres) y de la línea directa: el menor de los dos.
@@ -402,7 +374,6 @@ export default async function InicioPage() {
           </section>
         )}
 
-        {roulette.length > 1 && <AncestorRoulette people={roulette} initialId={startId} />}
       </main>
 
       <footer className="mx-auto max-w-[88rem] px-4 pb-10 sm:px-6">

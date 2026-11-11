@@ -725,41 +725,6 @@ div.f3 div.card-collapse:hover::before {
   }
 }
 
-/* Inicio: la tarjeta "Te tocó" (sorteo de antepasado). */
-@keyframes azb-shake {
-  0%, 100% { transform: translateY(-8px) rotate(-5deg) scale(1.04); }
-  25% { transform: translateY(-12px) rotate(1deg) scale(1.05); }
-  50% { transform: translateY(-6px) rotate(-7deg) scale(1.04); }
-  75% { transform: translateY(-11px) rotate(0deg) scale(1.05); }
-}
-@keyframes azb-drop {
-  0% { transform: translateY(-80px) rotate(12deg) scale(0.9); opacity: 0; }
-  50% { transform: translateY(10px) rotate(-5deg) scale(1.02); opacity: 1; }
-  70% { transform: translateY(-4px) rotate(-2deg) scale(1); }
-  100% { transform: translateY(0) rotate(-3deg) scale(1); opacity: 1; }
-}
-/* La foto se "revela": de sepia borrosa a nítida, como una foto que se revela. */
-@keyframes azb-revela {
-  0% { filter: sepia(1) blur(7px) brightness(1.5); }
-  60% { filter: sepia(0.6) blur(1.5px) brightness(1.1); }
-  100% { filter: none; }
-}
-/* El nombre sube como en un tambor de sorteo. */
-@keyframes azb-reel {
-  0% { transform: translateY(70%); opacity: 0; }
-  100% { transform: translateY(0); opacity: 1; }
-}
-@keyframes azb-fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-.azb-revela { animation: azb-revela 0.9s ease-out both; }
-.azb-reel { animation: azb-reel 0.11s ease-out both; }
-.azb-fade { animation: azb-fade 0.5s 0.35s ease-out both; }
-.azb-shake { animation: azb-shake 0.32s linear infinite; }
-.azb-drop { animation: azb-drop 0.75s cubic-bezier(0.2, 0.8, 0.3, 1) both; }
-@media (prefers-reduced-motion: reduce) {
-  .azb-shake, .azb-drop, .azb-revela, .azb-reel, .azb-fade { animation: none; }
-  .azb-shake, .azb-drop { transform: rotate(-3deg); }
-}
-
 /* Inicio "Álbum de la parra": adobe con motas, alero de tejas, fotos con esquineros y sellos. */
 .album {
   background-color: var(--color-adobe);
