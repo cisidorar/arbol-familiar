@@ -1,6 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="14" fill="#1a1816"/>
-  <rect x="6" y="6" width="52" height="52" rx="10" fill="#f4f1ea"/>
-  <text x="32" y="39" text-anchor="middle" font-family="'Courier New', Courier, monospace" font-weight="700" font-size="28" fill="#1a1816">ZB</text>
-  <rect x="15" y="46" width="34" height="4" fill="#c4572e"/>
+  <rect width="64" height="64" rx="14" fill="#6e1f2e"/>
+  <path d="M29 36h6v17h-6z" fill="#f4e9d3"/>
+  <path d="M20 53h24v3H20z" fill="#d9a441"/>
+  <circle cx="32" cy="23" r="14" fill="#f4e9d3"/>
+  <circle cx="21" cy="32" r="10" fill="#f4e9d3"/>
+  <circle cx="43" cy="32" r="10" fill="#f4e9d3"/>
+  <circle cx="32" cy="26" r="4.5" fill="#d9a441"/>
 </svg>
