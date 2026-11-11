@@ -487,7 +487,7 @@ export default function OriginsMap(props: {
         </div>
 
         {/* El mapa */}
-        <div className="relative order-2 h-[60vh] min-h-[24rem] overflow-hidden lg:absolute lg:inset-0 lg:h-full lg:overflow-visible lg:px-[17rem] lg:pb-24 lg:pt-4 xl:px-[26rem]">
+        <div className="relative order-2 h-[56svh] min-h-[22rem] shrink-0 overflow-hidden lg:absolute lg:inset-0 lg:h-full lg:overflow-visible lg:px-[17rem] lg:pb-24 lg:pt-4 xl:px-[26rem]">
           {zv && <div className="absolute right-3 top-3 z-10 lg:hidden">{zoomControls}</div>}
           {zv ? (
             <svg viewBox={viewBoxOf(zv)} className={`h-full w-full touch-pan-y select-none overflow-visible lg:touch-none ${dragging ? "cursor-grabbing" : "cursor-grab"}`}
@@ -593,7 +593,7 @@ export default function OriginsMap(props: {
 
         {/* Barra de generaciones */}
         {tabs.length > 0 && (
-          <div className={`pointer-events-none order-3 flex justify-center px-3 py-3 lg:absolute lg:bottom-5 lg:left-0 lg:z-10 lg:p-0 ${listOpen ? "lg:right-[25rem]" : "lg:right-4"}`}>
+          <div className={`pointer-events-none relative z-10 order-3 flex shrink-0 justify-center px-3 py-3 lg:absolute lg:bottom-5 lg:left-0 lg:z-10 lg:p-0 ${listOpen ? "lg:right-[25rem]" : "lg:right-4"}`}>
             <div className="pointer-events-auto flex max-w-full items-stretch gap-2 overflow-x-auto rounded-3xl bg-burdeos p-2 shadow-[0_10px_40px_rgba(0,0,0,0.3)]" role="group" aria-label="Generación">
               {tabs.map((g) => (
                 <button
@@ -615,7 +615,7 @@ export default function OriginsMap(props: {
 
         {/* Lista de comunas / personas de la comuna elegida */}
         {listOpen ? (
-          <aside className="relative z-10 order-4 mx-3 mb-3 flex flex-col overflow-hidden rounded-3xl bg-white shadow-[0_10px_40px_rgba(0,0,0,0.12)] lg:absolute lg:bottom-5 lg:right-4 lg:top-5 lg:m-0 lg:w-[24rem]">
+          <aside className="relative z-10 order-4 mx-3 mb-3 flex min-h-[18rem] flex-col overflow-hidden rounded-3xl bg-white shadow-[0_10px_40px_rgba(0,0,0,0.12)] lg:absolute lg:bottom-5 lg:right-4 lg:top-5 lg:m-0 lg:w-[24rem]">
             {sel ? (
               <div ref={listRef} className="min-h-0 flex-1 scroll-mt-4 overflow-y-auto p-5">
                 <button type="button" onClick={() => pick(null)} className={buttonClass("secundario", "!border-transparent !bg-adobe-2 hover:!bg-line")}>
