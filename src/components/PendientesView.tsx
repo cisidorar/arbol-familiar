@@ -93,7 +93,7 @@ export default function PendientesView({
     // izquierda para seguir viendo el pendiente mientras se edita.
     <div className={`mx-auto max-w-[112rem] transition-[padding] duration-300 ${openId ? "lg:pr-[41rem]" : ""}`}>
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
-        <h1 className="zb-titulo al-regla">Pendientes</h1>
+        <h2 className="zb-titulo al-regla">Documentos por revisar</h2>
         <p className="zb-texto text-gris">
           {visible.length === 0
             ? "No hay nada pendiente."

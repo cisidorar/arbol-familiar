@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import PendientesView from "@/components/PendientesView";
+import ResearchTasks from "@/components/ResearchTasks";
+import { listResearchTasks } from "@/lib/data/research-tasks";
 import SectionHeader from "@/components/SectionHeader";
 import { requireAdmin } from "@/lib/auth/session";
 import { listReview } from "@/lib/data/review";
@@ -15,10 +17,11 @@ export const dynamic = "force-dynamic";
  */
 export default async function PendientesPage() {
   const session = await requireAdmin();
-  const [tasks, people, homeId] = await Promise.all([
+  const [tasks, people, homeId, research] = await Promise.all([
     listReview(session.treeId),
     getFamilyChartData(session.treeId),
     getLinkedPersonId(session.user.id),
+    listResearchTasks(session.treeId),
   ]);
 
   return (
@@ -26,6 +29,9 @@ export default async function PendientesPage() {
     <div className="zb album min-h-screen pb-24 text-ink [color-scheme:light]">
       <SectionHeader current="pendientes" />
       <main className="px-4 py-8 sm:px-6 lg:px-10 lg:py-10">
+        <div className="mx-auto max-w-[112rem]">
+          <ResearchTasks groups={research} />
+        </div>
         <PendientesView tasks={tasks} people={people} homeId={homeId} />
       </main>
     </div>
