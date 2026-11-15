@@ -90,6 +90,8 @@ export function canonicalCemetery(text: string, isBurial = false): CemeteryInfo 
   // "Parroquial de Buin" / "Parroquia de Buin", usado en un entierro, es el cementerio parroquial.
   const par = /^parroquia(?:l)? de (.+)$/.exec(norm);
   if (isBurial && par && !looksLikeCemetery(name)) name = `Cementerio Parroquial de ${name.slice(name.toLowerCase().indexOf(" de ") + 4)}`;
+  // Sin "de" ("Parroquial Viña del Mar"): en un entierro también es el cementerio parroquial.
+  else if (isBurial && !par && /^parroquia(l)?\s/.test(norm) && !looksLikeCemetery(name)) name = `Cementerio ${name}`;
 
   if (!looksLikeCemetery(name) && !/^parque /i.test(normName(name))) {
     // El lugar de un entierro, pero sin nombre de cementerio: no se adivina.
