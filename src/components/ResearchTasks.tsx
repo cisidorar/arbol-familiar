@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { setResearchTaskDone } from "@/app/actions/tareas";
 import type { ResearchGroup, ResearchTask } from "@/lib/data/research-tasks";
 import type { ReviewTask } from "@/lib/data/review";
+import type { TaskImage } from "@/lib/data/task-images";
 import PersonPanel from "./PersonPanel";
 import { buttonClass } from "./ui";
 
@@ -93,6 +94,111 @@ function Ayuda({ titulo, children }: { titulo: string; children: React.ReactNode
   );
 }
 
+/** Achica la foto en el navegador (lado mayor 2000 px, JPEG) para que suba rápido y se siga leyendo la letra. */
+async function shrinkImage(file: File): Promise<Blob> {
+  const bmp = await createImageBitmap(file);
+  const scale = Math.min(1, 2000 / Math.max(bmp.width, bmp.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(bmp.width * scale));
+  canvas.height = Math.max(1, Math.round(bmp.height * scale));
+  canvas.getContext("2d")!.drawImage(bmp, 0, 0, canvas.width, canvas.height);
+  bmp.close?.();
+  const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/jpeg", 0.85));
+  if (!blob) throw new Error("no-blob");
+  return blob;
+}
+
+/** Fotos y capturas de lo que se encontró al resolver la tarea (la página de FamilySearch, el acta…). */
+function TaskImages({ taskId, initial }: { taskId: string; initial: TaskImage[] }) {
+  const [images, setImages] = useState<TaskImage[]>(initial);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function upload(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setBusy(true);
+    setErr(null);
+    for (const file of Array.from(files)) {
+      try {
+        let blob: Blob;
+        try {
+          blob = await shrinkImage(file);
+        } catch {
+          throw new Error("No pude leer ese archivo. Prueba con una foto o captura en JPG o PNG.");
+        }
+        const body = new FormData();
+        body.set("task", taskId);
+        body.set("file", blob, "foto.jpg");
+        const res = await fetch("/api/tareas/imagen", { method: "POST", body });
+        const j = await res.json().catch(() => null);
+        if (!res.ok) throw new Error(j?.error ?? "No se pudo subir la foto. Inténtalo otra vez.");
+        setImages((l) => [...l, j.image]);
+      } catch (e) {
+        setErr(e instanceof Error ? e.message : "No se pudo subir la foto.");
+        break;
+      }
+    }
+    setBusy(false);
+  }
+
+  async function remove(id: string) {
+    if (!window.confirm("¿Quitar esta foto? No se puede deshacer.")) return;
+    setErr(null);
+    const res = await fetch(`/api/tareas/imagen?id=${id}`, { method: "DELETE" });
+    if (!res.ok) return setErr("No se pudo quitar la foto. Inténtalo otra vez.");
+    setImages((l) => l.filter((x) => x.id !== id));
+  }
+
+  return (
+    <div className="mt-3">
+      {images.length > 0 && (
+        <ul className="mb-2 flex flex-wrap gap-2">
+          {images.map((im) => (
+            <li key={im.id} className="relative">
+              <a href={`/api/tareas/imagen?id=${im.id}`} target="_blank" rel="noopener noreferrer" aria-label="Ver la foto grande">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`/api/tareas/imagen?id=${im.id}&v=${im.version}`}
+                  alt={im.by ? `Foto subida por ${im.by}` : "Foto subida"}
+                  loading="lazy"
+                  className="h-24 w-24 rounded-xl border-2 border-line object-cover"
+                />
+              </a>
+              <button
+                type="button"
+                onClick={() => remove(im.id)}
+                aria-label="Quitar esta foto"
+                className="absolute -right-2 -top-2 flex h-8 w-8 items-center justify-center rounded-full border-2 border-line bg-white text-base font-bold"
+              >
+                ×
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <label className={`${buttonClass("secundario", "!min-h-11 !px-4 !py-1")} cursor-pointer ${busy ? "pointer-events-none opacity-60" : ""}`}>
+        {busy ? "Subiendo…" : images.length > 0 ? "Subir otra foto" : "Subir foto de lo que encontraste"}
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          className="sr-only"
+          disabled={busy}
+          onChange={(e) => {
+            const input = e.currentTarget;
+            upload(input.files).finally(() => (input.value = ""));
+          }}
+        />
+      </label>
+      {err && (
+        <p role="alert" className="mt-2 text-base font-bold text-burdeos">
+          {err}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function Card({
   t,
   showGroup,
@@ -101,6 +207,7 @@ function Card({
   onToggle,
   reviewById,
   onOpen,
+  images,
 }: {
   t: Flat;
   showGroup?: boolean;
@@ -109,6 +216,7 @@ function Card({
   onToggle: (id: string, value: boolean) => void;
   reviewById: Record<string, ReviewTask>;
   onOpen: (personId: string) => void;
+  images: TaskImage[];
 }) {
   const reviews = t.eventIds.map((id) => reviewById[id]).filter(Boolean);
   const notes = [...new Set(reviews.map((r) => r.note).filter((n): n is string => !!n))];
@@ -186,6 +294,7 @@ function Card({
             ))}
           </p>
         )}
+        <TaskImages taskId={t.id} initial={images} />
       </div>
     </li>
   );
@@ -205,11 +314,13 @@ export default function ResearchTasks({
   reviewById,
   people,
   homeId,
+  images,
 }: {
   groups: ResearchGroup[];
   reviewById: Record<string, ReviewTask>;
   people: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
   homeId: string | null;
+  images: Record<string, TaskImage[]>;
 }) {
   const router = useRouter();
   const [view, setView] = useState<View>("plan");
@@ -248,7 +359,7 @@ export default function ResearchTasks({
   const next = family.find((t) => !done[t.id]);
 
   const card = (t: Flat, extra?: { showGroup?: boolean; featured?: boolean }) => (
-    <Card key={t.id} t={t} checked={!!done[t.id]} onToggle={toggle} reviewById={reviewById} onOpen={setOpenId} {...extra} />
+    <Card key={t.id} t={t} checked={!!done[t.id]} onToggle={toggle} reviewById={reviewById} onOpen={setOpenId} images={images[t.id] ?? []} {...extra} />
   );
 
   const tab = (k: View, label: string, n: number) => (

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import PendientesView from "@/components/PendientesView";
 import ResearchTasks from "@/components/ResearchTasks";
 import { listResearchTasks } from "@/lib/data/research-tasks";
+import { listTaskImages } from "@/lib/data/task-images";
 import SectionHeader from "@/components/SectionHeader";
 import { requireAdmin } from "@/lib/auth/session";
 import { listReview } from "@/lib/data/review";
@@ -17,11 +18,12 @@ export const dynamic = "force-dynamic";
  */
 export default async function PendientesPage() {
   const session = await requireAdmin();
-  const [tasks, people, homeId, research] = await Promise.all([
+  const [tasks, people, homeId, research, images] = await Promise.all([
     listReview(session.treeId),
     getFamilyChartData(session.treeId),
     getLinkedPersonId(session.user.id),
     listResearchTasks(session.treeId),
+    listTaskImages(session.treeId),
   ]);
 
   // Un hecho marcado que ya es parte de una tarea se muestra dentro de ella, no otra vez abajo.
@@ -46,7 +48,7 @@ export default async function PendientesPage() {
               <span aria-hidden="true">Ir ↓</span>
             </a>
           )}
-          <ResearchTasks groups={research} reviewById={reviewById} people={people} homeId={homeId} />
+          <ResearchTasks groups={research} reviewById={reviewById} people={people} homeId={homeId} images={images} />
         </div>
         {rest.length > 0 && <PendientesView tasks={rest} people={people} homeId={homeId} />}
       </main>
