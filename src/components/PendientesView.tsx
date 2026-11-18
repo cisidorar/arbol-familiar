@@ -91,7 +91,7 @@ export default function PendientesView({
   return (
     // Con la ficha abierta (panel a la derecha), en pantallas anchas la lista se corre a la
     // izquierda para seguir viendo el pendiente mientras se edita.
-    <div className={`mx-auto max-w-[112rem] transition-[padding] duration-300 ${openId ? "lg:pr-[41rem]" : ""}`}>
+    <div id="documentos" className={`mx-auto mt-12 max-w-[112rem] scroll-mt-6 transition-[padding] duration-300 ${openId ? "lg:pr-[41rem]" : ""}`}>
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
         <h2 className="zb-titulo al-regla">Documentos por revisar</h2>
         <p className="zb-texto text-gris">
@@ -100,7 +100,7 @@ export default function PendientesView({
             : visible.length === 1
               ? "1 documento por revisar."
               : `${visible.length} documentos por revisar.`}{" "}
-          Primero los que más pueden responder. Se marcan al <strong>editar</strong> la ficha: en el hecho, elige «Pendiente».
+          Son datos que alguien marcó para confirmarlos con el documento original. Primero los que más pueden responder.
         </p>
       </div>
 

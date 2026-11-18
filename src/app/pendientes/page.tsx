@@ -35,6 +35,17 @@ export default async function PendientesPage() {
       <SectionHeader current="pendientes" />
       <main className="px-4 py-8 sm:px-6 lg:px-10 lg:py-10">
         <div className="mx-auto max-w-[112rem]">
+          {rest.length > 0 && (
+            <a
+              href="#documentos"
+              className="mb-6 flex min-h-12 items-center justify-between gap-3 rounded-2xl border-2 border-trigo bg-trigo/20 px-5 py-2 text-[1.125rem] font-bold"
+            >
+              <span>
+                Además hay {rest.length} {rest.length === 1 ? "documento" : "documentos"} por revisar con su enlace
+              </span>
+              <span aria-hidden="true">Ir ↓</span>
+            </a>
+          )}
           <ResearchTasks groups={research} reviewById={reviewById} people={people} homeId={homeId} />
         </div>
         {rest.length > 0 && <PendientesView tasks={rest} people={people} homeId={homeId} />}
