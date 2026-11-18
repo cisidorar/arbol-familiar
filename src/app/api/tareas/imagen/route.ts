@@ -40,7 +40,9 @@ export async function POST(request: Request) {
   const buf = Buffer.from(await file.arrayBuffer());
   const type = sniffImage(buf);
   if (!type) return NextResponse.json({ error: "Eso no parece una foto (usa JPG, PNG o WebP)." }, { status: 400 });
-  const saved = await saveTaskImage(session.treeId, task, type, buf, { id: session.user.id, name: session.user.name });
+  const rawLink = form?.get("link");
+  const link = typeof rawLink === "string" && /^https?:\/\//i.test(rawLink) && rawLink.length <= 500 ? rawLink : null;
+  const saved = await saveTaskImage(session.treeId, task, type, buf, { id: session.user.id, name: session.user.name }, link);
   if (saved === "no-task") return NextResponse.json({ error: "No se encontró la tarea." }, { status: 404 });
   if (saved === "full") return NextResponse.json({ error: `Esta tarea ya tiene ${MAX_IMAGES_PER_TASK} fotos. Quita alguna para subir otra.` }, { status: 409 });
   return NextResponse.json({ ok: true, image: saved });

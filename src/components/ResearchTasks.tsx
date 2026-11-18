@@ -108,9 +108,24 @@ async function shrinkImage(file: File): Promise<Blob> {
   return blob;
 }
 
-/** Fotos y capturas de lo que se encontró al resolver la tarea (la página de FamilySearch, el acta…). */
-function TaskImages({ taskId, initial }: { taskId: string; initial: TaskImage[] }) {
-  const [images, setImages] = useState<TaskImage[]>(initial);
+/** Un lugar para subir fotos: una por tarea, o una por enlace cuando la tarea tiene dos o más. */
+function ImageSlot({
+  taskId,
+  link,
+  title,
+  images,
+  canAdd,
+  onAdd,
+  onRemove,
+}: {
+  taskId: string;
+  link: string | null;
+  title: string | null;
+  images: TaskImage[];
+  canAdd: boolean;
+  onAdd: (im: TaskImage) => void;
+  onRemove: (id: string) => void;
+}) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -128,11 +143,12 @@ function TaskImages({ taskId, initial }: { taskId: string; initial: TaskImage[] 
         }
         const body = new FormData();
         body.set("task", taskId);
+        if (link) body.set("link", link);
         body.set("file", blob, "foto.jpg");
         const res = await fetch("/api/tareas/imagen", { method: "POST", body });
         const j = await res.json().catch(() => null);
         if (!res.ok) throw new Error(j?.error ?? "No se pudo subir la foto. Inténtalo otra vez.");
-        setImages((l) => [...l, j.image]);
+        onAdd(j.image);
       } catch (e) {
         setErr(e instanceof Error ? e.message : "No se pudo subir la foto.");
         break;
@@ -146,11 +162,12 @@ function TaskImages({ taskId, initial }: { taskId: string; initial: TaskImage[] 
     setErr(null);
     const res = await fetch(`/api/tareas/imagen?id=${id}`, { method: "DELETE" });
     if (!res.ok) return setErr("No se pudo quitar la foto. Inténtalo otra vez.");
-    setImages((l) => l.filter((x) => x.id !== id));
+    onRemove(id);
   }
 
   return (
-    <div className="mt-3">
+    <div className={title ? "rounded-2xl border-2 border-line bg-adobe-2/40 p-3" : ""}>
+      {title && <p className="mb-2 text-base font-bold">{title}</p>}
       {images.length > 0 && (
         <ul className="mb-2 flex flex-wrap gap-2">
           {images.map((im) => (
@@ -176,24 +193,65 @@ function TaskImages({ taskId, initial }: { taskId: string; initial: TaskImage[] 
           ))}
         </ul>
       )}
-      <label className={`${buttonClass("secundario", "!min-h-11 !px-4 !py-1")} cursor-pointer ${busy ? "pointer-events-none opacity-60" : ""}`}>
-        {busy ? "Subiendo…" : images.length > 0 ? "Subir otra foto" : "Subir foto de lo que encontraste"}
-        <input
-          type="file"
-          accept="image/*"
-          multiple
-          className="sr-only"
-          disabled={busy}
-          onChange={(e) => {
-            const input = e.currentTarget;
-            upload(input.files).finally(() => (input.value = ""));
-          }}
-        />
-      </label>
+      {canAdd && (
+        <label className={`${buttonClass("secundario", "!min-h-11 !px-4 !py-1")} cursor-pointer ${busy ? "pointer-events-none opacity-60" : ""}`}>
+          {busy ? "Subiendo…" : images.length > 0 ? "Subir otra foto" : "Subir foto de lo que encontraste"}
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            className="sr-only"
+            disabled={busy}
+            onChange={(e) => {
+              const input = e.currentTarget;
+              upload(input.files).finally(() => (input.value = ""));
+            }}
+          />
+        </label>
+      )}
       {err && (
         <p role="alert" className="mt-2 text-base font-bold text-burdeos">
           {err}
         </p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Fotos y capturas de lo que se encontró al resolver la tarea. Con un enlace o ninguno hay un solo lugar para subir;
+ * con dos o más, cada enlace tiene el suyo, para que cada foto quede con el documento al que corresponde.
+ */
+function TaskImages({ taskId, initial, links }: { taskId: string; initial: TaskImage[]; links: { url: string; label: string }[] }) {
+  const [images, setImages] = useState<TaskImage[]>(initial);
+  const add = (im: TaskImage) => setImages((l) => [...l, im]);
+  const remove = (id: string) => setImages((l) => l.filter((x) => x.id !== id));
+
+  if (links.length < 2) {
+    return (
+      <div className="mt-3">
+        <ImageSlot taskId={taskId} link={null} title={null} images={images} canAdd onAdd={add} onRemove={remove} />
+      </div>
+    );
+  }
+  const urls = new Set(links.map((l) => l.url));
+  const loose = images.filter((im) => !im.link || !urls.has(im.link)); // subidas antes de separar por enlace
+  return (
+    <div className="mt-3 space-y-3">
+      {links.map((l) => (
+        <ImageSlot
+          key={l.url}
+          taskId={taskId}
+          link={l.url}
+          title={`Foto de «${l.label}»`}
+          images={images.filter((im) => im.link === l.url)}
+          canAdd
+          onAdd={add}
+          onRemove={remove}
+        />
+      ))}
+      {loose.length > 0 && (
+        <ImageSlot taskId={taskId} link={null} title="Otras fotos de esta tarea" images={loose} canAdd={false} onAdd={add} onRemove={remove} />
       )}
     </div>
   );
@@ -294,7 +352,14 @@ function Card({
             ))}
           </p>
         )}
-        <TaskImages taskId={t.id} initial={images} />
+        <TaskImages
+          taskId={t.id}
+          initial={images}
+          links={links.map((l) => {
+            const same = links.filter((x) => linkText(x.label) === linkText(l.label));
+            return { url: l.url, label: linkText(l.label) + (same.length > 1 ? ` ${same.indexOf(l) + 1}` : "") };
+          })}
+        />
       </div>
     </li>
   );
