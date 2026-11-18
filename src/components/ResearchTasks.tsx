@@ -8,11 +8,23 @@ import type { ResearchGroup } from "@/lib/data/research-tasks";
  * La lista de investigación, de lo que más desbloquea a lo que menos. Cada tarea se tacha
  * con su casilla; los enlaces abren el documento en FamilySearch.
  */
+const CHANNELS: Record<string, string> = {
+  familysearch: "FamilySearch",
+  registro_civil: "Registro Civil",
+  familia: "Familia",
+  internet: "Internet",
+  app: "Cargar en la app",
+  cuidado: "Cuidado",
+};
+
 export default function ResearchTasks({ groups }: { groups: ResearchGroup[] }) {
   const [done, setDone] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(groups.flatMap((g) => g.tasks.map((t) => [t.id, t.done]))),
   );
   const [error, setError] = useState<string | null>(null);
+  // "todas", "familysearch", "registro_civil" u "otras" (familia, internet, app, cuidado).
+  const [filter, setFilter] = useState<string>("todas");
+  const matches = (c: string) => filter === "todas" || (filter === "otras" ? c !== "familysearch" && c !== "registro_civil" : c === filter);
   const [, start] = useTransition();
 
   function toggle(id: string, value: boolean) {
@@ -46,8 +58,32 @@ export default function ResearchTasks({ groups }: { groups: ResearchGroup[] }) {
         </p>
       )}
 
+      <div className="mt-5 flex flex-wrap gap-2" role="group" aria-label="Dónde se resuelve">
+        {[
+          ["todas", "Todas"],
+          ["familysearch", "FamilySearch"],
+          ["registro_civil", "Registro Civil"],
+          ["otras", "Otras"],
+        ].map(([k, label]) => {
+          const n = groups.reduce((a, g) => a + g.tasks.filter((t) => !done[t.id] && (k === "todas" || (k === "otras" ? t.channel !== "familysearch" && t.channel !== "registro_civil" : t.channel === k))).length, 0);
+          return (
+            <button
+              key={k}
+              type="button"
+              onClick={() => setFilter(k)}
+              aria-pressed={filter === k}
+              className={`min-h-11 rounded-full border-2 px-4 text-[1.0625rem] font-bold ${filter === k ? "border-burdeos bg-burdeos text-white" : "border-line bg-white"}`}
+            >
+              {label} · {n}
+            </button>
+          );
+        })}
+      </div>
+
       {groups.map((g) => {
-        const rest = g.tasks.filter((t) => !done[t.id]).length;
+        const shown = g.tasks.filter((t) => matches(t.channel));
+        if (shown.length === 0) return null;
+        const rest = shown.filter((t) => !done[t.id]).length;
         return (
           <div key={g.rank} className="mt-8">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b-2 border-line pb-3">
@@ -59,7 +95,7 @@ export default function ResearchTasks({ groups }: { groups: ResearchGroup[] }) {
               {g.unlocks && <p className="w-full text-base text-gris">{g.unlocks}</p>}
             </div>
             <ul className="mt-4 grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
-              {g.tasks.map((t) => (
+              {shown.map((t) => (
                 <li
                   key={t.id}
                   className={`flex gap-3 rounded-3xl border-2 border-line bg-white p-4 ${done[t.id] ? "opacity-60" : ""}`}
@@ -72,6 +108,11 @@ export default function ResearchTasks({ groups }: { groups: ResearchGroup[] }) {
                     className="mt-1 h-6 w-6 shrink-0 accent-[var(--color-burdeos,#6e1f2e)]"
                   />
                   <div className="min-w-0">
+                    <p className="mb-1">
+                      <span className={`rounded-full px-2.5 py-0.5 text-base font-bold uppercase tracking-wide ${t.channel === "registro_civil" ? "bg-trigo text-ink" : t.channel === "familysearch" ? "bg-teja text-white" : "bg-adobe-2 text-gris"}`}>
+                        {CHANNELS[t.channel] ?? t.channel}
+                      </span>
+                    </p>
                     <p className={`text-[1.125rem] font-bold leading-snug ${done[t.id] ? "line-through" : ""}`}>{t.title}</p>
                     {t.detail && <p className="mt-1 text-base leading-snug text-gris">{t.detail}</p>}
                     {t.links.length > 0 && (
