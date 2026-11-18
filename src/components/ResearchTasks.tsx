@@ -41,7 +41,7 @@ const CODE = /^[A-Z0-9]{3,5}-[A-Z0-9]{3,5}$/;
 const linkText = (label: string) =>
   label === "Fuente de la marca" ? "Ver el documento" : CODE.test(label) ? `Abrir registro ${label}` : label;
 /** El «Para pedirlo…» se repetía en cada certificado: ahora vive una sola vez en la ayuda. */
-const cleanDetail = (t: ResearchTask) => (t.channel === "registro_civil" ? t.detail.replace(/\s*Para pedirlo:[\s\S]*$/, "") : t.detail).trim();
+const cleanDetail = (t: ResearchTask) => (t.channel === "registro_civil" ? t.detail.replace(/\s*Para pedirlo:[^➜]*/, "") : t.detail).trim();
 
 function RegistroCivilGuide() {
   return (
@@ -120,7 +120,7 @@ function Card({
     ...t.links.map((l) => ({ label: l.label, url: l.url })),
     ...[...sources.keys()].filter((u) => !t.links.some((l) => l.url === u)).map((u) => ({ label: "Fuente de la marca", url: u })),
   ];
-  const detail = cleanDetail(t);
+  const [detail, aviso] = cleanDetail(t).split(/\s*➜\s*/);
   return (
     <li
       className={`flex gap-2 rounded-3xl border-2 bg-white p-4 ${featured ? "border-teja shadow-[0_0_0_3px_rgba(168,67,42,0.2)]" : "border-line"} ${checked ? "opacity-60" : ""}`}
@@ -148,6 +148,7 @@ function Card({
         </p>
         <p className={`${featured ? "text-[1.375rem]" : "text-[1.125rem]"} font-bold leading-snug ${checked ? "line-through" : ""}`}>{t.title}</p>
         {detail && <p className="mt-1 text-base leading-snug text-gris">{detail}</p>}
+        {aviso && <p className="mt-2 rounded-xl border-l-4 border-teja bg-adobe-2 px-3.5 py-2 text-base leading-snug">{aviso}</p>}
         {notes.length > 0 && (
           <details className="group mt-2">
             <summary className="inline-flex min-h-11 cursor-pointer items-center gap-1 text-base font-bold underline decoration-2 underline-offset-4">
