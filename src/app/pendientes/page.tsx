@@ -24,15 +24,20 @@ export default async function PendientesPage() {
     listResearchTasks(session.treeId),
   ]);
 
+  // Un hecho marcado que ya es parte de una tarea se muestra dentro de ella, no otra vez abajo.
+  const linked = new Set(research.flatMap((g) => g.tasks.flatMap((t) => t.eventIds)));
+  const reviewById = Object.fromEntries(tasks.filter((t) => linked.has(t.eventId)).map((t) => [t.eventId, t]));
+  const rest = tasks.filter((t) => !linked.has(t.eventId));
+
   return (
     // Fondo y esquema claro fijos: con el Mac en modo oscuro el texto heredado quedaría casi blanco.
     <div className="zb album min-h-screen pb-24 text-ink [color-scheme:light]">
       <SectionHeader current="pendientes" />
       <main className="px-4 py-8 sm:px-6 lg:px-10 lg:py-10">
         <div className="mx-auto max-w-[112rem]">
-          <ResearchTasks groups={research} />
+          <ResearchTasks groups={research} reviewById={reviewById} people={people} homeId={homeId} />
         </div>
-        <PendientesView tasks={tasks} people={people} homeId={homeId} />
+        {rest.length > 0 && <PendientesView tasks={rest} people={people} homeId={homeId} />}
       </main>
     </div>
   );

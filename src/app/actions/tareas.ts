@@ -18,6 +18,13 @@ export async function setResearchTaskDone(id: string, done: boolean): Promise<{ 
       where id = $1 and tree_id = $2`,
     [id, session.treeId, done],
   );
+  // Los hechos marcados «por revisar» que resuelve la tarea: se quitan del árbol al tacharla.
+  await getPool().query(
+    `update events set needs_review = not $3
+      where tree_id = $2 and id in (select unnest(event_ids) from research_tasks where id = $1)`,
+    [id, session.treeId, done],
+  );
   revalidatePath("/pendientes");
+  revalidatePath("/");
   return {};
 }

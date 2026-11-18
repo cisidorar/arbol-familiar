@@ -11,6 +11,8 @@ export type ResearchTask = {
   done: boolean;
   /** Dónde se resuelve: familysearch, registro_civil, familia, internet, app o cuidado. */
   channel: string;
+  /** Hechos marcados «por revisar» que resuelve esta tarea. */
+  eventIds: string[];
 };
 
 export type ResearchGroup = {
@@ -22,7 +24,7 @@ export type ResearchGroup = {
 
 export async function listResearchTasks(treeId: string): Promise<ResearchGroup[]> {
   const { rows } = await getPool().query(
-    `select id, group_rank, group_label, group_unlocks, title, detail, links, done, channel
+    `select id, group_rank, group_label, group_unlocks, title, detail, links, done, channel, event_ids
        from research_tasks
       where tree_id = $1
       order by group_rank, item_rank`,
@@ -35,7 +37,7 @@ export async function listResearchTasks(treeId: string): Promise<ResearchGroup[]
       g = { rank: r.group_rank, label: r.group_label, unlocks: r.group_unlocks, tasks: [] };
       groups.push(g);
     }
-    g.tasks.push({ id: r.id, title: r.title, detail: r.detail, links: r.links ?? [], done: r.done, channel: r.channel });
+    g.tasks.push({ id: r.id, title: r.title, detail: r.detail, links: r.links ?? [], done: r.done, channel: r.channel, eventIds: r.event_ids ?? [] });
   }
   return groups;
 }
