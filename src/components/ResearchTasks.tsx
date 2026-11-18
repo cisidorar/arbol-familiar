@@ -439,7 +439,9 @@ export default function ResearchTasks({
     </button>
   );
 
-  const fsList = family.filter((t) => t.channel === "familysearch");
+  // «Voy a FamilySearch» muestra solo lo que ya trae un enlace para abrir allá (el de la tarea o el de un documento marcado).
+  const hasLink = (t: Flat) => t.links.length > 0 || t.eventIds.some((id) => !!reviewById[id]?.source);
+  const fsList = family.filter((t) => t.channel === "familysearch" && hasLink(t));
   const rcList = family.filter((t) => t.channel === "registro_civil");
   const casaList = family.filter((t) => t.channel !== "familysearch" && t.channel !== "registro_civil");
 
@@ -493,7 +495,7 @@ export default function ResearchTasks({
 
       <div className="mt-6 flex flex-wrap gap-2" role="group" aria-label="Vista">
         {tab("plan", "Todas", left)}
-        {tab("familysearch", "Voy a FamilySearch", count((t) => t.channel === "familysearch"))}
+        {tab("familysearch", "Voy a FamilySearch", count((t) => t.channel === "familysearch" && hasLink(t)))}
         {tab("registro_civil", "Voy al Registro Civil", count((t) => t.channel === "registro_civil"))}
         {casaList.length > 0 && tab("casa", "En casa o en internet", count((t) => t.channel !== "familysearch" && t.channel !== "registro_civil"))}
       </div>
@@ -551,7 +553,7 @@ export default function ResearchTasks({
       {view === "familysearch" && (
         <div className="mt-6">
           <p className="zb-texto text-gris">
-            Lista para el centro de historia familiar, en orden de impacto. Algunos documentos solo se ven allá; los códigos abren el registro en FamilySearch.
+            Solo lo que trae un enlace para abrir en FamilySearch, en orden de impacto. Lo que aún no tiene enlace está en «Todas».
           </p>
           {warnings.length > 0 && (
             <div className="mt-4">
