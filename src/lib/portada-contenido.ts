@@ -3,7 +3,7 @@
 
 export const PORTADA = {
   /** Fecha de la última vez que se tocó esta lista (texto libre). */
-  actualizado: "9 de noviembre de 2026",
+  actualizado: "19 de noviembre de 2026",
 
   /**
    * La ficha grande de la portada: un hallazgo contado en pocas líneas (sin personas vivas). Se muestra la primera
@@ -27,11 +27,27 @@ export const PORTADA = {
   ],
 
   /**
-   * "Lo último que encontramos": cada entrada (ordenadas por el año del hecho; `cuando` es cuándo lo encontramos) es una
+   * "Lo último que encontramos": cada entrada (las más recientes primero; `cuando` es cuándo lo encontramos) es una
    * historia corta. `personas` nombra a quienes trata, tal como están en el árbol: si alguna es teoría, la entrada no se
    * muestra hasta que se confirme.
    */
   hallazgos: [
+    {
+      anio: "1913",
+      cuando: "Noviembre 2026",
+      titulo: "Juan Balcázar, lejos de los suyos",
+      personas: ["Juan Balcazar Araya"],
+      texto:
+        "Juan Balcázar Araya, hijo de Pabla Araya, murió en Santiago el 27 de agosto de 1913, a los 45 años, de neumonía. El permiso de sepultura lo dice natural de Buin. Lo sepultaron en un nicho perpetuo de un cementerio católico de Santiago, mientras sus padres, su esposa y sus hijas descansan en el cementerio parroquial de Buin. Falta confirmar en cuál cementerio de Santiago está.",
+    },
+    {
+      anio: "1896",
+      cuando: "Noviembre 2026",
+      titulo: "Rosa Elvira y su madre sin nombre",
+      personas: ["Rosa Elvira Canelo Frez"],
+      texto:
+        "La inscripción civil de nacimiento de Rosa Elvira Canelo, del 2 de marzo de 1896, no declara quién era su madre. Su bautizo, diez días después, dice que era hija de José Canelo y Petronila Montesino. Otras actas de 1906 y 1915 siguen los pasos de Petronila, y de a poco se arma la historia de esa familia en Viña del Mar.",
+    },
     {
       anio: "1664",
       cuando: "Noviembre 2026",
