@@ -23,7 +23,7 @@ export default function FotosActas({ fotos, grande = false }: { fotos: Foto[]; g
   if (fotos.length === 0) return null;
   return (
     <>
-      <ul className={grande ? "grid grid-cols-2 gap-3 sm:grid-cols-3" : "mt-2 flex flex-wrap gap-2"}>
+      <ul className={grande ? (fotos.length === 1 ? "grid grid-cols-1 gap-3" : "grid grid-cols-2 gap-3 sm:grid-cols-3") : "mt-2 flex flex-wrap gap-2"}>
         {fotos.map((m) => (
           <li key={m.id}>
             <button type="button" onClick={() => setAbierta(m)} title={m.title ?? undefined} className="block w-full text-left">

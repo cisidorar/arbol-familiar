@@ -3,6 +3,8 @@ import PendientesView from "@/components/PendientesView";
 import ResearchTasks from "@/components/ResearchTasks";
 import { listResearchTasks } from "@/lib/data/research-tasks";
 import { listTaskImages } from "@/lib/data/task-images";
+import FotosPorTranscribir from "@/components/FotosPorTranscribir";
+import { listPhotosToTranscribe } from "@/lib/data/photos-to-transcribe";
 import SectionHeader from "@/components/SectionHeader";
 import { requireAdmin } from "@/lib/auth/session";
 import { listReview } from "@/lib/data/review";
@@ -18,12 +20,13 @@ export const dynamic = "force-dynamic";
  */
 export default async function PendientesPage() {
   const session = await requireAdmin();
-  const [tasks, people, homeId, research, images] = await Promise.all([
+  const [tasks, people, homeId, research, images, fotosSinTranscribir] = await Promise.all([
     listReview(session.treeId),
     getFamilyChartData(session.treeId),
     getLinkedPersonId(session.user.id),
     listResearchTasks(session.treeId),
     listTaskImages(session.treeId),
+    listPhotosToTranscribe(session.treeId),
   ]);
 
   // Un hecho marcado que ya es parte de una tarea se muestra dentro de ella, no otra vez abajo.
@@ -48,7 +51,19 @@ export default async function PendientesPage() {
               <span aria-hidden="true">Ir ↓</span>
             </a>
           )}
+          {fotosSinTranscribir.length > 0 && (
+            <a
+              href="#fotos-por-transcribir"
+              className="mb-6 flex min-h-12 items-center justify-between gap-3 rounded-2xl border-2 border-trigo bg-trigo/20 px-5 py-2 text-[1.125rem] font-bold"
+            >
+              <span>
+                Hay {fotosSinTranscribir.length} {fotosSinTranscribir.length === 1 ? "foto" : "fotos"} de actas por transcribir
+              </span>
+              <span aria-hidden="true">Ir ↓</span>
+            </a>
+          )}
           <ResearchTasks groups={research} reviewById={reviewById} people={people} homeId={homeId} images={images} />
+          <FotosPorTranscribir fotos={fotosSinTranscribir} />
         </div>
         {rest.length > 0 && <PendientesView tasks={rest} people={people} homeId={homeId} />}
       </main>
