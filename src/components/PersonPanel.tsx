@@ -1074,7 +1074,7 @@ export default function PersonPanel({
                   </div>
                 )}
                 {(() => {
-                  const fotos = !person.canReview ? [] : (person.media ?? []).filter((m) => m.original_url?.startsWith("/api/tareas/imagen?id="));
+                  const fotos = !person.canReview ? [] : (person.media ?? []).filter((m) => (m.original_url?.startsWith("/api/fichas/foto?id=") || m.original_url?.startsWith("/api/tareas/imagen?id=")));
                   if (fotos.length === 0) return null;
                   return (
                     <div className="border-b-2 border-adobe-2 px-5 py-4 sm:px-7">
@@ -1214,7 +1214,7 @@ export default function PersonPanel({
             {person && tab === "fuentes" && (
               <div className="px-5 py-6 sm:px-7">
                 {(() => {
-                  const fotos = !person.canReview ? [] : (person.media ?? []).filter((m) => m.original_url?.startsWith("/api/tareas/imagen?id="));
+                  const fotos = !person.canReview ? [] : (person.media ?? []).filter((m) => (m.original_url?.startsWith("/api/fichas/foto?id=") || m.original_url?.startsWith("/api/tareas/imagen?id=")));
                   if (fotos.length === 0) return null;
                   return (
                     <div className="mb-6">
