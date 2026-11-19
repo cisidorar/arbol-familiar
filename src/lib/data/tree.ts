@@ -371,7 +371,7 @@ export async function getPersonDetail(treeId: string, personId: string) {
     : { rows: [] };
 
   const { rows: media } = await getPool().query(
-    `select m.id, m.original_url, m.title, ml.is_primary
+    `select m.id, m.original_url, m.title, m.transcription, ml.is_primary
      from media_links ml join media m on m.id = ml.media_id
      where ml.person_id = $1
      order by ml.is_primary desc`,

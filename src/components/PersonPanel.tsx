@@ -67,7 +67,7 @@ interface PersonDetail {
   canReview?: boolean;
   timeline: TimelineEntry[];
   /** Fotos de actas vinculadas a la persona; solo las ven administradoras, porque la imagen se sirve desde Tareas. */
-  media?: { id: string; original_url: string | null; title: string | null }[];
+  media?: { id: string; original_url: string | null; title: string | null; transcription?: string | null }[];
   /** Uniones en las que es pareja (de ahí salen las parejas para un matrimonio nuevo). */
   familiesAsPartner?: {
     id: string;
