@@ -65,6 +65,8 @@ interface PersonDetail {
   /** Solo administradores: puede marcar hechos «por revisar». */
   canReview?: boolean;
   timeline: TimelineEntry[];
+  /** Fotos de actas vinculadas a la persona; solo las ven administradoras, porque la imagen se sirve desde Tareas. */
+  media?: { id: string; original_url: string | null; title: string | null }[];
   /** Uniones en las que es pareja (de ahí salen las parejas para un matrimonio nuevo). */
   familiesAsPartner?: {
     id: string;
@@ -1071,6 +1073,25 @@ export default function PersonPanel({
                     <p className="mt-1 whitespace-pre-line text-base leading-relaxed text-ink">{person.notes}</p>
                   </div>
                 )}
+                {(() => {
+                  const fotos = !person.canReview ? [] : (person.media ?? []).filter((m) => m.original_url?.startsWith("/api/tareas/imagen?id="));
+                  if (fotos.length === 0) return null;
+                  return (
+                    <div className="border-b-2 border-adobe-2 px-5 py-4 sm:px-7">
+                      <p className="text-base font-bold uppercase tracking-wide text-gris">Fotos de actas</p>
+                      <ul className="mt-2 flex flex-wrap gap-2">
+                        {fotos.map((m) => (
+                          <li key={m.id}>
+                            <a href={m.original_url as string} target="_blank" rel="noopener noreferrer" title={m.title ?? undefined}>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={m.original_url as string} alt={m.title ?? "Foto de un documento"} loading="lazy" className="h-20 w-20 border-2 border-adobe-2 object-cover" />
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                })()}
                 <div className="flex flex-wrap items-center justify-between gap-3 px-5 pb-1 pt-5 sm:px-7">
                   <p className="text-base text-gris">
                     {visibleTimeline.length === 1 ? "1 hecho" : `${visibleTimeline.length} hechos`}
@@ -1192,6 +1213,26 @@ export default function PersonPanel({
 
             {person && tab === "fuentes" && (
               <div className="px-5 py-6 sm:px-7">
+                {(() => {
+                  const fotos = !person.canReview ? [] : (person.media ?? []).filter((m) => m.original_url?.startsWith("/api/tareas/imagen?id="));
+                  if (fotos.length === 0) return null;
+                  return (
+                    <div className="mb-6">
+                      <h3 className="mb-3 text-base font-bold text-ink">Fotos de actas y documentos</h3>
+                      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                        {fotos.map((m) => (
+                          <li key={m.id}>
+                            <a href={m.original_url as string} target="_blank" rel="noopener noreferrer" className="block">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={m.original_url as string} alt={m.title ?? "Foto de un documento"} loading="lazy" className="aspect-[4/3] w-full border-2 border-adobe-2 object-cover" />
+                              <span className="mt-1 block text-sm text-gris">{m.title}</span>
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                })()}
                 {sourcesAll.length === 0 ? (
                   <p className="text-base text-gris">Sin fuentes registradas todavía.</p>
                 ) : (
