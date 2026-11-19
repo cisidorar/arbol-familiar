@@ -1,6 +1,7 @@
 "use client";
 
 import { closeness, closenessLabel, showClosenessLine } from "@/lib/closeness";
+import FotosActas from "./FotosActas";
 import AddParticipant, { type NewParticipantPayload } from "./AddParticipant";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -1079,16 +1080,7 @@ export default function PersonPanel({
                   return (
                     <div className="border-b-2 border-adobe-2 px-5 py-4 sm:px-7">
                       <p className="text-base font-bold uppercase tracking-wide text-gris">Fotos de actas</p>
-                      <ul className="mt-2 flex flex-wrap gap-2">
-                        {fotos.map((m) => (
-                          <li key={m.id}>
-                            <a href={m.original_url as string} target="_blank" rel="noopener noreferrer" title={m.title ?? undefined}>
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img src={m.original_url as string} alt={m.title ?? "Foto de un documento"} loading="lazy" className="h-20 w-20 border-2 border-adobe-2 object-cover" />
-                            </a>
-                          </li>
-                        ))}
-                      </ul>
+                      <FotosActas fotos={fotos} />
                     </div>
                   );
                 })()}
@@ -1219,17 +1211,7 @@ export default function PersonPanel({
                   return (
                     <div className="mb-6">
                       <h3 className="mb-3 text-base font-bold text-ink">Fotos de actas y documentos</h3>
-                      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                        {fotos.map((m) => (
-                          <li key={m.id}>
-                            <a href={m.original_url as string} target="_blank" rel="noopener noreferrer" className="block">
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img src={m.original_url as string} alt={m.title ?? "Foto de un documento"} loading="lazy" className="aspect-[4/3] w-full border-2 border-adobe-2 object-cover" />
-                              <span className="mt-1 block text-sm text-gris">{m.title}</span>
-                            </a>
-                          </li>
-                        ))}
-                      </ul>
+                      <FotosActas fotos={fotos} grande />
                     </div>
                   );
                 })()}
