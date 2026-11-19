@@ -44,7 +44,7 @@ export const PORTADA = {
       anio: "1896",
       cuando: "Noviembre 2026",
       titulo: "Rosa Elvira y su madre sin nombre",
-      personas: ["Rosa Elvira Canelo Frez"],
+      personas: ["Rosa Elvira Canelo"],
       texto:
         "La inscripción civil de nacimiento de Rosa Elvira Canelo, del 2 de marzo de 1896, no declara quién era su madre. Su bautizo, diez días después, dice que era hija de José Canelo y Petronila Montesino. Otras actas de 1906 y 1915 siguen los pasos de Petronila, y de a poco se arma la historia de esa familia en Viña del Mar.",
     },
